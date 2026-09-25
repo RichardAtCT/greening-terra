@@ -21,7 +21,10 @@ var _machines: Dictionary = {}
 var _hub: BuildingView
 var _bay: BuildingView
 var _outfitter: BuildingView
-var _drones: Array[DroneView] = []
+var _drones: DroneSwarm
+var _colony: ColonyView
+var _habitats: Array[BuildingView] = []
+var _debug: DebugOverlay
 var _player_stack: ItemStackView
 var _shown_tf := 0.0
 var _paused := false
@@ -51,8 +54,12 @@ func _ready() -> void:
 	for p in sim.pads:
 		var pv := PadView.new()
 		add_child(pv)
-		pv.setup(p, defs)
+		pv.setup(p)
 		_pads.append(pv)
+	var batch := PadBatch.new()
+	batch.name = "PadBatch"
+	add_child(batch)
+	batch.setup(_pads, defs)
 
 	_flyers = FlyerLayer.new()
 	_flyers.defs = defs
@@ -72,13 +79,31 @@ func _ready() -> void:
 	_player_stack.show_items(sim.state.stack)
 	_stack_count = sim.state.stack.size()
 
+	_drones = DroneSwarm.new()
+	_drones.name = "Drones"
+	add_child(_drones)
+	_drones.setup(defs, sim.planet.max_drones)
 	for d in sim.drones:
-		_add_drone_view(d)
+		_drones.add(d)
+	_colony = ColonyView.new()
+	_colony.name = "Colony"
+	add_child(_colony)
+	_colony.setup(sim)
+	_debug = DebugOverlay.new()
+	_debug.name = "Debug"
+	add_child(_debug)
+	_debug.setup(sim, _hud)
 
 	sim.item_flew.connect(_on_item_flew)
 	sim.stack_changed.connect(_on_stack_changed)
 	sim.node_dug.connect(_on_node_dug)
-	sim.drone_added.connect(_add_drone_view)
+	sim.drone_added.connect(_drones.add)
+	sim.lander_coming.connect(func(): Audio.play(&"lander"))
+	sim.lander_landed.connect(func(_n):
+		_colony.landed()
+		Audio.play(&"land"))
+	sim.food_stored.connect(func(_item): Audio.play(&"food"))
+	sim.hazard_changed.connect(_on_hazard_changed)
 	EventBus.planet_won.connect(_on_won)
 	EventBus.credits_earned.connect(_on_credits)
 	EventBus.purchased.connect(_on_purchased)
@@ -124,12 +149,14 @@ func _process(delta: float) -> void:
 		pv.visible = vis
 		pv.set_near(vis and Vector2(p.x, p.z).distance_to(pv.info.position) < defs.tuning.pad_radius)
 	_update_buildings()
-	for dv in _drones:
-		dv.update_view(dt)
+	_drones.update_view(dt)
+	_colony.update_view(dt)
 
 	_shown_tf += (sim.state.terraform - _shown_tf) * minf(1.0, dt * defs.terraform.display_rate)
-	_terraform.apply(_shown_tf, dt, false, p)
+	var storm := HazardDirector.intensity(sim)
+	_terraform.apply(_shown_tf, dt, false, p, storm)
 	Audio.set_terraform(_shown_tf)
+	Audio.set_storm(storm)
 
 	var step := Tutorial.current(sim.tutorial_steps(), sim.state)
 	_guide.update_guide(step != null and step.has_target, step.target if step else Vector2.ZERO, Vector2(p.x, p.z), dt)
@@ -206,11 +233,9 @@ func _on_item_flew(item: StringName, from: Vector3, to: Vector3) -> void:
 	_flyers.launch(item, from, to)
 
 
-func _add_drone_view(d: DroneBrain.Drone) -> void:
-	var dv := DroneView.new()
-	add_child(dv)
-	dv.setup(d, defs)
-	_drones.append(dv)
+func _on_hazard_changed(phase: HazardDirector.Phase) -> void:
+	if phase == HazardDirector.Phase.WARNING:
+		Audio.play(&"warning")
 
 
 func _build_nodes(rng: RandomNumberGenerator) -> void:
@@ -241,6 +266,12 @@ func _build_buildings() -> void:
 	_outfitter = BuildingView.new()
 	add_child(_outfitter)
 	_outfitter.setup(preload("res://scenes/buildings/outfitter.tscn"), planet.outfitter_position, planet.outfitter_collide_radius, 3.2, 4.2)
+	for pos in planet.habitat_positions:
+		var hv := BuildingView.new()
+		add_child(hv)
+		hv.setup(preload("res://scenes/buildings/habitat.tscn"), pos, planet.habitat_collide_radius, 2.9, 3.4)
+		hv.add_ghost(Vector3(2.8, 1.4, 2.4))
+		_habitats.append(hv)
 
 
 func _update_buildings() -> void:
@@ -295,9 +326,39 @@ func _update_buildings() -> void:
 	var boots_cost := Economy.upgrade_cost(defs.boots_upgrade, s.boots_level)
 	_outfitter.label.set_text("Outfitter", "Pack %s · Boots %s" % [
 		"max" if pack_cost < 0 else "₵%d" % pack_cost, "max" if boots_cost < 0 else "₵%d" % boots_cost])
+	_update_habitats()
 	var pay := sim.planet.pay_multiplier
 	_hub.label.set_text("Colony Hub", "×%.1f pay" % pay if s.planet_index > 0 else "sells plates, O₂, pods", Color("86e07c"))
 	_hub.set_glow(0.4 + 0.6 * (1.0 if sin(_time * 3.0) > 0.0 else 0.0))
+
+
+func _update_habitats() -> void:
+	var s := sim.state
+	var planet := sim.planet
+	var cap := defs.colony.habitat_capacity
+	for i in _habitats.size():
+		var hv := _habitats[i]
+		var key := Colony.habitat_key(i)
+		var built := s.is_built(key)
+		# A habitat shows up (as a ghost) once it can be built: the first one waits for the first lander.
+		var offered := built or i == 0 or s.is_built(Colony.habitat_key(i - 1))
+		hv.visible = offered
+		if not offered:
+			continue
+		hv.set_built(built)
+		if built:
+			# Only the built ones' residents count here, in build order.
+			var k := 0
+			for h in i:
+				if s.is_built(Colony.habitat_key(h)):
+					k += 1
+			var living := clampi(s.meals.size() - k * cap, 0, cap)
+			hv.label.set_text("Habitat", "%d/%d home" % [living, cap], Color("86e07c"))
+			hv.set_glow(0.35 + 0.4 * float(living) / cap)
+		elif i == 0:
+			hv.label.set_text("Habitat", "first lander at %d%%" % roundi(planet.lander_milestones[0]) if not planet.lander_milestones.is_empty() else "")
+		else:
+			hv.label.set_text("Habitat", "₵ %d / %d" % [s.paid.get(StringName("build_" + key), 0), planet.habitat_costs[i]])
 
 
 func _setup_web_visibility_save() -> void:

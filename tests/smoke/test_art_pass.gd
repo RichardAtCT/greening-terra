@@ -93,12 +93,28 @@ func test_late_game_fits_draw_call_budget() -> void:
 	s.terraform = 100.0
 	for i in 20:
 		s.stack.append([&"regolith", &"plate", &"o2", &"seedpod"][i % 4])
+	# M4: the whole colony (every habitat, every colonist, a few hungry), a lander on its way down
+	# and a dust storm blowing, which never all happen at once in play.
+	var planet := GameState.defs.planet(0)
+	for i in planet.habitat_positions.size():
+		s.built[Colony.habitat_key(i)] = true
+	s.landers = planet.lander_milestones.size() - 1
+	s.lander_t = 2.0
+	for i in (planet.lander_milestones.size() - 1) * planet.colonists_per_lander:
+		s.meals.append(0.0 if i % 4 == 0 else 60.0)
+	s.colonists_waiting = planet.colonists_per_lander
+	s.hazard_phase = HazardDirector.Phase.ACTIVE
+	s.hazard_t = 20.0
 	GameState.start(s)
 	var world: Node3D = load("res://scenes/world/planet.tscn").instantiate()
 	add_child_autofree(world)
 	await wait_process_frames(3)
 	for i in 50:
 		world._process(0.1)
+	# Give every hauler cargo, so each cargo MultiMesh is in use.
+	for d in GameState.sim.drones:
+		d.cargo.assign([&"plate", &"o2", &"seedpod", &"regolith"].slice(0, 1 + d.index % 4))
+	world._process(0.1)
 	var calls := _count_surfaces(world)
 	gut.p("late-game drawables (before culling): %d" % calls)
 	assert_lt(calls, DRAW_CALL_BUDGET)

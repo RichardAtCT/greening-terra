@@ -25,6 +25,7 @@ var crater_mat: StandardMaterial3D
 var _lakes: Array[MeshInstance3D] = []
 var _lake_radius: Array[float] = []
 var _dust_mat: ShaderMaterial
+var _drift := Vector2.ZERO
 var _layers: Array[Dictionary] = []
 
 
@@ -88,17 +89,25 @@ func build(p_defs: GameDefs, p_planet: PlanetDef, rng: RandomNumberGenerator) ->
 
 
 ## Applies the look for terraform % t. snap = jump straight there (on load) instead of growing.
-func apply(t: float, delta: float, snap: bool, player_pos: Vector3) -> void:
+## storm (0..1, HazardDirector.intensity) darkens the sky during a hazard's warning, then brings in
+## the hazard's thick coloured fog and driving dust while it's on.
+func apply(t: float, delta: float, snap: bool, player_pos: Vector3, storm := 0.0) -> void:
 	var tf := defs.terraform
 	var k := t / 100.0
+	var h := planet.hazard
+	var dark := storm if h else 0.0
+	# 0 during the warning, rising to 1 as the hazard itself arrives.
+	var thick := clampf(inverse_lerp(h.warning_darken, 1.0, storm), 0.0, 1.0) if h and storm > 0.0 else 0.0
 	var sky := TerraformMath.sky_color(tf, planet, t)
-	environment.background_color = sky
-	environment.fog_light_color = sky
-	environment.fog_depth_begin = tf.fog_near + tf.fog_near_gain * k
-	environment.fog_depth_end = tf.fog_far + tf.fog_far_gain * k
+	if h:
+		sky = sky.lerp(h.dark_color, dark * 0.6)
+	environment.background_color = sky.lerp(h.fog_color * 0.8, thick * 0.7) if h else sky
+	environment.fog_light_color = sky.lerp(h.fog_color, thick) if h else sky
+	environment.fog_depth_begin = lerpf(tf.fog_near + tf.fog_near_gain * k, h.fog_near if h else 0.0, thick)
+	environment.fog_depth_end = lerpf(tf.fog_far + tf.fog_far_gain * k, h.fog_far if h else 0.0, thick)
 	var hemi := sky.lerp(Color.WHITE, 0.5) * (tf.ambient_energy + tf.ambient_energy_gain * k)
 	environment.ambient_light_color = Color(hemi.r + 0.18, hemi.g + 0.18, hemi.b + 0.18)
-	sun.light_energy = tf.sun_energy + tf.sun_energy_gain * k
+	sun.light_energy = (tf.sun_energy + tf.sun_energy_gain * k) * (1.0 - 0.45 * dark)
 	var ground := planet.ground_start.lerp(planet.ground_end, k)
 	ground_mat.set_shader_parameter("ground_tint", ground)
 	ground_mat.set_shader_parameter("moss_reach", moss_reach(tf, t))
@@ -106,7 +115,11 @@ func apply(t: float, delta: float, snap: bool, player_pos: Vector3) -> void:
 	ground_mat.set_shader_parameter("moss_cover", lerpf(tf.ground_moss_cover_min, tf.ground_moss_cover_max, cover))
 	rock_mat.albedo_color = planet.ground_start * tf.rock_darken
 	crater_mat.albedo_color = ground * tf.rock_darken
-	_dust_mat.set_shader_parameter("opacity", tf.dust_opacity * maxf(0.0, 1.0 - t / tf.dust_gone_at))
+	var dust := tf.dust_opacity * maxf(0.0, 1.0 - t / tf.dust_gone_at)
+	_dust_mat.set_shader_parameter("opacity", lerpf(dust, h.dust_opacity, thick) if h else dust)
+	var wind := tf.dust_wind.lerp(h.dust_wind, thick) if h else tf.dust_wind
+	_drift = (_drift + wind * delta).posmod(40.0)
+	_dust_mat.set_shader_parameter("drift", _drift)
 	_dust_mat.set_shader_parameter("color", planet.ground_start.lerp(Color.WHITE, 0.45))
 	_dust_mat.set_shader_parameter("center", player_pos)
 	var ls := TerraformMath.lake_scale(tf, t)

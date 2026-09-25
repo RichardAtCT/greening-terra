@@ -6,7 +6,8 @@ extends SceneTree
 ## --scene=res://scenes/ui/title.tscn renders another scene instead of the planet.
 ## --zoom=0.4 moves the camera closer; --face=90 turns the astronaut.
 ## --win=25 opens the win screen 25 frames before the shot (confetti in the air).
-## Uses throwaway profile 97, so real saves are untouched.
+## M4 state: --colonists=6 --hungry=1 --waiting=2 --food=5 --lander=2.5 --storm=on|warn --storm-t=20 --debug=1
+## (see below). Uses throwaway profile 97, so real saves are untouched.
 
 func _init() -> void:
 	var args := {}
@@ -30,6 +31,24 @@ func _init() -> void:
 	for i in int(args.get("carry", "0")):
 		s.stack.append([&"regolith", &"plate", &"o2", &"seedpod"][i % 4] if args.get("mixed", "") != "" else &"regolith")
 	s.tutorial_step = int(args.get("step", "0"))
+	# M4: --colonists=N housed (habitats built to fit), --hungry=N of them, --waiting=N at the pad,
+	# --lander=T (seconds from touchdown), --storm=warn|on (with --storm-t=seconds left), --food=N.
+	var pdef := defs.planet(s.planet_index)
+	var colonists := int(args.get("colonists", "0"))
+	for i in ceili(colonists / 4.0):
+		s.built[StringName("habitat_%d" % (i + 1))] = true
+	for i in colonists:
+		s.meals.append(0.0 if i < int(args.get("hungry", "0")) else 60.0)
+	s.landers = mini(ceili(colonists / 2.0), pdef.lander_milestones.size())
+	s.colonists_waiting = int(args.get("waiting", "0"))
+	s.food = float(args.get("food", "0"))
+	if args.has("lander"):
+		s.lander_t = float(args.lander)
+	if args.has("storm"):
+		s.hazard_phase = 1 if args.storm == "warn" else 2
+		s.hazard_t = float(args.get("storm-t", "4" if args.storm == "warn" else "20"))
+	if args.has("debug"):
+		root.get_node("SaveManager").settings["debug_overlay"] = true
 	gs.start(s)
 	var planet: Node = load(args.get("scene", "res://scenes/world/planet.tscn")).instantiate()
 	root.add_child(planet)

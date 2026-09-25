@@ -29,6 +29,23 @@ var node_stock: PackedInt32Array = []
 var node_respawn: PackedFloat32Array = []
 var player_position: Vector2 = Vector2(0, 7)
 
+## Colony (SPEC 4.1). Landers that have come down, and seconds left on the one descending (-1: none).
+var landers: int = 0
+var lander_t: float = -1.0
+## Colonists who arrived with no habitat space, waiting at the hub.
+var colonists_waiting: int = 0
+## One entry per housed colonist: seconds until their next meal (0 = hungry).
+var meals: PackedFloat32Array = []
+## Meals in the hub's food store.
+var food: float = 0.0
+
+## Hazard (SPEC 4.2): HazardDirector.Phase, seconds left in it, seconds until the next warning
+## (-1: not scheduled), and how many have passed.
+var hazard_phase: int = 0
+var hazard_t: float = 0.0
+var hazard_wait: float = -1.0
+var hazard_count: int = 0
+
 
 func stat(key: StringName) -> int:
 	return stats.get(key, 0)
@@ -70,6 +87,15 @@ func to_dict() -> Dictionary:
 		"node_stock": Array(node_stock),
 		"node_respawn": Array(node_respawn),
 		"player_position": [player_position.x, player_position.y],
+		"landers": landers,
+		"lander_t": lander_t,
+		"colonists_waiting": colonists_waiting,
+		"meals": Array(meals),
+		"food": food,
+		"hazard_phase": hazard_phase,
+		"hazard_t": hazard_t,
+		"hazard_wait": hazard_wait,
+		"hazard_count": hazard_count,
 	}
 
 
@@ -96,6 +122,15 @@ static func from_dict(d: Dictionary) -> WorldState:
 	s.node_respawn = PackedFloat32Array(d.get("node_respawn", []))
 	var pp: Array = d.get("player_position", [0, 7])
 	s.player_position = Vector2(float(pp[0]), float(pp[1]))
+	s.landers = int(d.get("landers", 0))
+	s.lander_t = float(d.get("lander_t", -1.0))
+	s.colonists_waiting = int(d.get("colonists_waiting", 0))
+	s.meals = PackedFloat32Array(d.get("meals", []))
+	s.food = float(d.get("food", 0.0))
+	s.hazard_phase = int(d.get("hazard_phase", 0))
+	s.hazard_t = float(d.get("hazard_t", 0.0))
+	s.hazard_wait = float(d.get("hazard_wait", -1.0))
+	s.hazard_count = int(d.get("hazard_count", 0))
 	return s
 
 

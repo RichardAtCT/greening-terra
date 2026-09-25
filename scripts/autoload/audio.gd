@@ -18,6 +18,7 @@ var _birds: AudioStreamPlayer
 var _chirps: Array[AudioStreamWAV] = []
 var _rng := RandomNumberGenerator.new()
 var _terraform := 0.0
+var _storm := 0.0
 var _ambience_on := false
 var _time := 0.0
 var _bird_wait := 0.0
@@ -82,6 +83,11 @@ func set_terraform(t: float) -> void:
 	_terraform = t
 
 
+## How strong the planet's hazard is right now (0..1): a dust storm howls the wind up.
+func set_storm(amount: float) -> void:
+	_storm = amount
+
+
 func _process(delta: float) -> void:
 	if not _ambience_on:
 		return
@@ -102,5 +108,6 @@ func _process(delta: float) -> void:
 func _apply_wind() -> void:
 	var k := clampf(_terraform / 100.0, 0.0, 1.0)
 	var gust := sin(_time * TAU * def.wind_gust_rate) * 0.6 + sin(_time * TAU * def.wind_gust_rate * 2.7 + 1.3) * 0.4
-	_wind.volume_db = lerpf(def.wind_volume_db_start, def.wind_volume_db_end, k) + gust * def.wind_gust_db * 0.5
-	_wind.pitch_scale = lerpf(def.wind_pitch_start, def.wind_pitch_end, k) * (1.0 + gust * 0.04)
+	_wind.volume_db = lerpf(def.wind_volume_db_start, def.wind_volume_db_end, k) + gust * def.wind_gust_db * 0.5 \
+		+ _storm * def.wind_storm_db
+	_wind.pitch_scale = lerpf(def.wind_pitch_start, def.wind_pitch_end, k) * (1.0 + gust * 0.04) + _storm * def.wind_storm_pitch

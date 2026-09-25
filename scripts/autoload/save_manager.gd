@@ -5,14 +5,14 @@ extends Node
 
 signal profiles_changed
 
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 const PROFILE_COUNT := 3
 const EXPORT_PREFIX := "GT1:"
 const PROFILES_PATH := "user://profiles.json"
 const SETTINGS_PATH := "user://settings.json"
 const DEFAULT_NAMES := ["Explorer 1", "Explorer 2", "Explorer 3"]
 const COLORS := ["f2b35b", "86e07c", "8fe3ff", "d9794a", "c9a0ff", "ff8fb1"]
-const DEFAULT_SETTINGS := {"music_volume": 0.8, "sfx_volume": 0.9, "haptics": true, "reduced_effects": false}
+const DEFAULT_SETTINGS := {"music_volume": 0.8, "sfx_volume": 0.9, "haptics": true, "reduced_effects": false, "debug_overlay": false}
 
 var active_profile: int = 1
 ## Profile index (1-based) -> {"name": String, "color": String hex}.
@@ -67,6 +67,18 @@ static func migrate(data: Dictionary) -> Dictionary:
 	if version < 1:
 		# v0 (pre-release) saves had no version field; the world layout is the same.
 		version = 1
+	if version < 2:
+		# v2 (M4) adds the colony and hazard fields. Landers for milestones already passed arrive
+		# one after another once the game loads, so an old save catches up on its colonists.
+		var w: Dictionary = data["world"]
+		for key in ["landers", "colonists_waiting", "hazard_phase", "hazard_count"]:
+			w[key] = 0
+		w["lander_t"] = -1.0
+		w["hazard_t"] = 0.0
+		w["hazard_wait"] = -1.0
+		w["meals"] = []
+		w["food"] = 0.0
+		version = 2
 	data["version"] = version
 	return data
 

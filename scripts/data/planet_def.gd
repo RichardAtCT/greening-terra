@@ -38,10 +38,25 @@ extends Resource
 @export var outfitter_collide_radius: float = 1.5
 @export var pack_pad_offset: Vector2 = Vector2(-1.4, 2.9)
 @export var boots_pad_offset: Vector2 = Vector2(1.4, 2.9)
+## Habitats (SPEC 4.1): positions, build costs (the first is free and built by the first lander)
+## and where each one's BUILD pad sits.
+@export var habitat_positions: Array[Vector2] = [Vector2(-6, 10.5), Vector2(6, 10.5), Vector2(-3, 15)]
+@export var habitat_costs: PackedInt32Array = [0, 120, 240]
+@export var habitat_pad_offset: Vector2 = Vector2(0, 2.7)
+@export var habitat_collide_radius: float = 1.5
+## Where landers touch down.
+@export var lander_position: Vector2 = Vector2(6.5, 4.5)
 ## Lakes as (x, z, radius).
 @export var lakes: Array[Vector3] = []
 ## Areas kept clear of decoration, as (x, z, radius).
 @export var clear_zones: Array[Vector3] = []
+
+@export_group("Colony")
+## A lander arrives as terraform passes each of these %.
+@export var lander_milestones: PackedFloat32Array = [10, 25, 40, 55, 70, 85]
+@export var colonists_per_lander: int = 2
+## Null for no hazard.
+@export var hazard: HazardDef
 
 @export_group("Balance")
 ## Target minutes to reach 100% (min, max), checked by tools/balance_sim.gd.

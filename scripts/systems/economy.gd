@@ -36,14 +36,22 @@ static func terraform_gain(item: ItemDef, planet: PlanetDef) -> float:
 	return item.terraform_value / planet.terraform_divisor
 
 
-## Sells one item at the hub. Returns false if it can't be sold.
-static func deliver(state: WorldState, item: ItemDef, planet: PlanetDef) -> bool:
+## Delivers one item to the hub. Food goes into the hub's store while it holds less than
+## food_target meals (SPEC 4.1); everything else sellable is sold. Either way the item's terraform
+## value counts. Returns the credits paid, or -1 if the item can't be delivered.
+static func deliver(state: WorldState, item: ItemDef, planet: PlanetDef, food_target := 0.0) -> float:
 	if item == null or not item.is_sellable():
-		return false
-	state.credits += payout(item, planet)
+		return -1.0
+	var credits := 0.0
+	if item.food_value > 0.0 and state.food < food_target:
+		state.food += item.food_value
+		state.add_stat(&"food_stored")
+	else:
+		credits = payout(item, planet)
+		state.credits += credits
 	state.terraform = minf(100.0, state.terraform + terraform_gain(item, planet))
 	state.add_stat(&"delivered")
-	return true
+	return credits
 
 
 static func accepts(state: WorldState, machine: MachineDef, item: StringName) -> bool:
@@ -101,12 +109,13 @@ static func has_inputs(state: WorldState, machine: MachineDef) -> bool:
 	return true
 
 
-## Advances one machine by dt. Returns how many items finished this step (0 or 1).
-static func step_machine(state: WorldState, machine: MachineDef, dt: float) -> int:
+## Advances one machine by dt, running `speed` times as fast (colonists working it).
+## Returns how many items finished this step (0 or 1).
+static func step_machine(state: WorldState, machine: MachineDef, dt: float, speed := 1.0) -> int:
 	var produced := 0
 	var left: float = state.busy.get(machine.id, 0.0)
 	if left > 0.0:
-		left -= dt
+		left -= dt * speed
 		if left <= 0.0:
 			left = 0.0
 			state.outputs[machine.id] = state.outputs.get(machine.id, 0) + 1

@@ -32,6 +32,8 @@ extends Resource
 @export var dust_opacity: float = 0.6
 ## Dust fades out completely at this terraform %.
 @export var dust_gone_at: float = 40.0
+## Calm-weather drift of the dust motes (x, z metres per second).
+@export var dust_wind: Vector2 = Vector2(1.4, 0.4)
 @export var lake_start: float = 25.0
 @export var lake_span: float = 40.0
 ## How fast the displayed terraform % catches up with the real one.

@@ -11,6 +11,7 @@ extends Resource
 @export var boots_upgrade: UpgradeDef
 @export var drone_upgrade: UpgradeDef
 @export var juice: JuiceTuning
+@export var colony: ColonyTuning
 
 
 func item(id: StringName) -> ItemDef:

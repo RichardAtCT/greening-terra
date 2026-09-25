@@ -28,6 +28,25 @@ extends Resource
 @export var icon_spin: float = 1.2
 @export var icon_bob: float = 0.05
 
+@export_group("Colonists")
+## Walking: a bouncy waddle (bob height in metres, steps per second in radians, sway in radians).
+@export var colonist_bob: float = 0.07
+@export var colonist_step_rate: float = 11.0
+@export var colonist_sway: float = 0.14
+## Working: a nod towards the machine.
+@export var colonist_work_rate: float = 5.0
+@export var colonist_work_lean: float = 0.16
+## The food icon over a hungry colonist's head.
+@export var hungry_icon_height: float = 1.55
+@export var hungry_icon_scale: float = 1.3
+
+@export_group("Lander")
+## It starts this high and eases down over ColonyTuning.lander_descent_time.
+@export var lander_drop_height: float = 24.0
+## Seconds to climb away again after its stay.
+@export var lander_liftoff_time: float = 3.0
+@export var lander_puff_amount: int = 36
+
 @export_group("Win")
 @export var confetti_amount: int = 160
 @export var confetti_lifetime: float = 3.2

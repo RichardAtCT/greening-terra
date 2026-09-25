@@ -76,7 +76,7 @@ func _celebrate() -> void:
 		return
 	_pop_t = 0.0
 	if _puff == null:
-		_puff = _make_puff()
+		_puff = make_puff(GameState.defs.juice.puff_amount, 1.8)
 		add_child(_puff)
 	_puff.restart()
 
@@ -96,17 +96,18 @@ func _process(delta: float) -> void:
 	model.scale = Vector3(w, s, w)
 
 
-func _make_puff() -> CPUParticles3D:
+## A one-shot ring of dust (buildings finishing, landers touching down). Call restart() to fire it.
+static func make_puff(amount: int, ring_radius: float) -> CPUParticles3D:
 	var p := CPUParticles3D.new()
 	p.emitting = false
 	p.one_shot = true
-	p.amount = GameState.defs.juice.puff_amount
+	p.amount = amount
 	p.lifetime = 0.9
 	p.explosiveness = 0.95
 	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
 	p.emission_ring_axis = Vector3.UP
-	p.emission_ring_radius = 1.8
-	p.emission_ring_inner_radius = 1.2
+	p.emission_ring_radius = ring_radius
+	p.emission_ring_inner_radius = ring_radius * 0.67
 	p.emission_ring_height = 0.1
 	p.direction = Vector3(0, 1, 0)
 	p.spread = 70.0

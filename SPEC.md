@@ -48,8 +48,8 @@ Each planet adds one new resource, one or two new machines, one hazard, and a di
 ### Planet 1: Tessera-4 (rust desert)
 - **Resources:** Regolith (rust rock), Ice (blue crystal).
 - **Machines:** Smelter (regolith → plate), Electrolyser (ice → O₂), Greenhouse (plate + O₂ → seedpod).
-- **Terraform values:** plate 0.018%, O₂ 0.045%, seedpod 0.08%. The prototype's values (0.15 / 0.4 / 1.6) finished the planet in about 5 minutes; these were tuned with the balance sim for a ~29-minute greedy run. Credits are unchanged: plate ₵2, O₂ ₵3, seedpod ₵9.
-- **Hazard: dust storm.** Every 4–6 minutes after 15% terraform. Lasts 30 s, with thick orange fog and a wind sound. Player speed −30%, drones −40%. Telegraphed 10 s ahead by a HUD warning and darkening sky. Frequency falls as terraform rises and storms stop at 60%.
+- **Terraform values:** plate 0.0135%, O₂ 0.034%, seedpod 0.06%. The prototype's values (0.15 / 0.4 / 1.6) finished the planet in about 5 minutes; these were tuned with the balance sim for a ~30-minute greedy run, including colonists speeding up the machines. Credits are unchanged: plate ₵2, O₂ ₵3, seedpod ₵9.
+- **Hazard: dust storm.** Every 4–6 minutes after 15% terraform. Lasts 30 s, with thick orange fog, driving dust and a louder wind. Player speed −30%, drones −40%. Telegraphed 10 s ahead by a HUD warning (with a bong) and a darkening sky. Frequency falls as terraform rises (the gap grows up to 1.5× by 60%) and storms stop at 60%.
 - **Look:** maroon haze → pink dusk → blue sky; rust ground → ochre; lakes from 25%; lichen spreading out from the hub from ~15%; forests from 55%.
 - **Target duration:** 25–35 minutes.
 
@@ -86,13 +86,14 @@ Planets 2 and 3 exist as re-skins of Planet 1: the prototype's palettes and its 
 
 ### 4.1 Colonists
 - Landers arrive at the hub at terraform milestones (10%, 25%, 40%, 55%, 70%, 85%). Each brings 2 colonists: 12 per planet.
-- Colonists auto-assign to built machines, a maximum of 2 per machine. Each assigned colonist makes the machine 25% faster. They walk there visibly and stand working beside it.
-- **Food:** each colonist eats 1 seedpod (or biomass on P3) every 90 s, taken from the hub's stock. A hungry colonist idles and shows a small icon but never leaves or dies. The player feeds them by delivering food as normal. The hub keeps a food store, shown in the HUD, that deliveries top up before converting the surplus to credits. Food priority: the hub keeps enough food for 5 minutes and sells the rest.
-- **Habitats:** optional build pads near the hub. Each raises the colonist cap by 4. Build Habitat 1 by default when the first lander arrives.
-- Colonists are simple: capsule characters, walk-to-target, no pathfinding beyond Godot NavigationAgent3D on a flat baked mesh.
+- Landers come one at a time: a lander appears as terraform passes a milestone and touches down 5 s later on a landing pad east of the hub. A save from before colonists existed catches up, one lander after another.
+- Colonists auto-assign to built machines, a maximum of 2 per machine, spread one per machine before doubling up. Each working colonist makes the machine 25% faster. They walk there visibly and stand working beside it. The rest are off duty and stroll near their habitat.
+- **Food:** each colonist eats 1 seedpod (or biomass on P3) every 90 s, taken from the hub's stock. A hungry colonist stops working and shows a small pod icon but never leaves or dies. The player feeds them by delivering food as normal. The hub keeps a food store, shown in the HUD, that deliveries top up before converting the surplus to credits. Food priority: the hub keeps enough food for 5 minutes and sells the rest. A pod that goes into the store still adds its terraform %.
+- **Habitats:** three plots near the hub, each housing 4. Habitat 1 is built free by the first lander; the others are BUILD pads (₵120, ₵240), each offered once the one before it stands. Colonists with no room wait by the landing pad and move in when a habitat is built.
+- Colonists are simple: Kenney Mini Characters, walk-to-target in straight lines that slide round buildings (the ground is flat and every obstacle is a circle, so there's no navmesh).
 
 ### 4.2 Hazards
-Common hazard framework: `HazardDef` (start %, end %, interval range, duration, telegraph time, effects). The HUD shows an incoming-hazard banner with an icon and countdown. All effects are temporary slow-downs or repairs, never loss of items or credits.
+Common hazard framework: `HazardDef` (start %, end %, interval range and growth, duration, telegraph time, effects, look), run by `HazardDirector`. The HUD shows an incoming-hazard banner with an icon and countdown, then how long is left. All effects are temporary slow-downs or repairs, never loss of items or credits. The random gaps are seeded from the planet and the hazard count, so saves and the balance sim repeat exactly.
 
 ### 4.3 Planet bonuses
 When a planet reaches 100%, the player picks 1 of 3 random bonuses from a pool. Bonuses are permanent for the save.
@@ -115,10 +116,11 @@ When a planet reaches 100%, the player picks 1 of 3 random bonuses from a pool. 
 
 ### 4.5 Drone routing
 Replace the prototype's fixed modulo assignment with a small dispatcher:
-- Each tick, idle drones pick the highest-scoring job. The score is urgency (target input queue low, source output nearly full) minus travel distance.
+- Each tick, idle drones pick the highest-scoring job. The score is urgency (target input queue low, source output nearly full) minus travel distance, plus a bonus for how full a hold the job fills and for carrying goods on to another machine rather than selling them. The weights are in `GameTuning`.
 - Jobs: node → machine input, machine output → machine input, machine output → hub.
-- Reservations stop two drones chasing the same 3 items.
-- A debug overlay (toggle with a key) draws each drone's current job as a line.
+- Reservations stop two drones chasing the same 3 items. They're read off the drones themselves (items still to pick up, items on the way), so they can't go stale.
+- Drones with nothing to do hover by the Drone Bay and ask again every tick.
+- A debug overlay (F3 or the backtick key, or "Debug overlay" in Settings) draws each drone's current job as a line, coloured by kind, with a panel of fps, draw calls, jobs, colony and hazard state.
 
 ---
 
@@ -156,10 +158,10 @@ res://
     items/ machines/ planets/ upgrades/   # plus game_tuning.tres, terraform.tres, *_tuning.tres
   scenes/
     world/         # planet root, terrain, terraform controller
-    actors/        # player, drone, colonist
+    actors/        # player, drone swarm, colony (colonists and lander)
     buildings/     # machine (generic), hub, drone bay, outfitter, habitat, heat tower
-    pads/          # in, out, pay, deliver
-    ui/            # hud, title, star map, bonus picker, settings
+    pads/          # pad view, pad batch (slabs and icons)
+    ui/            # hud, title, settings, debug overlay (later: star map, bonus picker)
   scripts/
     autoload/      # GameState, SaveManager, EventBus, DisplayScale, Audio
     data/          # Resource class definitions (ItemDef, PlanetDef, ...)
@@ -177,20 +179,22 @@ reference/greening-tessera-prototype.html
 Scene-specific scripts sit next to their scene (for example `scenes/actors/player.gd`). Everything in `scripts/systems/` is free of scene access, so tests and the balance sim can run it headless.
 
 ### 7.3 Data model (custom Resources)
-- `GameDefs` (`data/game.tres`): the root. Holds the items, planets, upgrades, `GameTuning`, `TerraformDef`, `PlayerTuning` and `JuiceTuning`.
+- `GameDefs` (`data/game.tres`): the root. Holds the items, planets, upgrades, `GameTuning`, `TerraformDef`, `PlayerTuning`, `JuiceTuning` and `ColonyTuning`.
 - `ItemDef`: id, display name, short pad label, colour, emissive, shape, stack height, sell value (0 = raw, can't be sold), terraform value, food value.
 - `RecipeDef`: inputs {item: count}, output item, time.
 - `MachineDef`: id, name, recipe, build cost, starts built, position, scene, footprint, collision radius, label height, pad offsets, IN pad colour and label, queue cap (20), output cap (40). *(Level-2 cost to come with SPEC 4.4.)*
 - `ResourceNodeDef`: item, max stock, positions, drone idle point, look (colour and a baked mesh it tints).
-- `PlanetDef`: name, seed, palette (sky start/mid/end, ground start/end, moss, water deep/shallow), pay multiplier, terraform divisor, hub/depot/bay/outfitter layout, machines, resource nodes, lakes, clear zones, tutorial, win text, balance target minutes and `balance_enforced`. *(Hazard, milestones and vegetation set to come in M4/M5.)*
+- `PlanetDef`: name, seed, palette (sky start/mid/end, ground start/end, moss, water deep/shallow), pay multiplier, terraform divisor, hub/depot/bay/outfitter layout, machines, resource nodes, lakes, clear zones, habitat plots and costs, landing pad, lander milestones and colonists per lander, hazard, tutorial, win text, balance target minutes and `balance_enforced`. *(Vegetation set to come in M5.)*
 - `UpgradeDef`: cost = round((base + step × level) × growth^level), max level, amount per level. Used for pack, boots and haulers.
 - `TutorialDef` → `TutorialStep` (text, marker target, `TutorialCondition`s that complete it, "keep saving" text for a pay pad).
-- `GameTuning`: transfer, dig and pay intervals, radii, respawn time, drone speed, capacity and waits, fly time, autosave interval.
+- `GameTuning`: transfer, dig and pay intervals, radii, respawn time, drone speed, capacity and waits, dispatcher weights, fly time, autosave interval.
+- `ColonyTuning` (`data/colony_tuning.tres`): lander descent and stay, machine boost, colonists per machine, walking speed and work spots, meal interval, food reserve, habitat capacity.
+- `HazardDef` (`data/hazards/dust_storm.tres`): see 4.2, plus the look (sky darkening, fog, dust).
 - `TerraformDef`: stage names and limits, pressure and temperature formulas, and how % maps to sky, fog, light, lakes, dust, the ground-moss front, moss patches, grass, flowers and trees.
 - `PlayerTuning`, `CameraTuning` (including the build-complete nudge), `JoystickTuning`.
-- `JuiceTuning` (`data/juice.tres`): stack pop, pick-up pitch climb, building pop and dust puff, pad icon size and motion, confetti.
-- `AudioDef` (`data/audio.tres`) → `SoundDef`s (variations, volume, pitch jitter, minimum repeat interval), plus the wind and birdsong levels.
-- *(To come: `BonusDef`, `HazardDef`.)*
+- `JuiceTuning` (`data/juice.tres`): stack pop, pick-up pitch climb, building pop and dust puff, pad icon size and motion, colonist waddle and work nod, hungry icon, lander drop and lift-off, confetti.
+- `AudioDef` (`data/audio.tres`) → `SoundDef`s (variations, volume, pitch jitter, minimum repeat interval), plus the wind (and its storm boost) and birdsong levels.
+- *(To come: `BonusDef`.)*
 
 Resource scripts declare the prototype's values as defaults. Godot leaves unchanged values out of `.tres` files, so edit them in the Inspector.
 
@@ -201,8 +205,9 @@ Planet layouts can be authored as scenes with marker nodes (plots, nodes, lakes)
 - **GameSim** (`scripts/systems/game_sim.gd`): all the rules for one planet: mining, pads, paying, machines, drones, tutorial, win. Its state is a serialisable `WorldState` (credits, terraform %, stack, queues, built flags, paid amounts, drones, upgrades, stats, nodes). The planet scene feeds it the player's position each frame and draws what it reports.
 - **Economy:** pure functions for costs, payouts, feeding, machine cycles and pay chunks, so the balance sim and tests can call them without scenes.
 - **TerraformController:** maps terraform % to shader uniforms (ground tint, frost amount, water level, haze density and colour) and to vegetation MultiMesh instance thresholds. The spread pattern radiates out from the hub, with a threshold per instance, as in the prototype.
-- **Dispatcher:** drone job scoring (see 4.5). Until M4, `DroneBrain` uses the prototype's fixed routing (`index % routes`).
-- **HazardDirector:** schedules, telegraphs and applies hazard effects.
+- **Dispatcher:** drone job scoring and reservations (see 4.5). `DroneBrain` flies each drone's job.
+- **Colony:** landers, habitats, colonist work assignment and walking, food.
+- **HazardDirector:** schedules, telegraphs and applies hazard effects; `intensity()` drives the look.
 
 ### 7.5 Balance simulator (important)
 `tools/balance_sim.gd` runs headless (`godot --headless --script tools/balance_sim.gd`). It simulates each planet with:
@@ -210,11 +215,11 @@ Planet layouts can be authored as scenes with marker nodes (plots, nodes, lakes)
 - drones and colonists running the real Economy and Dispatcher code;
 - accelerated time.
 
-It prints a table of time to each milestone (first build, drone bay, greenhouse, 25/50/75/100%) and fails if any enforced planet falls outside its target duration (`PlanetDef.target_minutes`) by more than 20%. Run it after any balance change. `--scale-tf` and `--scale-machine-time` try changes in memory without editing data.
+It prints a table of time to each milestone (first build, drone bay, greenhouse, 25/50/75/100%) and fails if any enforced planet falls outside its target duration (`PlanetDef.target_minutes`) by more than 20%. It also reports colonists housed and waiting, habitats, pods stored as food, time spent hungry and hazards. Run it after any balance change. `--scale-tf` and `--scale-machine-time` try changes in memory without editing data; `--no-colony` and `--no-hazard` show what each M4 system does to the pace.
 
 ### 7.6 Testing
 Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as failures.
-- Unit tests for Economy (costs, payouts, recipe consumption), SaveManager (round-trip and migration), and Dispatcher (no double-reservation, no idle drone while a job exists).
+- Unit tests for Economy (costs, payouts, recipe consumption, food), SaveManager (round-trip and migration), Dispatcher (no double-reservation, no idle drone while a job exists), Colony (landers, habitats, work, food) and the dust storm.
 - A smoke test that loads each planet scene headless for 60 simulated seconds without errors.
 
 ### 7.7 Build & deploy
@@ -241,9 +246,9 @@ Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as 
 | M0 | Pipeline | Empty Godot project exports to web, deploys to itch.io with butler, and opens full-screen from the iPhone Home Screen with touch input working. **Do this first.** | Built and merged. itch.io push and iPhone check still to do by hand. |
 | M1 | Prototype parity | Planet 1 with the full prototype loop: dig, stack, 3 machines, hub, pay pads, drone bay, outfitter, basic drones, terraform visuals, tutorial steps. Holds 60 fps on iPhone. | Built. 60 fps on iPhone not yet measured. |
 | M2 | Data + saves + sim | All numbers in data resources; 3 profiles; autosave and export/import; balance sim reports P1 in 25–35 min. | Built. Balance sim: P1 in 29 min. |
-| M3 | Planet 1 art pass | Real models, terraform shaders, audio, juice. Looks like a finished game on one planet. | Built. Late game about 143 drawables before culling; 60 fps on iPhone not yet measured. |
-| M4 | Colonists + hazards + dispatcher | Landers, colonists and food; dust storm; dispatcher replaces modulo routing; debug overlay. | Next. |
-| M5 | Planets 2 & 3 + star map + bonuses | Full 3-planet campaign playable end to end; bonus picker; balance sim passes for all three. | |
+| M3 | Planet 1 art pass | Real models, terraform shaders, audio, juice. Looks like a finished game on one planet. | Built. 60 fps on iPhone not yet measured. |
+| M4 | Colonists + hazards + dispatcher | Landers, colonists and food; dust storm; dispatcher replaces modulo routing; debug overlay. | Built. Balance sim: P1 in 30 min. Worst-case late game 131 drawables before culling. New sounds not yet heard. |
+| M5 | Planets 2 & 3 + star map + bonuses | Full 3-planet campaign playable end to end; bonus picker; balance sim passes for all three. | Next. |
 | M6 | Polish | Settings, reduced-effects mode, onboarding tuned so a young child can get to the first build unaided, performance pass, and a final family playtest. | Settings panel (volumes, vibration, fewer effects) already exists. |
 
 ---
@@ -256,4 +261,5 @@ Ads, in-app purchases, analytics, accounts, cloud saves, leaderboards, multiplay
 - Should drones need recharging at the bay, as a light extra loop?
 - On P3, does toxicity capping terraform feel good, or should toxicity just slow terraform gains?
 - Free-play revisit of completed planets: keep or drop?
-- Draw-call headroom: late-game Planet 1 counts 143 of the 150 budget before frustum culling. M4's colonists and landers need either culling-aware measurement on a device or more merging (e.g. one MultiMesh per item type for all pad icons, or one merged mesh for all drones).
+- Idle colonists: on Planet 1 only six of the twelve colonists have a machine to work (two per machine). Machine level-2 pads, or a job at the habitats, would give the rest something to do.
+- Storm frequency for a child: the greedy bot sees one or two storms per planet. A slower player sees more (they're timed in minutes, not %). Check that it doesn't feel nagging.

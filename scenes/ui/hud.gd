@@ -23,6 +23,12 @@ var _credits: Label
 var _credits_panel: PanelContainer
 var _pack: Label
 var _pack_count: Label
+var _colony_panel: PanelContainer
+var _food: Label
+var _people: Label
+var _banner: PanelContainer
+var _banner_icon: HazardIcon
+var _banner_text: Label
 var _menu_button: Button
 var _hint_panel: PanelContainer
 var _hint_step: Label
@@ -48,6 +54,7 @@ func _ready() -> void:
 	_build_top()
 	_build_hint()
 	_build_toast()
+	_build_banner()
 	_menu = _build_menu()
 	_win = _build_win()
 	get_viewport().size_changed.connect(_apply_safe_area)
@@ -78,6 +85,8 @@ func update_hud(sim: GameSim, shown_tf: float, delta: float) -> void:
 	var cap := sim.pack_capacity()
 	_pack_count.text = "%d/%d" % [sim.state.stack.size(), cap]
 	_pack_count.add_theme_color_override("font_color", UiStyle.RUST if sim.state.stack.size() >= cap else UiStyle.INK)
+	_update_colony(sim)
+	_update_banner(sim)
 	_hint_step.text = Tutorial.step_label(sim)
 	_hint_text.text = Tutorial.hint_text(sim)
 	if _pulse_t > 0.0:
@@ -95,6 +104,45 @@ func update_hud(sim: GameSim, shown_tf: float, delta: float) -> void:
 		_menu_stats.delivered.text = str(sim.state.stat(&"delivered"))
 		_menu_stats.pack.text = str(cap)
 		_menu_stats.boots.text = "+%d%%" % roundi(sim.state.boots_level * sim.defs.boots_upgrade.amount_per_level * 100.0)
+		_menu_stats.colonists.text = str(sim.state.meals.size() + sim.state.colonists_waiting)
+		_menu_stats.food.text = str(floori(sim.state.food))
+
+
+## Food store and colonists (top right), once the first lander has come.
+func _update_colony(sim: GameSim) -> void:
+	var s := sim.state
+	var people := s.meals.size() + s.colonists_waiting
+	_colony_panel.visible = people > 0
+	if people == 0:
+		return
+	var hungry := Colony.hungry_count(sim)
+	_food.text = str(floori(s.food))
+	_food.add_theme_color_override("font_color", UiStyle.RUST if hungry > 0 else (UiStyle.GREEN if s.food >= Colony.food_target(sim) else UiStyle.INK))
+	if hungry > 0:
+		_people.text = "%d hungry" % hungry
+		_people.add_theme_color_override("font_color", UiStyle.RUST)
+	elif s.colonists_waiting > 0:
+		_people.text = "%d · %d wait" % [s.meals.size(), s.colonists_waiting]
+		_people.add_theme_color_override("font_color", UiStyle.AMBER)
+	else:
+		_people.text = "%d colonists" % people
+		_people.add_theme_color_override("font_color", UiStyle.MUTE)
+
+
+## The hazard banner: a warning with a countdown, then how long is left.
+func _update_banner(sim: GameSim) -> void:
+	var h := sim.planet.hazard
+	var s := sim.state
+	var phase := s.hazard_phase if h else HazardDirector.Phase.NONE
+	_banner.visible = phase != HazardDirector.Phase.NONE
+	if not _banner.visible:
+		return
+	var warn := phase == HazardDirector.Phase.WARNING
+	var color := UiStyle.AMBER if warn else UiStyle.RUST
+	_banner_text.text = "%s · %d" % [h.warning_text if warn else h.active_text, ceili(s.hazard_t)]
+	_banner_text.add_theme_color_override("font_color", color)
+	_banner_icon.color = color
+	_banner_icon.spin = 0.0 if warn else 1.0
 
 
 func show_toast(text: String) -> void:
@@ -177,7 +225,8 @@ func _apply_safe_area() -> void:
 	_root.add_theme_constant_override("margin_right", int(_safe.y) + 16)
 	_root.add_theme_constant_override("margin_left", int(_safe.w) + 16)
 	_hint_panel.offset_bottom = -(_safe.z + 16.0)
-	_toast.offset_top = _safe.x + 120.0
+	_toast.offset_top = _safe.x + 184.0
+	_banner.offset_top = _safe.x + 136.0
 	var w := get_viewport_rect().size.x
 	(_planet.get_parent().get_parent() as Control).custom_minimum_size.x = minf(270.0, w * 0.6)
 	_hint_panel.offset_left = maxf(16.0, (w - 440.0) * 0.5)
@@ -265,6 +314,27 @@ func _build_top() -> void:
 	pack_row.add_child(_pack)
 	_pack_count = UiStyle.label("0/8", UiStyle.MONO_SEMI, 12, UiStyle.INK)
 	pack_row.add_child(_pack_count)
+	_colony_panel = PanelContainer.new()
+	_colony_panel.add_theme_stylebox_override("panel", UiStyle.panel())
+	_colony_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_colony_panel.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_colony_panel.visible = false
+	right.add_child(_colony_panel)
+	var colony_col := VBoxContainer.new()
+	colony_col.add_theme_constant_override("separation", 2)
+	colony_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_colony_panel.add_child(colony_col)
+	var food_row := HBoxContainer.new()
+	food_row.add_theme_constant_override("separation", 6)
+	food_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	food_row.alignment = BoxContainer.ALIGNMENT_END
+	colony_col.add_child(food_row)
+	food_row.add_child(UiStyle.label("Food", UiStyle.MONO, 12, UiStyle.MUTE))
+	_food = UiStyle.label("0", UiStyle.MONO_SEMI, 12, UiStyle.INK)
+	food_row.add_child(_food)
+	_people = UiStyle.label("", UiStyle.MONO, 11, UiStyle.MUTE)
+	_people.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	colony_col.add_child(_people)
 	_menu_button = UiStyle.button("MENU")
 	_menu_button.add_theme_font_size_override("font_size", 13)
 	for state in ["normal", "hover", "pressed", "focus"]:
@@ -321,6 +391,53 @@ func _build_hint() -> void:
 	row.add_child(_hint_text)
 
 
+func _build_banner() -> void:
+	_banner = PanelContainer.new()
+	_banner.add_theme_stylebox_override("panel", UiStyle.panel(999, 14, 7))
+	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_banner.anchor_left = 0.5
+	_banner.anchor_right = 0.5
+	_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_banner.offset_top = 136
+	_banner.visible = false
+	add_child(_banner)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_banner.add_child(row)
+	_banner_icon = HazardIcon.new()
+	_banner_icon.custom_minimum_size = Vector2(20, 20)
+	row.add_child(_banner_icon)
+	_banner_text = UiStyle.label("", UiStyle.DISPLAY, 15, UiStyle.AMBER)
+	row.add_child(_banner_text)
+
+
+## Three gusting wind lines, so the banner reads without reading.
+class HazardIcon:
+	extends Control
+	var color := UiStyle.AMBER
+	## 0: still (warning), 1: blowing.
+	var spin := 0.0
+	var _t := 0.0
+
+	func _process(delta: float) -> void:
+		if is_visible_in_tree():
+			_t += delta * (1.0 + 3.0 * spin)
+			queue_redraw()
+
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		for i in 3:
+			var y := h * (0.25 + 0.25 * i)
+			var pts := PackedVector2Array()
+			var len := w * (0.95 - 0.2 * absf(i - 1.0))
+			for k in 9:
+				var x := len * k / 8.0
+				pts.append(Vector2(x, y + sin(x * 0.45 + _t * 4.0 + i) * 1.6))
+			draw_polyline(pts, color, 2.0, true)
+
+
 func _build_toast() -> void:
 	_toast = PanelContainer.new()
 	_toast.add_theme_stylebox_override("panel", UiStyle.panel(999, 14, 8))
@@ -372,7 +489,7 @@ func _build_menu() -> Control:
 	grid.add_theme_constant_override("h_separation", 8)
 	grid.add_theme_constant_override("v_separation", 8)
 	col.add_child(grid)
-	for key in ["drones", "delivered", "pack", "boots"]:
+	for key in ["drones", "delivered", "pack", "boots", "colonists", "food"]:
 		var cell := PanelContainer.new()
 		var st := UiStyle.panel(8, 8, 8, Color(0, 0, 0, 0))
 		cell.add_theme_stylebox_override("panel", st)
@@ -380,7 +497,7 @@ func _build_menu() -> Control:
 		var v := VBoxContainer.new()
 		v.add_theme_constant_override("separation", 2)
 		cell.add_child(v)
-		var names := {"drones": "Drones", "delivered": "Delivered", "pack": "Pack size", "boots": "Boots"}
+		var names := {"drones": "Drones", "delivered": "Delivered", "pack": "Pack size", "boots": "Boots", "colonists": "Colonists", "food": "Food store"}
 		v.add_child(UiStyle.label(names[key], UiStyle.MONO, 12, UiStyle.MUTE))
 		var val := UiStyle.label("0", UiStyle.MONO_SEMI, 17, UiStyle.INK)
 		v.add_child(val)

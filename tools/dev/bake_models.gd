@@ -11,7 +11,9 @@ extends SceneTree
 ##
 ## Part keys: src (path under assets/models, no extension), scale (float or Vector3), pos, rot (deg, Y),
 ## nodes (only these mesh nodes), colors ({material name: Color}), glass ({material name: Color with alpha}),
-## mesh + color (a procedural mesh instead of a GLB).
+## mesh + color (a procedural mesh instead of a GLB), stack (true: sit on top of the parts so far).
+## Textured materials (Mini Characters' colour atlas) are sampled at each vertex's UV, so they bake
+## into vertex colours like everything else.
 
 const MODELS := "res://assets/models/"
 const MESHES := "res://assets/meshes/"
@@ -32,6 +34,11 @@ const PALETTE := {
 	"metalRed": Color("e39a4a"),
 }
 
+## Mini Characters used for colonists, one MultiMesh (draw call) each.
+const COLONISTS := ["female-b", "female-e", "male-a", "male-b"]
+## About two thirds of the astronaut's height.
+const COLONIST_SCALE := 1.5
+
 var _count := 0
 
 
@@ -39,6 +46,7 @@ func _init() -> void:
 	_bake_actors()
 	_bake_nature()
 	_bake_buildings()
+	_bake_colony()
 	print("baked %d meshes" % _count)
 	quit()
 
@@ -162,6 +170,30 @@ func _bake_buildings() -> void:
 	_save_scene(of, "outfitter")
 
 
+# --- Colony (M4) --------------------------------------------------------------------------
+
+func _bake_colony() -> void:
+	# Rigged characters, posed from their idle animation's first frame (arms down).
+	for c in COLONISTS:
+		_save_mesh("colonist_" + c, [{"src": "characters/character-" + c, "scale": COLONIST_SCALE, "pose": "idle"}])
+
+	# A small rocket on landing legs; faces +Z like everything else.
+	_save_mesh("lander", [
+		{"src": "space/rocket_baseA", "scale": 1.5},
+		# The fuel tank sits down inside the base's landing legs.
+		{"src": "space/rocket_fuelA", "scale": 1.5, "pos": Vector3(0, 1.3, 0)},
+		{"src": "space/rocket_topA", "scale": 1.5, "pos": Vector3(0, 1.3 + 0.72, 0)},
+	])
+
+	var habitat := _save_mesh("habitat", [
+		{"src": "space/hangar_smallB", "scale": Vector3(1.2, 1.3, 1.2)},
+		{"src": "space/satelliteDish_large", "scale": 0.55, "pos": Vector3(0.35, 1.22, -0.45), "rot": 200},
+	])
+	var hab := _root("Habitat", habitat)
+	_glow(hab, "Glow", _quad(0.5, 0.3), Color("ffd98a"), 0.6, Vector3(0, 1.15, 1.2))
+	_save_scene(hab, "habitat")
+
+
 # --- Merging -----------------------------------------------------------------------------
 
 func _with(base: Dictionary, extra: Dictionary) -> Dictionary:
@@ -175,10 +207,21 @@ func _save_mesh(mesh_name: String, parts: Array) -> ArrayMesh:
 	var solid := _Bucket.new()
 	var glass := _Bucket.new()
 	for part in parts:
+		if part.get("stack", false):
+			var top := 0.0
+			for v in solid.verts:
+				top = maxf(top, v.y)
+			part = _with(part, {"pos": part.get("pos", Vector3.ZERO) + Vector3(0, top, 0)})
 		if part.has("mesh"):
 			_add_arrays(solid, part.mesh.surface_get_arrays(0), part.get("xform", Transform3D.IDENTITY), part.color)
 			continue
 		var src: Node3D = load(MODELS + part.src + ".glb").instantiate()
+		if part.has("pose"):
+			# Rigged models (Mini Characters) are bound in a T-pose: pose the skeleton first.
+			root.add_child(src)
+			var ap: AnimationPlayer = src.find_children("*", "AnimationPlayer", true, false)[0]
+			ap.play(part.pose)
+			ap.seek(0.0, true)
 		var meshes := _mesh_nodes(src)
 		var box := _bounds(meshes)
 		var recentre := Transform3D(Basis(), -Vector3(box.get_center().x, box.position.y, box.get_center().z))
@@ -193,14 +236,24 @@ func _save_mesh(mesh_name: String, parts: Array) -> ArrayMesh:
 			if not only.is_empty() and not only.has(String(mi.name)):
 				continue
 			var xf: Transform3D = place * recentre * entry[1]
+			var skel := mi.get_node_or_null(mi.skeleton) as Skeleton3D if mi.skin else null
+			if skel and part.has("pose"):
+				xf = place * recentre * _relative(src, skel)
 			for si in mi.mesh.get_surface_count():
 				var mat := mi.get_active_material(si) as BaseMaterial3D
 				var mat_name := mat.resource_name if mat else ""
+				var arrays := mi.mesh.surface_get_arrays(si)
+				if skel and part.has("pose"):
+					arrays = _posed(arrays, mi.skin, skel)
 				if glass_map.has(mat_name):
-					_add_arrays(glass, mi.mesh.surface_get_arrays(si), xf, glass_map[mat_name])
+					_add_arrays(glass, arrays, xf, glass_map[mat_name])
+				elif mat and mat.albedo_texture:
+					_add_arrays(solid, arrays, xf, mat.albedo_color, _atlas(mat.albedo_texture))
 				else:
 					var c: Color = colors.get(mat_name, PALETTE.get(mat_name, mat.albedo_color if mat else Color.WHITE))
-					_add_arrays(solid, mi.mesh.surface_get_arrays(si), xf, c)
+					_add_arrays(solid, arrays, xf, c)
+		if src.is_inside_tree():
+			root.remove_child(src)
 		src.free()
 	var mesh := ArrayMesh.new()
 	mesh.resource_name = mesh_name
@@ -235,17 +288,73 @@ class _Bucket:
 		mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
 
 
-func _add_arrays(b: _Bucket, arrays: Array, xf: Transform3D, color: Color) -> void:
+## Surface arrays skinned into the skeleton's current pose (in skeleton space).
+func _posed(arrays: Array, skin: Skin, skel: Skeleton3D) -> Array:
+	var binds: Array[Transform3D] = []
+	for i in skin.get_bind_count():
+		var bone := skin.get_bind_bone(i)
+		if bone < 0:
+			bone = skel.find_bone(skin.get_bind_name(i))
+		binds.append(skel.get_bone_global_pose(bone) * skin.get_bind_pose(i))
+	var v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var n: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
+	var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
+	var per := bones.size() / v.size()
+	var out_v := PackedVector3Array()
+	var out_n := PackedVector3Array()
+	for i in v.size():
+		var pv := Vector3.ZERO
+		var pn := Vector3.ZERO
+		for k in per:
+			var w := weights[i * per + k]
+			if w <= 0.0:
+				continue
+			var t := binds[bones[i * per + k]]
+			pv += (t * v[i]) * w
+			pn += (t.basis * n[i]) * w
+		out_v.append(pv)
+		out_n.append(pn.normalized())
+	var out := arrays.duplicate()
+	out[Mesh.ARRAY_VERTEX] = out_v
+	out[Mesh.ARRAY_NORMAL] = out_n
+	return out
+
+
+func _relative(root_node: Node, node: Node3D) -> Transform3D:
+	var xf := node.transform
+	var p := node.get_parent()
+	while p != null and p != root_node:
+		xf = (p as Node3D).transform * xf
+		p = p.get_parent()
+	return xf
+
+
+## A texture as a readable image for sampling colours.
+func _atlas(tex: Texture2D) -> Image:
+	var img := tex.get_image()
+	if img.is_compressed():
+		img.decompress()
+	return img
+
+
+func _add_arrays(b: _Bucket, arrays: Array, xf: Transform3D, color: Color, atlas: Image = null) -> void:
 	var v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	var n = arrays[Mesh.ARRAY_NORMAL]
 	var idx = arrays[Mesh.ARRAY_INDEX]
+	var uv = arrays[Mesh.ARRAY_TEX_UV] if atlas else null
 	var nb := xf.basis.inverse().transposed()
 	var mirrored := xf.basis.determinant() < 0.0
 	var base := b.verts.size()
 	for i in v.size():
 		b.verts.append(xf * v[i])
 		b.normals.append((nb * n[i]).normalized() if n != null else Vector3.UP)
-		b.colors.append(color)
+		if uv != null:
+			var px := Vector2i(clampi(int(fposmod(uv[i].x, 1.0) * atlas.get_width()), 0, atlas.get_width() - 1),
+				clampi(int(fposmod(uv[i].y, 1.0) * atlas.get_height()), 0, atlas.get_height() - 1))
+			b.colors.append(atlas.get_pixelv(px) * color)
+		else:
+			b.colors.append(color)
 	var list := PackedInt32Array()
 	if idx == null or (idx as PackedInt32Array).is_empty():
 		for i in v.size():

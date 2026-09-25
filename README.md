@@ -38,7 +38,9 @@ tools/godot/godot --headless --script tools/balance_sim.gd -- --planets=0   # Pl
 
 A greedy scripted player (`scripts/systems/bot_player.gd`) plays each planet on the real `GameSim` in accelerated time. It prints the time to each milestone (first build, drone bay, greenhouse, 25/50/75/100%). It exits with code 1 if an enforced planet misses its `target_minutes` (set in its `PlanetDef`) by more than 20%. Run it after every balance change.
 
-To try a change without editing data, pass `--scale-tf=0.8` (terraform value per item) or `--scale-machine-time=1.2`. These change the loaded data in memory only.
+It also prints a colony line: colonists housed and waiting, habitats, pods stored as food, how much of the colonists' time was spent hungry, and how many hazards came.
+
+To try a change without editing data, pass `--scale-tf=0.8` (terraform value per item) or `--scale-machine-time=1.2`. `--no-colony` (no landers) and `--no-hazard` (no dust storms) show what each system does to the pace. These change the loaded data in memory only.
 
 ## Screenshots without a phone
 
@@ -57,7 +59,9 @@ The Kenney GLBs in `assets/models/` are sources only. `tools/dev/bake_models.gd`
 tools/godot/godot --headless --import && tools/godot/godot --headless --script tools/dev/bake_models.gd
 ```
 
-`tools/dev/screenshot.gd` also takes `--zoom=0.4` for a closer look, `--face=90` to turn the astronaut, and `--win=25` to show the win screen.
+`tools/dev/screenshot.gd` also takes `--zoom=0.4` for a closer look, `--face=90` to turn the astronaut, and `--win=25` to show the win screen. For the colony and hazards: `--colonists=6` (habitats built to fit), `--hungry=1`, `--waiting=2`, `--food=5`, `--lander=2.5` (seconds before touchdown), `--storm=warn` or `--storm=on` (with `--storm-t=` seconds left), and `--debug=1` for the debug overlay.
+
+The Mini Characters used for colonists are rigged and use a colour-atlas texture. The bake tool poses them from their `idle` animation and samples the atlas into vertex colours, so they share the one vertex-colour material too.
 
 ## Exporting for web
 
@@ -97,13 +101,18 @@ Open the game's own URL in Safari. For a full-screen PWA, use the direct HTML5 f
 
 See `SPEC.md` section 7.2. Every tunable number lives in a `.tres` file under `data/`, and scripts only read those resources. The starting point is `data/game.tres`, which links items, planets, upgrades and tuning. Open any of these in the Godot Inspector to change the numbers.
 
-- `scripts/systems/`: pure game rules with no scene access (`GameSim`, `Economy`, `DroneBrain`, `Tutorial`, `BotPlayer`, ...).
+- `scripts/systems/`: pure game rules with no scene access (`GameSim`, `Economy`, `Dispatcher`, `DroneBrain`, `Colony`, `HazardDirector`, `Tutorial`, `BotPlayer`, ...).
 - `scripts/autoload/`: `GameState` (the running sim), `SaveManager` (profiles, saves, settings), `EventBus`, `DisplayScale`, `Audio` (sound effects, wind and birdsong).
 - `assets/`: fonts, source models (`models/`, not exported), baked meshes (`meshes/`), shared materials and sound effects. Every pack is listed in `assets/LICENSES.md`.
 - `shaders/`: pads, label panels, dust, the terraform ground and the lakes.
 - `data/juice.tres` and `data/audio.tres`: feedback animation numbers and sound levels.
-- `scenes/world/planet.tscn`: the playable planet. It builds everything from data and draws the sim's state.
+- `data/colony_tuning.tres` and `data/hazards/dust_storm.tres`: colonists, landers, food and habitats; the dust storm's timing, effects and look.
+- `scenes/world/planet.tscn`: the playable planet. It builds everything from data and draws the sim's state. All haulers are drawn by one `DroneSwarm`, the colonists and lander by `ColonyView`, and every pad's slab and icons by `PadBatch`, to keep draw calls down.
 - `scenes/ui/title.tscn`: the main scene, with three explorer profiles and settings.
+
+## Debug overlay
+
+Press **F3** (or the backtick key) in game, or turn on **Debug overlay** in Settings on a phone. It draws each hauler's current job as a line (amber: from the field, cyan: machine to machine, green: to the hub) and shows the frame rate, draw calls, every hauler's job, the colony and the next hazard.
 
 ## Saves
 

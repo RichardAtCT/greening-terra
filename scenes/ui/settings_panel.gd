@@ -1,6 +1,6 @@
 class_name SettingsPanel
 extends ColorRect
-## Settings overlay: music and sound volume, haptics, reduced effects. Saved separately from profiles.
+## Settings overlay: music and sound volume, haptics, reduced effects, the debug overlay. Saved separately from profiles.
 
 signal closed
 
@@ -24,6 +24,7 @@ func _ready() -> void:
 	col.add_child(_slider("Sounds", "sfx_volume"))
 	col.add_child(_toggle("Vibration", "haptics"))
 	col.add_child(_toggle("Fewer effects", "reduced_effects"))
+	col.add_child(_toggle("Debug overlay", "debug_overlay"))
 	var close := UiStyle.button("Done", true)
 	close.pressed.connect(func():
 		visible = false
