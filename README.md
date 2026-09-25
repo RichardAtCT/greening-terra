@@ -81,7 +81,7 @@ cd build/web && python3 -m http.server 8000
 ## Deploying to itch.io
 
 ```sh
-tools/deploy.sh               # export, then butler push build/web richard/greening-tessera:web
+tools/deploy.sh               # export, then butler push build/web richardat/greening-tessera:web
 tools/deploy.sh --no-export   # push the existing build/web
 ```
 

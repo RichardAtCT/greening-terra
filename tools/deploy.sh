@@ -6,7 +6,7 @@
 # (or BUTLER_API_KEY in the environment).
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET="${ITCH_TARGET:-richard/greening-tessera:web}"
+TARGET="${ITCH_TARGET:-richardat/greening-tessera:web}"
 BUTLER="${BUTLER:-butler}"
 cd "$ROOT"
 
