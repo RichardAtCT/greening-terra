@@ -98,7 +98,10 @@ Open the game's own URL in Safari. For a full-screen PWA, use the direct HTML5 f
 See `SPEC.md` section 7.2. Every tunable number lives in a `.tres` file under `data/`, and scripts only read those resources. The starting point is `data/game.tres`, which links items, planets, upgrades and tuning. Open any of these in the Godot Inspector to change the numbers.
 
 - `scripts/systems/`: pure game rules with no scene access (`GameSim`, `Economy`, `DroneBrain`, `Tutorial`, `BotPlayer`, ...).
-- `scripts/autoload/`: `GameState` (the running sim), `SaveManager` (profiles, saves, settings), `EventBus`, `DisplayScale`.
+- `scripts/autoload/`: `GameState` (the running sim), `SaveManager` (profiles, saves, settings), `EventBus`, `DisplayScale`, `Audio` (sound effects, wind and birdsong).
+- `assets/`: fonts, source models (`models/`, not exported), baked meshes (`meshes/`), shared materials and sound effects. Every pack is listed in `assets/LICENSES.md`.
+- `shaders/`: pads, label panels, dust, the terraform ground and the lakes.
+- `data/juice.tres` and `data/audio.tres`: feedback animation numbers and sound levels.
 - `scenes/world/planet.tscn`: the playable planet. It builds everything from data and draws the sim's state.
 - `scenes/ui/title.tscn`: the main scene, with three explorer profiles and settings.
 

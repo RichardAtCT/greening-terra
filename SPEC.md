@@ -242,7 +242,7 @@ Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as 
 | M1 | Prototype parity | Planet 1 with the full prototype loop: dig, stack, 3 machines, hub, pay pads, drone bay, outfitter, basic drones, terraform visuals, tutorial steps. Holds 60 fps on iPhone. | Built. 60 fps on iPhone not yet measured. |
 | M2 | Data + saves + sim | All numbers in data resources; 3 profiles; autosave and export/import; balance sim reports P1 in 25–35 min. | Built. Balance sim: P1 in 29 min. |
 | M3 | Planet 1 art pass | Real models, terraform shaders, audio, juice. Looks like a finished game on one planet. | Built. Late game about 143 drawables before culling; 60 fps on iPhone not yet measured. |
-| M4 | Colonists + hazards + dispatcher | Landers, colonists and food; dust storm; dispatcher replaces modulo routing; debug overlay. | |
+| M4 | Colonists + hazards + dispatcher | Landers, colonists and food; dust storm; dispatcher replaces modulo routing; debug overlay. | Next. |
 | M5 | Planets 2 & 3 + star map + bonuses | Full 3-planet campaign playable end to end; bonus picker; balance sim passes for all three. | |
 | M6 | Polish | Settings, reduced-effects mode, onboarding tuned so a young child can get to the first build unaided, performance pass, and a final family playtest. | Settings panel (volumes, vibration, fewer effects) already exists. |
 
@@ -256,3 +256,4 @@ Ads, in-app purchases, analytics, accounts, cloud saves, leaderboards, multiplay
 - Should drones need recharging at the bay, as a light extra loop?
 - On P3, does toxicity capping terraform feel good, or should toxicity just slow terraform gains?
 - Free-play revisit of completed planets: keep or drop?
+- Draw-call headroom: late-game Planet 1 counts 143 of the 150 budget before frustum culling. M4's colonists and landers need either culling-aware measurement on a device or more merging (e.g. one MultiMesh per item type for all pad icons, or one merged mesh for all drones).
