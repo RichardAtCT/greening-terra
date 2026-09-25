@@ -47,6 +47,7 @@ func _init() -> void:
 	_bake_nature()
 	_bake_buildings()
 	_bake_colony()
+	_bake_m5()
 	print("baked %d meshes" % _count)
 	quit()
 
@@ -192,6 +193,71 @@ func _bake_colony() -> void:
 	var hab := _root("Habitat", habitat)
 	_glow(hab, "Glow", _quad(0.5, 0.3), Color("ffd98a"), 0.6, Vector3(0, 1.15, 1.2))
 	_save_scene(hab, "habitat")
+
+
+# --- Orrin b and Kessik (M5) ----------------------------------------------------------------
+
+func _bake_m5() -> void:
+	var refinery := _save_mesh("refinery", [
+		{"src": "space/machine_generator", "scale": 2.4, "pos": Vector3(0.2, 0, 0.2)},
+		{"src": "space/chimney", "scale": Vector3(1.3, 1.6, 1.3), "pos": Vector3(-0.95, 0, -0.8)},
+		{"src": "space/barrels", "scale": 1.6, "pos": Vector3(1.05, 0, -0.85), "rot": 30},
+	])
+	var rf := _root("Refinery", refinery)
+	_glow(rf, "Glow", _quad(1.0, 0.45), Color("d77ad1"), 0.4, Vector3(0.2, 0.6, 1.05))
+	_save_scene(rf, "refinery")
+
+	# A tall chimney on a support frame with a burning ring round the top (the heat).
+	var tower := _save_mesh("heat_tower", [
+		{"src": "space/supports_high", "scale": Vector3(1.6, 1.4, 1.6)},
+		{"src": "space/chimney_detailed", "scale": Vector3(1.5, 2.2, 1.5), "stack": true, "pos": Vector3(0, -0.2, 0)},
+	])
+	var ht := _root("HeatTower", tower)
+	_glow(ht, "Glow", _ring(0.75, 0.09), Color("ff8a3a"), 0.5, Vector3(0, 2.1, 0))
+	_save_scene(ht, "heat_tower")
+
+	var scrubber := _save_mesh("scrubber", [
+		{"src": "space/machine_wireless", "scale": 2.4},
+		{"src": "space/pipe_ringHigh", "scale": 1.2, "pos": Vector3(-1.0, 0, -0.7), "rot": 90},
+		{"src": "space/pipe_ringHigh", "scale": 1.2, "pos": Vector3(1.0, 0, -0.7), "rot": 90},
+	])
+	var sc := _root("Scrubber", scrubber)
+	_glow(sc, "Glow", _ring(0.75, 0.06), Color("bfe8d8"), 0.4, Vector3(0, 0.3, 0.1))
+	_save_scene(sc, "scrubber")
+
+	var melter := _save_mesh("ice_melter", [
+		{"src": "space/rocket_fuelB", "scale": 1.7, "pos": Vector3(-0.7, 0, -0.3)},
+		{"src": "space/rocket_fuelB", "scale": 1.7, "pos": Vector3(0.7, 0, -0.3)},
+		{"src": "space/pipe_open", "scale": 1.3, "pos": Vector3(0, 0, 0.8)},
+	])
+	var ml := _root("IceMelter", melter)
+	_glow(ml, "Glow", _quad(0.9, 0.35), Color("4fa9ff"), 0.4, Vector3(0, 0.55, 1.25))
+	_save_scene(ml, "ice_melter")
+
+	# A round pond: a low dark rim with a green algae surface, a pump and a pipe.
+	var rim := CylinderMesh.new()
+	rim.top_radius = 2.3
+	rim.bottom_radius = 2.45
+	rim.height = 0.45
+	rim.radial_segments = 14
+	rim.rings = 0
+	var surface := CylinderMesh.new()
+	surface.top_radius = 2.05
+	surface.bottom_radius = 2.05
+	surface.height = 0.06
+	surface.radial_segments = 14
+	surface.rings = 0
+	var pond := _save_mesh("algae_pond", [
+		{"mesh": rim, "color": Color("4d4547"), "xform": Transform3D(Basis(), Vector3(0, 0.22, 0))},
+		{"mesh": surface, "color": Color("5fae4a"), "xform": Transform3D(Basis(), Vector3(0, 0.44, 0))},
+		{"src": "space/machine_barrel", "scale": 1.4, "pos": Vector3(-1.6, 0, -1.55), "rot": 45},
+		{"src": "space/pipe_cornerRound", "scale": 1.0, "pos": Vector3(1.55, 0, -1.6), "rot": 180},
+	])
+	var ap := _root("AlgaePond", pond)
+	_glow(ap, "Glow", _ring(2.08, 0.06), Color("86e07c"), 0.4, Vector3(0, 0.5, 0))
+	_save_scene(ap, "algae_pond")
+
+	_save_mesh("meteor", [{"src": "space/meteor_detailed", "scale": 1.3}])
 
 
 # --- Merging -----------------------------------------------------------------------------

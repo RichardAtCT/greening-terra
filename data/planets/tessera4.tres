@@ -27,4 +27,4 @@ clear_zones = Array[Vector3]([Vector3(0, 0, 5), Vector3(-8, -2.5, 4.6), Vector3(
 max_drones = 8
 hazard = ExtResource("10_storm")
 tutorial = ExtResource("9_yxwmf")
-win_text = "Lakes, lichen and young forest now cover the landing zone. The next world pays more but greens more slowly. Your pack and boots come with you."
+win_text = "Lakes, lichen and young forest now cover the landing zone. Next stop: frozen Orrin b."

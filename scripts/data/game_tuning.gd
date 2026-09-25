@@ -18,6 +18,10 @@ extends Resource
 ## on it doesn't buy the next level by accident.
 @export var pay_rest: float = 2.0
 
+@export_group("Bonuses")
+## Bonuses offered at 100%.
+@export var bonus_offer_count: int = 3
+
 @export_group("Nodes")
 @export var node_respawn_time: float = 5.0
 
@@ -60,3 +64,5 @@ extends Resource
 @export var pad_stack_max: int = 18
 @export var toast_time: float = 2.4
 @export var autosave_interval: float = 10.0
+## Seconds the rocket takes between worlds on the star map.
+@export var star_map_flight_time: float = 2.2

@@ -2,7 +2,7 @@ class_name ItemDef
 extends Resource
 ## One kind of item: a raw resource or a processed good.
 
-enum Shape { ROCK, CRYSTAL, PLATE, CANISTER, POD }
+enum Shape { ROCK, CRYSTAL, PLATE, CANISTER, POD, CUBE, DROP, DISC }
 
 @export var id: StringName
 @export var display_name: String
@@ -19,6 +19,8 @@ enum Shape { ROCK, CRYSTAL, PLATE, CANISTER, POD }
 @export var terraform_value: float = 0.0
 ## Food value for colonists (M4).
 @export var food_value: float = 0.0
+## Toxicity % cleared when delivered to the hub (Kessik's filters).
+@export var detox_value: float = 0.0
 
 
 func is_sellable() -> bool:

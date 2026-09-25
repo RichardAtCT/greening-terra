@@ -1,6 +1,8 @@
 class_name BuildingView
 extends Node3D
-## A building placeholder: the model, a wireframe ghost shown until it's built, a label and collision.
+## A building: the model, a wireframe ghost shown until it's built, a label and collision. In M5 a
+## machine can also wear an overlay (frost in a cold snap, soot once a meteor has hit it) and
+## smoke while damaged.
 
 var model: Node3D
 var ghost: MeshInstance3D
@@ -13,6 +15,8 @@ var _built_known := false
 var _was_built := false
 var _pop_t := -1.0
 var _puff: CPUParticles3D
+var _overlay: Material
+var _smoke: CPUParticles3D
 
 
 func setup(scene: PackedScene, pos: Vector2, collide_radius: float, label_height: float, label_scale: float) -> void:
@@ -131,6 +135,63 @@ static func make_puff(amount: int, ring_radius: float) -> CPUParticles3D:
 	q.material = mat
 	p.mesh = q
 	p.position.y = 0.2
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return p
+
+
+## Draws the model again with this material over it (frost, soot), or nothing. The extra pass is
+## only paid while an overlay is on.
+func set_overlay(mat: Material) -> void:
+	if mat == _overlay:
+		return
+	_overlay = mat
+	for mi in model.find_children("*", "MeshInstance3D", true, false):
+		if mi.name == "Model":
+			(mi as MeshInstance3D).material_overlay = mat
+
+
+## Smoke rising from a meteor-damaged machine (not with "Fewer effects").
+func set_smoking(on: bool) -> void:
+	if on and _smoke == null:
+		if SaveManager.settings.get("reduced_effects", false):
+			return
+		_smoke = make_smoke()
+		add_child(_smoke)
+	if _smoke:
+		_smoke.emitting = on
+
+
+static func make_smoke() -> CPUParticles3D:
+	var p := CPUParticles3D.new()
+	p.name = "Smoke"
+	p.amount = 14
+	p.lifetime = 2.2
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.6
+	p.direction = Vector3(0.2, 1, 0)
+	p.spread = 18.0
+	p.initial_velocity_min = 0.8
+	p.initial_velocity_max = 1.4
+	p.gravity = Vector3(0.3, 0.4, 0)
+	p.scale_amount_min = 1.0
+	p.scale_amount_max = 1.8
+	var curve := Curve.new()
+	curve.add_point(Vector2(0, 0.4))
+	curve.add_point(Vector2(0.4, 1.0))
+	curve.add_point(Vector2(1, 1.4))
+	p.scale_amount_curve = curve
+	var fade := Gradient.new()
+	fade.colors = PackedColorArray([Color(1, 1, 1, 0.0), Color(1, 1, 1, 0.8), Color(1, 1, 1, 0.0)])
+	fade.offsets = PackedFloat32Array([0.0, 0.2, 1.0])
+	p.color_ramp = fade
+	var q := QuadMesh.new()
+	q.size = Vector2(0.6, 0.6)
+	var mat := ItemVisuals.unshaded(Color(Color("3a3230"), 0.7))
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mat.vertex_color_use_as_albedo = true
+	q.material = mat
+	p.mesh = q
+	p.position.y = 1.6
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return p
 

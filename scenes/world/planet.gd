@@ -17,6 +17,11 @@ var _flyers: FlyerLayer
 var _guide: GuideMarker
 var _pads: Array[PadView] = []
 var _nodes: Array[ResourceNodeView] = []
+var _node_batch: NodeBatch
+var _labels: LabelLayer
+var _effects: PlanetEffects
+var _frost_mat: ShaderMaterial
+var _soot_mat: StandardMaterial3D
 var _machines: Dictionary = {}
 var _hub: BuildingView
 var _bay: BuildingView
@@ -49,6 +54,11 @@ func _ready() -> void:
 	add_child(_terraform)
 	_terraform.build(defs, sim.planet, rng)
 
+	_labels = LabelLayer.new()
+	_labels.name = "Labels"
+	_labels.camera = _camera
+	$UI.add_child(_labels)
+	$UI.move_child(_labels, 0)
 	_build_buildings()
 	_build_nodes(rng)
 	for p in sim.pads:
@@ -89,6 +99,14 @@ func _ready() -> void:
 	_colony.name = "Colony"
 	add_child(_colony)
 	_colony.setup(sim)
+	_effects = PlanetEffects.new()
+	_effects.name = "Effects"
+	add_child(_effects)
+	_effects.setup(sim)
+	_frost_mat = ShaderMaterial.new()
+	_frost_mat.shader = preload("res://shaders/frost_overlay.gdshader")
+	_frost_mat.set_shader_parameter("frost_color", sim.planet.frost_color)
+	_soot_mat = ItemVisuals.unshaded(Color(Color("1c1412"), 0.5))
 	_debug = DebugOverlay.new()
 	_debug.name = "Debug"
 	add_child(_debug)
@@ -104,6 +122,8 @@ func _ready() -> void:
 		Audio.play(&"land"))
 	sim.food_stored.connect(func(_item): Audio.play(&"food"))
 	sim.hazard_changed.connect(_on_hazard_changed)
+	sim.meteors_landed.connect(_on_meteors_landed)
+	sim.machine_repaired.connect(func(_id): Audio.play(&"repair"))
 	EventBus.planet_won.connect(_on_won)
 	EventBus.credits_earned.connect(_on_credits)
 	EventBus.purchased.connect(_on_purchased)
@@ -112,9 +132,11 @@ func _ready() -> void:
 	_hud.menu_opened.connect(func(): _set_paused(true))
 	_hud.menu_closed.connect(func(): _set_paused(false))
 	_hud.restart_requested.connect(func(): _travel(GameState.restart_planet))
-	_hud.launch_requested.connect(func():
-		Audio.play(&"lander")
-		_travel(GameState.next_planet))
+	_hud.star_map_requested.connect(_open_star_map)
+	_hud.bonus_picked.connect(func(id: StringName):
+		if Bonuses.pick(defs, sim.state, id):
+			GameState.save()
+			_hud.show_win(sim, false))
 	_hud.stay_requested.connect(func(): _set_paused(false))
 	_hud.title_requested.connect(func():
 		Audio.stop_ambience()
@@ -144,6 +166,7 @@ func _process(delta: float) -> void:
 	var p := _player.global_position
 	for i in _nodes.size():
 		_nodes[i].update_view(sim.state.node_stock[i], sim.nodes[i].max_stock, dt)
+	_node_batch.update_view()
 	for pv in _pads:
 		var vis := sim.pad_visible(pv.info)
 		pv.visible = vis
@@ -155,6 +178,7 @@ func _process(delta: float) -> void:
 	_drones.hauler_level = sim.state.hauler_level
 	_drones.update_view(dt)
 	_colony.update_view(dt)
+	_effects.update_view(dt)
 
 	_shown_tf += (sim.state.terraform - _shown_tf) * minf(1.0, dt * defs.terraform.display_rate)
 	var storm := HazardDirector.intensity(sim)
@@ -195,8 +219,21 @@ func _travel(action: Callable) -> void:
 func _on_won() -> void:
 	_set_paused(true)
 	Audio.play(&"win")
-	var next_name := GameSim.planet_display_name(defs, sim.state.planet_index + 1)
-	_hud.show_win(sim.planet_name(), next_name, sim.planet.win_text)
+	_hud.show_win(sim)
+
+
+## The star map (SPEC 3) replaces the old direct "Launch to …": the rocket flies from there.
+## A finished planet's bonus is picked first (the win screen offers it again if it was skipped).
+func _open_star_map() -> void:
+	if sim.state.won and not sim.state.bonus_picked and not Bonuses.offer(defs, sim.state).is_empty():
+		_hud.close_menu()
+		_set_paused(true)
+		_hud.show_win(sim, false)
+		return
+	_hud.hide_win()
+	GameState.save()
+	Audio.stop_ambience()
+	get_tree().change_scene_to_file(StarMap.SCENE)
 
 
 func _on_stack_changed() -> void:
@@ -239,7 +276,13 @@ func _on_item_flew(item: StringName, from: Vector3, to: Vector3) -> void:
 
 func _on_hazard_changed(phase: HazardDirector.Phase) -> void:
 	if phase == HazardDirector.Phase.WARNING:
-		Audio.play(&"warning")
+		Audio.play(sim.planet.hazard.warning_sound)
+
+
+func _on_meteors_landed(points: Array[Vector2], _hit: Array[StringName]) -> void:
+	Audio.play(sim.planet.hazard.impact_sound)
+	_effects.impact(points)
+	_camera.nudge()
 
 
 func _build_nodes(rng: RandomNumberGenerator) -> void:
@@ -249,6 +292,10 @@ func _build_nodes(rng: RandomNumberGenerator) -> void:
 			add_child(nv)
 			nv.setup(rn, pos, rng)
 			_nodes.append(nv)
+	_node_batch = NodeBatch.new()
+	_node_batch.name = "NodeBatch"
+	add_child(_node_batch)
+	_node_batch.setup(_nodes)
 
 
 func _build_buildings() -> void:
@@ -288,21 +335,45 @@ func _update_buildings() -> void:
 		if not built:
 			bv.label.set_text(m.display_name, "₵ %d / %d" % [s.paid.get(StringName("build_" + m.id), 0), m.build_cost])
 			continue
-		var busy: bool = s.busy.get(m.id, 0.0) > 0.0
+		var busy: bool = s.busy.get(m.id, 0.0) > 0.0 and not s.is_damaged(m.id)
 		bv.set_glow(0.65 + 0.3 * sin(_time * 10.0) if busy else 0.22)
 		var outs: int = s.outputs.get(m.id, 0)
-		var queue_text := ""
-		if m.recipe.inputs.size() > 1:
-			var parts := PackedStringArray()
-			for item in m.recipe.inputs:
-				parts.append("%d %s" % [s.queued(m.id, item), defs.item(item).display_name])
-			queue_text = " · ".join(parts)
+		var title := sim.machine_title(m)
+		var frozen := HazardDirector.is_frozen(sim, m)
+		if s.is_damaged(m.id):
+			var h := sim.planet.hazard
+			bv.label.set_text(title, "damaged · repair %d/%d" % [s.repairs.get(m.id, 0), h.repair_cost], Color("ff6a4a"))
+			bv.set_overlay(_soot_mat)
+			bv.set_smoking(true)
+		elif m.is_heat_tower():
+			var fuel := s.queued(m.id, m.recipe.inputs.keys()[0])
+			bv.label.set_text(title, ("warm · %d polymer" % fuel) if busy else "cold · needs polymer",
+				PlanetEffects.HEAT_COLOR if busy else muted)
+			bv.set_glow(0.75 + 0.25 * sin(_time * 4.0) if busy else 0.1)
 		else:
-			var total := 0
-			for item in m.recipe.inputs:
-				total += s.queued(m.id, item)
-			queue_text = "%d in" % total
-		bv.label.set_text(sim.machine_title(m), "%s · %d out" % [queue_text, outs], Color("86e07c") if busy else muted)
+			var queue_text := ""
+			if m.recipe.inputs.size() > 2:
+				var counts := PackedStringArray()
+				for item in m.recipe.inputs:
+					counts.append(str(s.queued(m.id, item)))
+				queue_text = "/".join(counts) + " in"
+			elif m.recipe.inputs.size() > 1:
+				var parts := PackedStringArray()
+				for item in m.recipe.inputs:
+					parts.append("%d %s" % [s.queued(m.id, item), defs.item(item).display_name])
+				queue_text = " · ".join(parts)
+			else:
+				var total := 0
+				for item in m.recipe.inputs:
+					total += s.queued(m.id, item)
+				queue_text = "%d in" % total
+			if frozen:
+				bv.label.set_text(title, "frozen · %s · %d out" % [queue_text, outs], sim.planet.frost_color)
+			else:
+				bv.label.set_text(title, "%s · %d out" % [queue_text, outs], Color("86e07c") if busy else muted)
+		if not s.is_damaged(m.id):
+			bv.set_smoking(false)
+			bv.set_overlay(_frost_mat if frozen else null)
 		var in_items: Array[StringName] = []
 		for item in m.recipe.inputs:
 			for k in s.queued(m.id, item):
@@ -331,15 +402,23 @@ func _update_buildings() -> void:
 	_outfitter.label.set_text("Outfitter", "Pack %s · Boots %s" % [
 		"max" if pack_cost < 0 else "₵%d" % pack_cost, "max" if boots_cost < 0 else "₵%d" % boots_cost])
 	_update_habitats()
+	# Burning towers melt the frost round them; frozen machines frost over with the snap.
+	var warm := []
+	for m in sim.planet.machines:
+		if sim.is_warm(m):
+			warm.append(Vector3(m.position.x, m.position.y, m.heat_radius))
+	_terraform.set_warm_spots(warm)
+	_frost_mat.set_shader_parameter("amount", clampf(HazardDirector.intensity(sim), 0.0, 1.0))
 	var pay := sim.planet.pay_multiplier
-	_hub.label.set_text("Colony Hub", "×%.1f pay" % pay if s.planet_index > 0 else "sells plates, O₂, pods", Color("86e07c"))
+	var pay_text := "×%.1f pay" % (pay * sim.pay_factor()) if pay * sim.pay_factor() != 1.0 else "sells plates, O₂, pods"
+	_hub.label.set_text("Colony Hub", pay_text, Color("86e07c"))
 	_hub.set_glow(0.4 + 0.6 * (1.0 if sin(_time * 3.0) > 0.0 else 0.0))
 
 
 func _update_habitats() -> void:
 	var s := sim.state
 	var planet := sim.planet
-	var cap := defs.colony.habitat_capacity
+	var cap := Colony.habitat_capacity(sim)
 	for i in _habitats.size():
 		var hv := _habitats[i]
 		var key := Colony.habitat_key(i)

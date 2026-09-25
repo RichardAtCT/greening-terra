@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BonusDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/bonus_def.gd" id="1_bonus"]
+
+[resource]
+script = ExtResource("1_bonus")
+id = &"head_start"
+display_name = "Head Start"
+description = "Each new world starts with a Drone Bay and a hauler"
+kind = 2
+amount = 1
+amount_2 = 0
+color = Color(0.9490, 0.7020, 0.3569, 1)

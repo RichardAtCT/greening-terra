@@ -80,7 +80,9 @@ static func jobs(sim: GameSim, d: DroneBrain.Drone) -> Array[Job]:
 			j.amount = mini(cap, mini(room, sim.state.node_stock[node] - reserved_node(sim, node, d)))
 			_score(sim, d, j, 1.0 - float(m.queue_cap - room) / m.queue_cap, 0.0, 0.0)
 			out.append(j)
-		# Finished goods on this machine's OUT pad.
+		# Finished goods on this machine's OUT pad (a Heat Tower makes none).
+		if not m.recipe.makes_item():
+			continue
 		var avail: int = s.outputs.get(m.id, 0) - reserved_output(sim, m.id, d)
 		if avail <= 0:
 			continue

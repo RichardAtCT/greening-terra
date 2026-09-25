@@ -20,10 +20,26 @@
 [ext_resource type="Resource" path="res://data/juice.tres" id="18_juice"]
 [ext_resource type="Resource" path="res://data/colony_tuning.tres" id="19_colony"]
 [ext_resource type="Resource" path="res://data/upgrades/hauler.tres" id="20_hauler"]
+[ext_resource type="Resource" path="res://data/items/carbonite.tres" id="i_carbonite"]
+[ext_resource type="Resource" path="res://data/items/polymer.tres" id="i_polymer"]
+[ext_resource type="Resource" path="res://data/items/sulphur.tres" id="i_sulphur"]
+[ext_resource type="Resource" path="res://data/items/filter.tres" id="i_filter"]
+[ext_resource type="Resource" path="res://data/items/water.tres" id="i_water"]
+[ext_resource type="Resource" path="res://data/items/biomass.tres" id="i_biomass"]
+[ext_resource type="Resource" path="res://data/upgrades/dig.tres" id="u_dig"]
+[ext_resource type="Script" path="res://scripts/data/bonus_def.gd" id="s_bonus"]
+[ext_resource type="Resource" path="res://data/bonuses/swift_haulers.tres" id="b_swift_haulers"]
+[ext_resource type="Resource" path="res://data/bonuses/deep_pockets.tres" id="b_deep_pockets"]
+[ext_resource type="Resource" path="res://data/bonuses/head_start.tres" id="b_head_start"]
+[ext_resource type="Resource" path="res://data/bonuses/overclock.tres" id="b_overclock"]
+[ext_resource type="Resource" path="res://data/bonuses/trade_charter.tres" id="b_trade_charter"]
+[ext_resource type="Resource" path="res://data/bonuses/weather_shield.tres" id="b_weather_shield"]
+[ext_resource type="Resource" path="res://data/bonuses/big_lander.tres" id="b_big_lander"]
+[ext_resource type="Resource" path="res://data/bonuses/rich_veins.tres" id="b_rich_veins"]
 
 [resource]
 script = ExtResource("15_aeqsm")
-items = Array[ExtResource("3_wropu")]([ExtResource("4_a5llc"), ExtResource("5_4qhju"), ExtResource("6_rn480"), ExtResource("7_en8we"), ExtResource("8_t2hgn")])
+items = Array[ExtResource("3_wropu")]([ExtResource("4_a5llc"), ExtResource("5_4qhju"), ExtResource("6_rn480"), ExtResource("7_en8we"), ExtResource("8_t2hgn"), ExtResource("i_carbonite"), ExtResource("i_polymer"), ExtResource("i_sulphur"), ExtResource("i_filter"), ExtResource("i_water"), ExtResource("i_biomass")])
 planets = Array[ExtResource("10_y3bck")]([ExtResource("11_pha8v"), ExtResource("12_cyxwl"), ExtResource("13_fquns")])
 tuning = ExtResource("17_akfar")
 terraform = ExtResource("16_soc6g")
@@ -32,5 +48,7 @@ pack_upgrade = ExtResource("9_cnyv5")
 boots_upgrade = ExtResource("1_ftb2l")
 drone_upgrade = ExtResource("2_7qjd5")
 hauler_upgrade = ExtResource("20_hauler")
+dig_upgrade = ExtResource("u_dig")
 juice = ExtResource("18_juice")
 colony = ExtResource("19_colony")
+bonuses = Array[ExtResource("s_bonus")]([ExtResource("b_swift_haulers"), ExtResource("b_deep_pockets"), ExtResource("b_head_start"), ExtResource("b_overclock"), ExtResource("b_trade_charter"), ExtResource("b_weather_shield"), ExtResource("b_big_lander"), ExtResource("b_rich_veins")])

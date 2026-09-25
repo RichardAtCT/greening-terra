@@ -31,12 +31,10 @@ var _landed_t := -1.0
 func setup(p_sim: GameSim) -> void:
 	sim = p_sim
 	defs = sim.defs
-	var cap := 0
-	for i in sim.planet.lander_milestones.size():
-		cap += sim.planet.colonists_per_lander
+	var cap := Colony.max_colonists(sim)
 	for i in LOOKS.size():
 		_looks.append(_multimesh("Look%d" % i, LOOKS[i], cap, null))
-	var pod := defs.item(&"seedpod")
+	var pod := defs.item(sim.food_item())
 	_hungry = _multimesh("Hungry", ItemVisuals.mesh(pod.shape) if pod else MeshUtil.disc(0.2, 8), cap,
 		ItemVisuals.material(pod) if pod else null)
 

@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="MachineDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/recipe_def.gd" id="1_recipe"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/heat_tower.tscn" id="2_scene"]
+[ext_resource type="Script" path="res://scripts/data/machine_def.gd" id="3_machine"]
+
+[sub_resource type="Resource" id="Resource_recipe"]
+script = ExtResource("1_recipe")
+inputs = Dictionary[StringName, int]({
+&"polymer": 1
+})
+time = 6.0
+terraform = 0.05
+
+[resource]
+script = ExtResource("3_machine")
+id = &"heat_tower_1"
+display_name = "Heat Tower"
+recipe = SubResource("Resource_recipe")
+build_cost = 60
+position = Vector2(-6, -10)
+scene = ExtResource("2_scene")
+footprint = Vector3(1.8, 4.2, 1.8)
+collide_radius = 1.1
+label_height = 5.2
+in_pad_color = Color(0.8431, 0.4784, 0.8196, 1)
+in_pad_label = "POLYMER"
+in_pad_offset = Vector2(0, 2.4)
+build_pad_offset = Vector2(0, 2.4)
+queue_cap = 10
+heat_radius = 9.0
+takes_workers = false

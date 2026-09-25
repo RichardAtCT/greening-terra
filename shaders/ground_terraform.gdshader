@@ -1,6 +1,7 @@
 shader_type spatial;
 // Terraform ground: the flat-shaded, vertex-coloured terrain tinted from ground_start to ground_end,
-// with moss blended in by a ragged mask that grows outward from the hub. Fed by TerraformView.apply().
+// with moss blended in by a ragged mask that grows outward from the hub, and frost (Orrin b) that
+// melts back from the hub and round burning Heat Towers. Fed by TerraformView.apply().
 render_mode diffuse_lambert, specular_disabled;
 
 uniform vec4 ground_tint : source_color = vec4(0.54, 0.29, 0.17, 1.0);
@@ -14,6 +15,12 @@ uniform float moss_edge = 6.0;
 uniform float moss_cover = 0.4;
 uniform float moss_strength = 0.9;
 uniform float noise_scale = 0.11;
+// Frost cover (0..1), its colour, how far from the hub it has melted, and warm spots (x, z,
+// radius, on) where Heat Towers melt it.
+uniform float frost = 0.0;
+uniform vec4 frost_color : source_color = vec4(0.9, 0.94, 0.97, 1.0);
+uniform float frost_reach = 0.0;
+uniform vec4 warm[4];
 
 varying vec3 world_pos;
 
@@ -44,6 +51,19 @@ void fragment() {
 	float m = front * patches * moss_strength;
 	// Mossy ground keeps a little of the facet shading so it stays low-poly.
 	vec3 moss = moss_color.rgb * mix(1.0, COLOR.r, 0.6) * (0.9 + 0.2 * n);
-	ALBEDO = mix(base, moss, m);
+	vec3 col = mix(base, moss, m);
+	if (frost > 0.001) {
+		float melted = smoothstep(frost_reach - 4.0, frost_reach + 4.0, d + (n - 0.5) * 6.0);
+		float f = frost * mix(0.35, 1.0, melted) * smoothstep(0.2, 0.7, value_noise(p * 2.3 + 7.0) * 0.5 + frost * 0.5);
+		for (int i = 0; i < 4; i++) {
+			float wd = length(world_pos.xz - warm[i].xy);
+			f *= 1.0 - warm[i].w * (1.0 - smoothstep(warm[i].z * 0.45, warm[i].z * 0.9, wd + (n - 0.5) * 2.0));
+		}
+		col = mix(col, frost_color.rgb * mix(0.85, 1.05, n), f * 0.85);
+		// A sparkle of ice crystals.
+		float glint = step(0.975, hash(floor(world_pos.xz * 7.0)));
+		col += glint * f * 0.35;
+	}
+	ALBEDO = col;
 	ROUGHNESS = 1.0;
 }

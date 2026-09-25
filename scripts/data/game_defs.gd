@@ -12,8 +12,19 @@ extends Resource
 @export var drone_upgrade: UpgradeDef
 ## Hauler upgrades at the Drone Bay: odd levels add cargo, even levels add speed (GameTuning).
 @export var hauler_upgrade: UpgradeDef
+## SPEC 4.4: dig speed at the Outfitter (carries over from planet to planet).
+@export var dig_upgrade: UpgradeDef
 @export var juice: JuiceTuning
 @export var colony: ColonyTuning
+## SPEC 4.3's pool; three are offered when a planet reaches 100%.
+@export var bonuses: Array[BonusDef] = []
+
+
+func bonus(id: StringName) -> BonusDef:
+	for b in bonuses:
+		if b.id == id:
+			return b
+	return null
 
 
 func item(id: StringName) -> ItemDef:

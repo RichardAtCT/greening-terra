@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ResourceNodeDef" format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/meshes/node_ice.res" id="2_mesh"]
+[ext_resource type="Script" path="res://scripts/data/resource_node_def.gd" id="1_nodes"]
+
+[resource]
+script = ExtResource("1_nodes")
+item = &"sulphur"
+max_stock = 5
+positions = PackedVector2Array(-17, -19, -19.5, -21.5, -15, -22, -20, -17.5, -17.5, -24.5)
+idle_point = Vector2(-17.5, -21)
+color = Color(0.9412, 0.8471, 0.2510, 1)
+emissive = Color(0.2902, 0.2275, 0.0000, 1)
+mesh = ExtResource("2_mesh")

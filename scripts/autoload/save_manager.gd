@@ -5,7 +5,7 @@ extends Node
 
 signal profiles_changed
 
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
 const PROFILE_COUNT := 3
 const EXPORT_PREFIX := "GT1:"
 const PROFILES_PATH := "user://profiles.json"
@@ -79,6 +79,19 @@ static func migrate(data: Dictionary) -> Dictionary:
 		w["meals"] = []
 		w["food"] = 0.0
 		version = 2
+	if version < 3:
+		# v3 (M5) adds toxicity, bonuses, dig speed and meteor damage. Growth starts at the
+		# saved terraform %, and toxicity is filled in by GameSim (capped so the % shown never drops).
+		var w: Dictionary = data["world"]
+		w["growth"] = float(w.get("terraform", 0.0))
+		w["toxicity"] = -1.0
+		w["bonuses"] = []
+		w["bonus_picked"] = false
+		w["dig_level"] = 0
+		w["damaged"] = {}
+		w["repairs"] = {}
+		w["impacts"] = []
+		version = 3
 	data["version"] = version
 	return data
 

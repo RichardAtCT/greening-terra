@@ -1,53 +1,19 @@
 class_name ResourceNodeView
 extends Node3D
-## A diggable cluster of rocks or crystals that shrinks as it empties and shakes when dug.
+## A diggable cluster of rocks or crystals that shrinks as it empties and shakes when dug. It only
+## places itself; NodeBatch draws every node of one resource in a single MultiMesh.
 
+var def: ResourceNodeDef
+## The model's own turn, so neighbours differ.
+var yaw := 0.0
 var _shake := 0.0
 var _time := 0.0
 
 
-func setup(def: ResourceNodeDef, pos: Vector2, rng: RandomNumberGenerator) -> void:
+func setup(p_def: ResourceNodeDef, pos: Vector2, rng: RandomNumberGenerator) -> void:
+	def = p_def
 	position = Vector3(pos.x, 0, pos.y)
-	if def.mesh:
-		_add_model(def, rng)
-		return
-	var crystal := def.translucent
-	var mesh := MeshUtil.octahedron(0.55) if crystal else MeshUtil.icosahedron(0.55)
-	var mat := ItemVisuals.lambert(def.color)
-	if def.emissive != Color.BLACK:
-		mat.emission_enabled = true
-		mat.emission = def.emissive
-	if crystal:
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.albedo_color.a = 0.88
-	# Three rocks merged into one mesh, so each node is a single draw call.
-	var parts := []
-	for i in 3:
-		var a := float(i) / 3.0 * TAU + rng.randf()
-		var basis := Basis.from_euler(Vector3(rng.randf() * 3, rng.randf() * 3, rng.randf() * 3))
-		basis = basis * Basis.from_scale(Vector3(1, 1.5 if crystal else 0.8, 1))
-		parts.append([mesh, Transform3D(basis, Vector3(cos(a) * 0.45, 0.35 + i * 0.1, sin(a) * 0.45)), Color.WHITE])
-	var mi := MeshInstance3D.new()
-	mi.mesh = MeshUtil.merge(parts)
-	mi.material_override = mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi)
-
-
-## The baked model, tinted by the node's colour and turned at random so neighbours differ.
-func _add_model(def: ResourceNodeDef, rng: RandomNumberGenerator) -> void:
-	var mat := ItemVisuals.lambert(def.color)
-	mat.vertex_color_use_as_albedo = true
-	mat.vertex_color_is_srgb = true
-	if def.emissive != Color.BLACK:
-		mat.emission_enabled = true
-		mat.emission = def.emissive
-	var mi := MeshInstance3D.new()
-	mi.mesh = def.mesh
-	mi.material_override = mat
-	mi.rotation.y = rng.randf() * TAU
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi)
+	yaw = rng.randf() * TAU
 
 
 func dug() -> void:
@@ -58,6 +24,12 @@ func update_view(stock: int, max_stock: int, delta: float) -> void:
 	_time += delta
 	var s := 0.001 if stock <= 0 else 0.45 + 0.55 * float(stock) / max_stock
 	scale = Vector3.ONE * s
+	rotation.y = 0.0
 	if _shake > 0.0:
 		_shake -= delta
 		rotation.y = sin(_time * 60.0) * 0.08
+
+
+## Where NodeBatch draws this node's model.
+func model_transform() -> Transform3D:
+	return transform * Transform3D(Basis(Vector3.UP, yaw), Vector3.ZERO)

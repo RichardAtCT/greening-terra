@@ -50,6 +50,22 @@ var hazard_t: float = 0.0
 var hazard_wait: float = -1.0
 var hazard_count: int = 0
 
+## M5. Terraform banked from deliveries, before the toxicity cap (terraform = min(growth, 100 - toxicity)).
+var growth: float = 0.0
+## Kessik's toxicity % (-1: not set yet; GameSim fills it in from the planet).
+var toxicity: float = -1.0
+## Planet bonuses taken so far (SPEC 4.3), carried from planet to planet, and whether this
+## planet's pick has been made.
+var bonuses: Array[StringName] = []
+var bonus_picked: bool = false
+## Outfitter dig speed level (carries over).
+var dig_level: int = 0
+## Machine id -> true while meteor-damaged, and repair items paid towards fixing it.
+var damaged: Dictionary = {}
+var repairs: Dictionary = {}
+## Where the coming meteor shower will land.
+var impacts: Array[Vector2] = []
+
 
 func stat(key: StringName) -> int:
 	return stats.get(key, 0)
@@ -69,6 +85,10 @@ func machine_level(machine_id: StringName) -> int:
 
 func queued(machine_id: StringName, item: StringName) -> int:
 	return queues.get(machine_id, {}).get(item, 0)
+
+
+func is_damaged(machine_id: StringName) -> bool:
+	return damaged.get(machine_id, false)
 
 
 func count_carried(item: StringName) -> int:
@@ -106,6 +126,14 @@ func to_dict() -> Dictionary:
 		"hazard_t": hazard_t,
 		"hazard_wait": hazard_wait,
 		"hazard_count": hazard_count,
+		"growth": growth,
+		"toxicity": toxicity,
+		"bonuses": bonuses.map(func(b): return String(b)),
+		"bonus_picked": bonus_picked,
+		"dig_level": dig_level,
+		"damaged": _keys_to_str(damaged),
+		"repairs": _keys_to_str(repairs),
+		"impacts": impacts.map(func(p): return [p.x, p.y]),
 	}
 
 
@@ -143,6 +171,16 @@ static func from_dict(d: Dictionary) -> WorldState:
 	s.hazard_t = float(d.get("hazard_t", 0.0))
 	s.hazard_wait = float(d.get("hazard_wait", -1.0))
 	s.hazard_count = int(d.get("hazard_count", 0))
+	s.growth = float(d.get("growth", s.terraform))
+	s.toxicity = float(d.get("toxicity", -1.0))
+	for b in d.get("bonuses", []):
+		s.bonuses.append(StringName(b))
+	s.bonus_picked = bool(d.get("bonus_picked", false))
+	s.dig_level = int(d.get("dig_level", 0))
+	s.damaged = _keys_to_name(d.get("damaged", {}), TYPE_BOOL)
+	s.repairs = _keys_to_name(d.get("repairs", {}), TYPE_INT)
+	for p in d.get("impacts", []):
+		s.impacts.append(Vector2(float(p[0]), float(p[1])))
 	return s
 
 

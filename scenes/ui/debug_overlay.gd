@@ -103,6 +103,10 @@ func _draw_lines() -> void:
 	for col in sim.colonists:
 		if col.position.distance_to(col.target) > 0.1:
 			segs.append([col.position, col.target, Color(1, 1, 1, 0.6)])
+	# Meteor impact points: a cross at each.
+	for p in sim.state.impacts:
+		segs.append([p + Vector2(-1, -1), p + Vector2(1, 1), Color("ff4a3a")])
+		segs.append([p + Vector2(-1, 1), p + Vector2(1, -1), Color("ff4a3a")])
 	if segs.is_empty():
 		return
 	_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
@@ -143,6 +147,16 @@ static func describe(s: GameSim) -> String:
 	var st := s.state
 	lines.append("colony: %d housed, %d waiting, %d hungry, food %.0f/%.0f" % [
 		st.meals.size(), st.colonists_waiting, Colony.hungry_count(s), st.food, Colony.food_target(s)])
+	if s.planet.start_toxicity > 0.0:
+		lines.append("toxicity %.1f%%, growth %.1f%% (shown %.1f%%)" % [st.toxicity, st.growth, st.terraform])
+	var warm := PackedStringArray()
+	for m in s.planet.machines:
+		if m.is_heat_tower() and st.is_built(m.id):
+			warm.append("%s %s" % [m.id.trim_prefix("heat_tower_"), "warm" if s.is_warm(m) else "cold"])
+	if not warm.is_empty():
+		lines.append("heat towers: " + ", ".join(warm))
+	if not st.damaged.is_empty():
+		lines.append("damaged: " + ", ".join(st.damaged.keys()))
 	var h := s.planet.hazard
 	if h:
 		var phase: String = HazardDirector.Phase.keys()[st.hazard_phase].to_lower()

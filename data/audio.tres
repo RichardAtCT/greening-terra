@@ -19,6 +19,12 @@
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/bong_001.ogg" id="s14"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/glass_002.ogg" id="s15"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/impactMetal_002.ogg" id="s16"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/glass_004.ogg" id="s17"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/forceField_001.ogg" id="s18"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/lowFrequency_explosion_000.ogg" id="s19"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/impactMetal_medium_000.ogg" id="s20"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/impactMetal_medium_001.ogg" id="s21"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/confirmation_001.ogg" id="s22"]
 
 [sub_resource type="Resource" id="snd_pickup"]
 script = ExtResource("2_sound")
@@ -116,6 +122,46 @@ volume_db = -10.0
 pitch_jitter = 0.0
 min_interval = 1.0
 
+[sub_resource type="Resource" id="snd_snap"]
+script = ExtResource("2_sound")
+id = &"snap"
+streams = Array[AudioStream]([ExtResource("s17")])
+volume_db = -8.0
+pitch_jitter = 0.0
+min_interval = 2.0
+
+[sub_resource type="Resource" id="snd_meteors"]
+script = ExtResource("2_sound")
+id = &"meteors"
+streams = Array[AudioStream]([ExtResource("s18")])
+volume_db = -8.0
+pitch_jitter = 0.0
+min_interval = 2.0
+
+[sub_resource type="Resource" id="snd_impact"]
+script = ExtResource("2_sound")
+id = &"impact"
+streams = Array[AudioStream]([ExtResource("s19")])
+volume_db = -4.0
+pitch_jitter = 0.05
+min_interval = 0.5
+
+[sub_resource type="Resource" id="snd_repair"]
+script = ExtResource("2_sound")
+id = &"repair"
+streams = Array[AudioStream]([ExtResource("s20"), ExtResource("s21")])
+volume_db = -8.0
+pitch_jitter = 0.05
+min_interval = 0.15
+
+[sub_resource type="Resource" id="snd_bonus"]
+script = ExtResource("2_sound")
+id = &"bonus"
+streams = Array[AudioStream]([ExtResource("s22")])
+volume_db = -5.0
+pitch_jitter = 0.0
+min_interval = 0.5
+
 [resource]
 script = ExtResource("1_audio")
-sounds = Array[ExtResource("2_sound")]([SubResource("snd_pickup"), SubResource("snd_drop"), SubResource("snd_coin"), SubResource("snd_dig"), SubResource("snd_build"), SubResource("snd_upgrade"), SubResource("snd_win"), SubResource("snd_lander"), SubResource("snd_click"), SubResource("snd_warning"), SubResource("snd_food"), SubResource("snd_land")])
+sounds = Array[ExtResource("2_sound")]([SubResource("snd_pickup"), SubResource("snd_drop"), SubResource("snd_coin"), SubResource("snd_dig"), SubResource("snd_build"), SubResource("snd_upgrade"), SubResource("snd_win"), SubResource("snd_lander"), SubResource("snd_click"), SubResource("snd_warning"), SubResource("snd_food"), SubResource("snd_land"), SubResource("snd_snap"), SubResource("snd_meteors"), SubResource("snd_impact"), SubResource("snd_repair"), SubResource("snd_bonus")])

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="HazardDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/hazard_def.gd" id="1_hazard"]
+
+[resource]
+script = ExtResource("1_hazard")
+id = &"meteor_shower"
+kind = 2
+warning_sound = &"meteors"
+display_name = "Meteor shower"
+warning_text = "Meteors coming"
+active_text = "Meteors"
+start_percent = 5.0
+end_percent = 95.0
+interval_min = 360.0
+interval_max = 480.0
+interval_growth = 1.0
+telegraph_time = 5.0
+duration = 2.5
+player_speed = 1.0
+drone_speed = 1.0
+meteor_count = 3
+meteor_hits = 1
+impact_radius = 2.0
+fade_time = 0.8
+warning_darken = 0.3
+dark_color = Color(0.1647, 0.0706, 0.0314, 1)
+fog_enabled = false
+dust_opacity = 0.0

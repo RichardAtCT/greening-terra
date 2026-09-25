@@ -62,7 +62,7 @@ static func outlook(sim: GameSim) -> String:
 	var next := next_lander_at(sim.planet, s.terraform)
 	if next < 0.0:
 		return ""
-	return "At %d%% a lander brings %d colonists." % [roundi(next), sim.planet.colonists_per_lander]
+	return "At %d%% a lander brings %d colonists." % [roundi(next), colonists_per_lander(sim)]
 
 
 static func habitat_key(index: int) -> StringName:
@@ -77,8 +77,34 @@ static func habitats_built(sim: GameSim) -> int:
 	return n
 
 
+## Colonists per lander: the planet's, plus Big Lander.
+static func colonists_per_lander(sim: GameSim) -> int:
+	return sim.planet.colonists_per_lander + roundi(Bonuses.total(sim.defs, sim.state, BonusDef.Kind.LANDER))
+
+
+## Colonists one habitat houses. Habitats grow with Big Lander, so everyone still fits.
+static func habitat_capacity(sim: GameSim) -> int:
+	var base := sim.defs.colony.habitat_capacity
+	return ceili(float(base) * colonists_per_lander(sim) / maxi(1, sim.planet.colonists_per_lander))
+
+
+## Most colonists a planet brings (for sizing buffers).
+static func max_colonists(sim: GameSim) -> int:
+	return sim.planet.lander_milestones.size() * colonists_per_lander(sim)
+
+
+## Colonists a machine takes: none at a Heat Tower, more once upgraded.
+static func workers_for(sim: GameSim, m: MachineDef) -> int:
+	if not m.takes_workers:
+		return 0
+	var n := sim.defs.colony.max_per_machine
+	if sim.state.machine_level(m.id) > 0:
+		n += sim.defs.colony.upgraded_extra_workers
+	return n
+
+
 static func housing(sim: GameSim) -> int:
-	return habitats_built(sim) * sim.defs.colony.habitat_capacity
+	return habitats_built(sim) * habitat_capacity(sim)
 
 
 static func housed(sim: GameSim) -> int:
@@ -140,7 +166,7 @@ static func _step_landers(sim: GameSim, dt: float) -> void:
 		return
 	s.lander_t = -1.0
 	s.landers += 1
-	var n := sim.planet.colonists_per_lander
+	var n := colonists_per_lander(sim)
 	s.colonists_waiting += n
 	if habitats_built(sim) == 0 and not sim.planet.habitat_positions.is_empty():
 		s.built[habitat_key(0)] = true
@@ -173,7 +199,6 @@ static func _step_food(sim: GameSim, dt: float) -> void:
 ## Keeps each colonist on the machine they already work, and gives the rest a free spot, spreading
 ## them one per machine before doubling up. Built machines never unbuild, so a job is for good.
 static func _assign(sim: GameSim) -> void:
-	var cap := sim.defs.colony.max_per_machine
 	var taken := {}
 	for c in sim.colonists:
 		if c.machine:
@@ -183,7 +208,7 @@ static func _assign(sim: GameSim) -> void:
 			continue
 		var best: MachineDef = null
 		for m in sim.planet.machines:
-			if sim.state.is_built(m.id) and taken.get(m.id, 0) < cap \
+			if sim.state.is_built(m.id) and taken.get(m.id, 0) < workers_for(sim, m) \
 					and (best == null or taken.get(m.id, 0) < taken.get(best.id, 0)):
 				best = m
 		if best == null:
@@ -194,15 +219,17 @@ static func _assign(sim: GameSim) -> void:
 
 
 ## Where a colonist stands to work a machine: either side of it, a little towards its pads.
+## Slots 2 and 3 (an upgraded machine) stand behind the first two.
 static func work_spot(sim: GameSim, m: MachineDef, slot: int) -> Vector2:
 	var c := sim.defs.colony
 	var side := -1.0 if slot % 2 == 0 else 1.0
-	return m.position + Vector2(side * (m.collide_radius + c.work_side_gap), c.work_forward)
+	var row := slot / 2
+	return m.position + Vector2(side * (m.collide_radius + c.work_side_gap), c.work_forward - row * c.work_row_gap)
 
 
 ## The habitat a colonist lives in: the (index / capacity)-th one built.
 static func home(sim: GameSim, index: int) -> Vector2:
-	var k := index / sim.defs.colony.habitat_capacity
+	var k := index / habitat_capacity(sim)
 	for i in sim.planet.habitat_positions.size():
 		if sim.state.is_built(habitat_key(i)):
 			if k == 0:

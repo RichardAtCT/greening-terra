@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_def.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"carbonite"
+display_name = "Carbonite"
+color = Color(0.3529, 0.3294, 0.4392, 1)
+shape = 0
+stack_height = 0.32

@@ -21,6 +21,9 @@ signal colonist_added(colonist: Colony.Colonist)
 ## A delivery went into the hub's food store instead of being sold.
 signal food_stored(item: StringName)
 signal hazard_changed(phase: HazardDirector.Phase)
+## A meteor shower landed: where, and which machines it damaged.
+signal meteors_landed(points: Array[Vector2], hit: Array[StringName])
+signal machine_repaired(id: StringName)
 
 const PLAYER_STACK_HEIGHT := 1.6
 const PAD_DROP_HEIGHT := 0.4
@@ -49,6 +52,12 @@ func _init(p_defs: GameDefs, p_state: WorldState) -> void:
 		_machines[m.id] = m
 		if m.starts_built:
 			state.built[m.id] = true
+	# Terraform set directly (tests, tools) counts as grown.
+	state.growth = maxf(state.growth, state.terraform)
+	if state.toxicity < 0.0:
+		# A save from before toxicity existed: never let the % shown drop.
+		state.toxicity = minf(planet.start_toxicity, 100.0 - state.growth)
+	Economy.refresh_terraform(state)
 	_build_nodes()
 	_build_pads()
 	for i in state.drones:
@@ -56,14 +65,27 @@ func _init(p_defs: GameDefs, p_state: WorldState) -> void:
 	_restore_colonists()
 
 
-## Fresh state for a planet, carrying over the player's kit.
-static func new_planet_state(defs: GameDefs, planet_index: int, pack_level := 0, boots_level := 0) -> WorldState:
+## Fresh state for a planet, carrying over the player's kit and bonuses.
+static func new_planet_state(defs: GameDefs, planet_index: int, pack_level := 0, boots_level := 0,
+		dig_level := 0, bonuses: Array[StringName] = []) -> WorldState:
 	var s := WorldState.new()
+	var p := defs.planet(planet_index)
 	s.planet_index = planet_index
 	s.pack_level = pack_level
 	s.boots_level = boots_level
-	s.player_position = defs.planet(planet_index).depot_position + Vector2(0, 3.4)
+	s.dig_level = dig_level
+	s.bonuses = bonuses.duplicate()
+	s.toxicity = p.start_toxicity
+	s.player_position = p.depot_position + Vector2(0, 3.4)
+	if Bonuses.has(defs, s, BonusDef.Kind.HEAD_START):
+		s.built[&"bay"] = true
+		s.drones = 1
 	return s
+
+
+## The next planet's fresh state for a player leaving `from` (credits reset; kit and bonuses carry).
+static func carry_state(defs: GameDefs, from: WorldState, planet_index: int) -> WorldState:
+	return new_planet_state(defs, planet_index, from.pack_level, from.boots_level, from.dig_level, from.bonuses)
 
 
 func machine_def(id: StringName) -> MachineDef:
@@ -96,11 +118,71 @@ func move_speed() -> float:
 
 
 func drone_speed() -> float:
-	return defs.tuning.drone_speed * Economy.hauler_speed_factor(defs, state.hauler_level) * HazardDirector.drone_factor(self)
+	return defs.tuning.drone_speed * Economy.hauler_speed_factor(defs, state.hauler_level) \
+		* (1.0 + Bonuses.total(defs, state, BonusDef.Kind.DRONE_SPEED)) * HazardDirector.drone_factor(self)
 
 
 func drone_capacity() -> int:
 	return Economy.hauler_capacity(defs, state.hauler_level)
+
+
+## Seconds per item dug (SPEC 4.4 dig speed upgrade).
+func mine_interval() -> float:
+	return defs.tuning.mine_interval / (1.0 + state.dig_level * defs.dig_upgrade.amount_per_level)
+
+
+func node_respawn_time() -> float:
+	return defs.tuning.node_respawn_time * maxf(0.1, 1.0 - Bonuses.total_2(defs, state, BonusDef.Kind.NODES))
+
+
+## Multiplies hub payouts (Trade Charter).
+func pay_factor() -> float:
+	return 1.0 + Bonuses.total(defs, state, BonusDef.Kind.PAY)
+
+
+## How fast a machine runs right now: its upgrades, the colonists working it, Overclock, a vent
+## under it and the hazard (a cold snap away from heat). 0 while meteor-damaged. Heat Towers
+## always burn at 1.
+func machine_speed(m: MachineDef) -> float:
+	if state.is_damaged(m.id):
+		return 0.0
+	if m.is_heat_tower():
+		return 1.0
+	var speed := Economy.machine_upgrade_speed(state, m) * Colony.machine_speed(self, m.id)
+	speed *= 1.0 + Bonuses.total(defs, state, BonusDef.Kind.MACHINE_SPEED)
+	if on_vent(m):
+		speed *= 1.0 + planet.vent_boost
+	return speed * HazardDirector.machine_factor(self, m)
+
+
+## A Heat Tower that is built and burning.
+func is_warm(m: MachineDef) -> bool:
+	return m.is_heat_tower() and state.is_built(m.id) and not state.is_damaged(m.id) and state.busy.get(m.id, 0.0) > 0.0
+
+
+## Is this spot inside a burning Heat Tower's radius?
+func warmed(pos: Vector2) -> bool:
+	for m in planet.machines:
+		if is_warm(m) and pos.distance_to(m.position) <= m.heat_radius:
+			return true
+	return false
+
+
+func on_vent(m: MachineDef) -> bool:
+	for v in planet.vents:
+		if m.position.distance_to(v) <= planet.vent_radius:
+			return true
+	return false
+
+
+## The item colonists eat on this planet (seedpods, or biomass on Kessik), or &"" if none is made.
+func food_item() -> StringName:
+	for m in planet.machines:
+		if m.recipe.makes_item():
+			var it := defs.item(m.recipe.output)
+			if it and it.food_value > 0.0:
+				return it.id
+	return &""
 
 
 func planet_name() -> String:
@@ -147,7 +229,7 @@ func dig_node(index: int) -> void:
 
 func deliver_item(item: StringName, from: Vector3) -> void:
 	var def := defs.item(item)
-	var credits := Economy.deliver(state, def, planet, Colony.food_target(self))
+	var credits := Economy.deliver(state, def, planet, Colony.food_target(self), pay_factor())
 	if credits < 0.0:
 		return
 	var hub := planet.hub_position
@@ -163,6 +245,8 @@ func pad_visible(p: PadInfo) -> bool:
 	match p.kind:
 		PadInfo.Kind.IN, PadInfo.Kind.OUT:
 			return state.is_built(p.machine.id)
+		PadInfo.Kind.REPAIR:
+			return state.is_damaged(p.machine.id)
 		PadInfo.Kind.PAY:
 			match p.pay:
 				PadInfo.Pay.BUILD_MACHINE:
@@ -174,7 +258,7 @@ func pad_visible(p: PadInfo) -> bool:
 				PadInfo.Pay.UPGRADE_HAULERS:
 					return state.is_built(&"bay") and upgrades_open() and pad_cost(p) > 0
 				PadInfo.Pay.UPGRADE_MACHINE:
-					return upgrades_open() and Economy.machine_upgrade_cost(state, p.machine) > 0
+					return upgrades_open() and Economy.machine_upgrade_cost(state, p.machine) > 0 and not state.is_damaged(p.machine.id)
 				PadInfo.Pay.BUILD_HABITAT:
 					# Offered one at a time, once colonists have a first home.
 					return not state.is_built(Colony.habitat_key(p.index)) and state.is_built(Colony.habitat_key(p.index - 1))
@@ -200,20 +284,18 @@ func pad_cost(p: PadInfo) -> int:
 			return Economy.machine_upgrade_cost(state, p.machine)
 		PadInfo.Pay.UPGRADE_HAULERS:
 			return Economy.upgrade_cost(defs.hauler_upgrade, state.hauler_level)
+		PadInfo.Pay.DIG:
+			return Economy.upgrade_cost(defs.dig_upgrade, state.dig_level)
 	return -1
 
 
 ## UPGRADE pads appear once the whole chain stands, so early credits go on the chain and haulers.
+## Heat Towers don't count: they're placement, not chain.
 func upgrades_open() -> bool:
 	for m in planet.machines:
-		if not state.is_built(m.id):
+		if not m.is_heat_tower() and not state.is_built(m.id):
 			return false
 	return true
-
-
-## How fast a machine runs right now: its upgrades times the colonists working it.
-func machine_speed(m: MachineDef) -> float:
-	return Economy.machine_upgrade_speed(state, m) * Colony.machine_speed(self, m.id)
 
 
 ## "Smelter", then "Smelter Mk II" and so on once upgraded.
@@ -236,7 +318,9 @@ func step(dt: float, player_pos: Vector2) -> void:
 	Colony.step(self, dt)
 	for m in planet.machines:
 		if state.is_built(m.id):
-			Economy.step_machine(state, m, dt, machine_speed(m))
+			if Economy.step_machine(state, m, dt, machine_speed(m)) > 0 and not m.recipe.makes_item():
+				# Heat warms the planet directly: nothing to haul.
+				Economy.add_growth(state, m.recipe.terraform / planet.terraform_divisor)
 	for d in drones:
 		DroneBrain.step(self, d, dt)
 	Tutorial.advance(tutorial_steps(), state)
@@ -263,7 +347,7 @@ func _step_mining(dt: float, player_pos: Vector2) -> void:
 		if state.node_stock[i] <= 0:
 			continue
 		if player_pos.distance_to(nodes[i].position) < defs.tuning.mine_radius:
-			if not pack_full() and _tick(&"mine", dt, defs.tuning.mine_interval):
+			if not pack_full() and _tick(&"mine", dt, mine_interval()):
 				dig_node(i)
 				state.stack.append(nodes[i].item)
 				stack_changed.emit()
@@ -274,7 +358,7 @@ func _step_nodes(dt: float) -> void:
 	for i in nodes.size():
 		if state.node_stock[i] <= 0:
 			state.node_respawn[i] += dt
-			if state.node_respawn[i] > defs.tuning.node_respawn_time:
+			if state.node_respawn[i] > node_respawn_time():
 				state.node_stock[i] = nodes[i].max_stock
 				state.node_respawn[i] = 0.0
 
@@ -312,6 +396,9 @@ func _step_pads(dt: float, player_pos: Vector2) -> void:
 						stack_changed.emit()
 			PadInfo.Kind.PAY:
 				_step_pay(p, dt)
+			PadInfo.Kind.REPAIR:
+				if _tick(p.key, dt, interval):
+					_step_repair(p, player_pos)
 
 
 ## Is this pay pad resting after a purchase?
@@ -338,6 +425,25 @@ func _step_pay(p: PadInfo, dt: float) -> void:
 		_buy(p)
 
 
+## One repair item from the player's back onto a damaged machine; fixed once the cost is paid.
+func _step_repair(p: PadInfo, player_pos: Vector2) -> void:
+	var h := planet.hazard
+	var id := p.machine.id
+	var i := state.stack.rfind(h.repair_item)
+	if i < 0:
+		return
+	state.stack.remove_at(i)
+	stack_changed.emit()
+	item_flew.emit(h.repair_item, _player_top(player_pos), Vector3(p.position.x, PAD_DROP_HEIGHT, p.position.y))
+	state.repairs[id] = state.repairs.get(id, 0) + 1
+	if state.repairs[id] >= h.repair_cost:
+		state.damaged.erase(id)
+		state.repairs.erase(id)
+		state.add_stat(&"repaired")
+		toast.emit(p.machine.display_name + " repaired")
+		machine_repaired.emit(id)
+
+
 func _buy(p: PadInfo) -> void:
 	match p.pay:
 		PadInfo.Pay.BUILD_MACHINE:
@@ -360,7 +466,7 @@ func _buy(p: PadInfo) -> void:
 			toast.emit("Boots +%d%%" % roundi(state.boots_level * defs.boots_upgrade.amount_per_level * 100.0))
 		PadInfo.Pay.BUILD_HABITAT:
 			state.built[Colony.habitat_key(p.index)] = true
-			toast.emit("Habitat %d built · room for %d more" % [p.index + 1, defs.colony.habitat_capacity])
+			toast.emit("Habitat %d built · room for %d more" % [p.index + 1, Colony.habitat_capacity(self)])
 			Colony.house(self)
 		PadInfo.Pay.UPGRADE_HAULERS:
 			var cargo := Economy.hauler_next_is_cargo(state.hauler_level)
@@ -371,6 +477,10 @@ func _buy(p: PadInfo) -> void:
 			state.machine_levels[p.machine.id] = state.machine_level(p.machine.id) + 1
 			state.add_stat(&"machine_upgrades")
 			toast.emit("%s · +%d%% speed" % [machine_title(p.machine), roundi(p.machine.upgrade_speed * 100.0)])
+		PadInfo.Pay.DIG:
+			state.dig_level += 1
+			toast.emit("Dig speed +%d%%" % roundi(state.dig_level * defs.dig_upgrade.amount_per_level * 100.0))
+
 	purchased.emit(p.key)
 
 
@@ -395,9 +505,10 @@ func _restore_colonists() -> void:
 
 
 func _build_nodes() -> void:
+	var rich := 1.0 + Bonuses.total(defs, state, BonusDef.Kind.NODES)
 	for rn in planet.resource_nodes:
 		for pos in rn.positions:
-			nodes.append({"item": rn.item, "position": pos, "max_stock": rn.max_stock})
+			nodes.append({"item": rn.item, "position": pos, "max_stock": roundi(rn.max_stock * rich)})
 	if state.node_stock.size() != nodes.size():
 		state.node_stock.resize(nodes.size())
 		state.node_respawn.resize(nodes.size())
@@ -407,8 +518,8 @@ func _build_nodes() -> void:
 
 
 func _build_pads() -> void:
+	var meteors := planet.hazard != null and planet.hazard.kind == HazardDef.Kind.METEORS
 	for m in planet.machines:
-		var out_item := defs.item(m.recipe.output)
 		var p_in := PadInfo.new(StringName("in_" + m.id), PadInfo.Kind.IN, m.position + m.in_pad_offset)
 		p_in.machine = m
 		p_in.title = "IN"
@@ -416,19 +527,31 @@ func _build_pads() -> void:
 		p_in.color = m.in_pad_color
 		p_in.icons.assign(m.recipe.inputs.keys())
 		pads.append(p_in)
-		var p_out := PadInfo.new(StringName("out_" + m.id), PadInfo.Kind.OUT, m.position + m.out_pad_offset)
-		p_out.machine = m
-		p_out.title = "OUT"
-		p_out.label = out_item.short_label()
-		p_out.color = out_item.color
-		p_out.icons.append(out_item.id)
-		pads.append(p_out)
+		if m.recipe.makes_item():
+			var out_item := defs.item(m.recipe.output)
+			var p_out := PadInfo.new(StringName("out_" + m.id), PadInfo.Kind.OUT, m.position + m.out_pad_offset)
+			p_out.machine = m
+			p_out.title = "OUT"
+			p_out.label = out_item.short_label()
+			p_out.color = out_item.color
+			p_out.icons.append(out_item.id)
+			pads.append(p_out)
 		var p_build := _pay_pad(StringName("build_" + m.id), PadInfo.Pay.BUILD_MACHINE, m.position + m.build_pad_offset, "BUILD", "₵%d" % m.build_cost)
 		p_build.machine = m
 		if not m.upgrade_costs.is_empty():
 			var p_up := _pay_pad(StringName("upgrade_" + m.id), PadInfo.Pay.UPGRADE_MACHINE, m.position + m.upgrade_pad_offset, "UPGRADE", "")
 			p_up.machine = m
 			p_up.label = upgrade_pad_label(p_up)
+		# A meteor-damaged machine's REPAIR pad, in front of its IN and OUT pads.
+		if meteors and m.takes_workers:
+			var h := planet.hazard
+			var p_fix := PadInfo.new(StringName("repair_" + m.id), PadInfo.Kind.REPAIR, m.position + m.repair_pad_offset)
+			p_fix.machine = m
+			p_fix.title = "REPAIR"
+			p_fix.label = "%d %s" % [h.repair_cost, defs.item(h.repair_item).short_label()]
+			p_fix.color = Color("ff6a4a")
+			p_fix.icons.append(h.repair_item)
+			pads.append(p_fix)
 	var depot := PadInfo.new(&"depot", PadInfo.Kind.DEPOT, planet.depot_position)
 	depot.title = "DELIVER"
 	depot.label = " ".join(_sellable_names())
@@ -443,6 +566,7 @@ func _build_pads() -> void:
 		hp.label = upgrade_pad_label(hp)
 	_pay_pad(&"pack", PadInfo.Pay.PACK, planet.outfitter_position + planet.pack_pad_offset, defs.pack_upgrade.pad_title, defs.pack_upgrade.pad_label)
 	_pay_pad(&"boots", PadInfo.Pay.BOOTS, planet.outfitter_position + planet.boots_pad_offset, defs.boots_upgrade.pad_title, defs.boots_upgrade.pad_label)
+	_pay_pad(&"dig", PadInfo.Pay.DIG, planet.outfitter_position + planet.dig_pad_offset, defs.dig_upgrade.pad_title, defs.dig_upgrade.pad_label)
 	for i in planet.habitat_positions.size():
 		if i < planet.habitat_costs.size() and planet.habitat_costs[i] > 0:
 			var h := _pay_pad(StringName("build_" + Colony.habitat_key(i)), PadInfo.Pay.BUILD_HABITAT,
@@ -483,6 +607,6 @@ func _sellable_ids() -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for m in planet.machines:
 		var it := defs.item(m.recipe.output)
-		if it.is_sellable():
+		if it and it.is_sellable() and not ids.has(it.id):
 			ids.append(it.id)
 	return ids

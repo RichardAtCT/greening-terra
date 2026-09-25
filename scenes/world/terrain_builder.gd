@@ -10,7 +10,9 @@ const FLAT_RADIUS := 33.0
 static func height_at(x: float, z: float) -> float:
 	var r := Vector2(x, z).length()
 	var n := sin(x * 0.21) * cos(z * 0.17) + sin((x - z) * 0.09) * 0.8
-	return (r - FLAT_RADIUS) * 0.3 * (0.7 + 0.35 * n) if r > FLAT_RADIUS else n * 0.05
+	# Inside the play area the facets only dip, so nothing on the ground (pads, moss) is pierced by
+	# a bump, even with a 16-bit depth buffer.
+	return (r - FLAT_RADIUS) * 0.3 * (0.7 + 0.35 * n) if r > FLAT_RADIUS else minf(0.0, n * 0.05)
 
 
 ## Flat-shaded ground with slightly varied brightness per triangle and mountains beyond the play area.

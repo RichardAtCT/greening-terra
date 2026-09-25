@@ -5,7 +5,8 @@ extends RefCounted
 
 
 static func pack_capacity(defs: GameDefs, state: WorldState) -> int:
-	return defs.tuning.pack_base + roundi(state.pack_level * defs.pack_upgrade.amount_per_level)
+	return defs.tuning.pack_base + roundi(state.pack_level * defs.pack_upgrade.amount_per_level) \
+		+ roundi(Bonuses.total(defs, state, BonusDef.Kind.PACK))
 
 
 static func move_speed(defs: GameDefs, state: WorldState) -> float:
@@ -41,9 +42,9 @@ static func hauler_next_is_cargo(level: int) -> bool:
 	return level % 2 == 0
 
 
-## Credits the hub pays for one item on this planet (0 for raw resources).
-static func payout(item: ItemDef, planet: PlanetDef) -> float:
-	return item.sell_value * planet.pay_multiplier
+## Credits the hub pays for one item on this planet (0 for raw resources), times any bonus.
+static func payout(item: ItemDef, planet: PlanetDef, factor := 1.0) -> float:
+	return item.sell_value * planet.pay_multiplier * factor
 
 
 ## Terraform % one delivered item adds on this planet.
@@ -53,8 +54,9 @@ static func terraform_gain(item: ItemDef, planet: PlanetDef) -> float:
 
 ## Delivers one item to the hub. Food goes into the hub's store while it holds less than
 ## food_target meals (SPEC 4.1); everything else sellable is sold. Either way the item's terraform
-## value counts. Returns the credits paid, or -1 if the item can't be delivered.
-static func deliver(state: WorldState, item: ItemDef, planet: PlanetDef, food_target := 0.0) -> float:
+## value counts, and a filter clears its toxins. Returns the credits paid, or -1 if the item can't
+## be delivered.
+static func deliver(state: WorldState, item: ItemDef, planet: PlanetDef, food_target := 0.0, pay_factor := 1.0) -> float:
 	if item == null or not item.is_sellable():
 		return -1.0
 	var credits := 0.0
@@ -62,10 +64,13 @@ static func deliver(state: WorldState, item: ItemDef, planet: PlanetDef, food_ta
 		state.food += item.food_value
 		state.add_stat(&"food_stored")
 	else:
-		credits = payout(item, planet)
+		credits = payout(item, planet, pay_factor)
 		state.credits += credits
-	state.terraform = minf(100.0, state.terraform + terraform_gain(item, planet))
+	if item.detox_value > 0.0:
+		state.toxicity = tidy(maxf(0.0, state.toxicity - item.detox_value))
+	add_growth(state, terraform_gain(item, planet))
 	state.add_stat(&"delivered")
+	state.add_stat(StringName("delivered_" + item.id))
 	return credits
 
 
@@ -85,6 +90,22 @@ static func machine_upgrade_speed(state: WorldState, machine: MachineDef) -> flo
 ## Finished items the machine's OUT pad holds before it stops, with its upgrades.
 static func output_cap(state: WorldState, machine: MachineDef) -> int:
 	return machine.output_cap + machine.upgrade_output_cap * state.machine_level(machine.id)
+
+
+## Adds terraform % to the planet's growth. Terraform itself is growth capped by toxicity
+## (SPEC 3, Kessik): growth over the cap is kept and shows once the toxins clear.
+static func add_growth(state: WorldState, gain: float) -> void:
+	state.growth = tidy(minf(100.0, state.growth + gain))
+	refresh_terraform(state)
+
+
+## Rounds to 9 decimals, so a value survives a JSON save exactly (Godot writes 16 digits).
+static func tidy(x: float) -> float:
+	return roundf(x * 1e9) / 1e9
+
+
+static func refresh_terraform(state: WorldState) -> void:
+	state.terraform = minf(state.growth, 100.0 - maxf(0.0, state.toxicity))
 
 
 static func accepts(state: WorldState, machine: MachineDef, item: StringName) -> bool:
@@ -142,8 +163,9 @@ static func has_inputs(state: WorldState, machine: MachineDef) -> bool:
 	return true
 
 
-## Advances one machine by dt, running `speed` times as fast (colonists working it).
-## Returns how many items finished this step (0 or 1).
+## Advances one machine by dt, running `speed` times as fast (colonists, upgrades, hazards).
+## Returns how many cycles finished this step (0 or 1). A machine with no output item (a Heat
+## Tower) just burns its input. At speed 0 (meteor damage) it starts nothing new.
 static func step_machine(state: WorldState, machine: MachineDef, dt: float, speed := 1.0) -> int:
 	var produced := 0
 	var left: float = state.busy.get(machine.id, 0.0)
@@ -151,10 +173,13 @@ static func step_machine(state: WorldState, machine: MachineDef, dt: float, spee
 		left -= dt * speed
 		if left <= 0.0:
 			left = 0.0
-			state.outputs[machine.id] = state.outputs.get(machine.id, 0) + 1
-			state.add_stat(StringName("produced_" + machine.recipe.output))
+			if machine.recipe.makes_item():
+				state.outputs[machine.id] = state.outputs.get(machine.id, 0) + 1
+				state.add_stat(StringName("produced_" + machine.recipe.output))
+			else:
+				state.add_stat(&"heat")
 			produced = 1
-	if left <= 0.0 and state.outputs.get(machine.id, 0) < output_cap(state, machine) and has_inputs(state, machine):
+	if speed > 0.0 and left <= 0.0 and state.outputs.get(machine.id, 0) < output_cap(state, machine) and has_inputs(state, machine):
 		for item in machine.recipe.inputs:
 			state.queues[machine.id][item] -= machine.recipe.inputs[item]
 		left = machine.recipe.time

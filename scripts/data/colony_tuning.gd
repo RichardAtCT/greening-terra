@@ -12,12 +12,16 @@ extends Resource
 ## Each colonist working a machine makes it this much faster (0.25 = +25%).
 @export var machine_boost: float = 0.25
 @export var max_per_machine: int = 2
+## A machine at Mk II or above takes this many more.
+@export var upgraded_extra_workers: int = 2
 ## Colonist walking speed, in metres per second.
 @export var walk_speed: float = 2.2
 ## Where the two work spots are: this far out from the machine's collision radius, either side,
 ## and this far towards its pads.
 @export var work_side_gap: float = 0.55
 @export var work_forward: float = 0.9
+## An upgraded machine's extra workers stand this far behind the first two.
+@export var work_row_gap: float = 1.3
 ## Off-duty colonists wander within this radius of their habitat and pause between strolls.
 @export var wander_radius: float = 2.6
 @export var wander_pause_min: float = 2.0

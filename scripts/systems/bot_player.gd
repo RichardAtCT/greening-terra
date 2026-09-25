@@ -3,7 +3,7 @@ extends RefCounted
 ## A scripted player for the balance sim: walks at the real walk speed and greedily does the most
 ## valuable thing it can (buy, feed, collect, deliver, dig). Pure logic on top of GameSim.
 
-enum Plan { NONE, BUY, FEED, DELIVER, COLLECT, DIG, WAIT }
+enum Plan { NONE, BUY, FEED, DELIVER, COLLECT, DIG, WAIT, REPAIR }
 
 ## Relative value per credit of each purchase, used to pick between affordable options.
 const BUY_VALUE := {
@@ -16,7 +16,15 @@ const BUY_VALUE := {
 	PadInfo.Pay.UPGRADE_MACHINE: 2.0,
 	# Per hauler it improves, scaled by how much it improves each (see _decide).
 	PadInfo.Pay.UPGRADE_HAULERS: 2.0,
+	PadInfo.Pay.DIG: 0.6,
 }
+
+## The order a greedy player takes planet bonuses in (the balance sim picks the first on offer).
+const BONUS_PREFERENCE: Array[StringName] = [&"overclock", &"swift_haulers", &"trade_charter", &"head_start",
+	&"deep_pockets", &"rich_veins", &"big_lander", &"weather_shield"]
+
+## Digging moves on to another rock this close once one is empty.
+const NEXT_NODE_RANGE := 7.0
 
 var sim: GameSim
 var position: Vector2
@@ -65,9 +73,19 @@ func _plan_finished() -> bool:
 		Plan.COLLECT:
 			return _arrived() and (s.outputs.get(machine.id, 0) <= 0 or sim.pack_full())
 		Plan.DIG:
-			return sim.pack_full() or node_index < 0 or s.node_stock[node_index] <= 0
+			if sim.pack_full() or node_index < 0:
+				return true
+			if s.node_stock[node_index] <= 0:
+				# Move on to the next rock of the same kind while the pack has room.
+				node_index = sim.nearest_node(dig_item, position)
+				if node_index < 0 or position.distance_to(sim.nodes[node_index].position) > NEXT_NODE_RANGE:
+					return true
+				target = sim.nodes[node_index].position
+			return false
 		Plan.WAIT:
 			return _plan_time > 1.0
+		Plan.REPAIR:
+			return not sim.pad_visible(pad) or (_arrived() and s.count_carried(sim.planet.hazard.repair_item) == 0)
 	return true
 
 
@@ -108,6 +126,20 @@ func _decide() -> void:
 		pad = best
 		_start_plan(Plan.BUY, best.position)
 		return
+
+	# 1b. Repair a meteor-damaged machine: bring the repair items, collecting them first if need be.
+	var fix := _damaged_pad()
+	if fix:
+		var need := sim.planet.hazard.repair_item
+		if s.count_carried(need) > 0:
+			pad = fix
+			_start_plan(Plan.REPAIR, fix.position)
+			return
+		for m in sim.planet.machines:
+			if m.recipe.output == need and s.outputs.get(m.id, 0) > 0 and not sim.pack_full():
+				machine = m
+				_start_plan(Plan.COLLECT, m.position + m.out_pad_offset)
+				return
 
 	# 2. Feed carried items into a machine that takes them (intermediates to multi-input machines).
 	for m in sim.planet.machines:
@@ -159,6 +191,23 @@ func _hauler_gain() -> float:
 	return d.tuning.hauler_upgrade_speed / Economy.hauler_speed_factor(d, level)
 
 
+func _damaged_pad() -> PadInfo:
+	for p in sim.pads:
+		if p.kind == PadInfo.Kind.REPAIR and sim.pad_visible(p):
+			return p
+	return null
+
+
+## The bonus a greedy player takes from what's on offer.
+static func pick_bonus(defs: GameDefs, state: WorldState) -> StringName:
+	var offer := Bonuses.offer(defs, state)
+	for id in BONUS_PREFERENCE:
+		for b in offer:
+			if b.id == id:
+				return id
+	return offer[0].id if not offer.is_empty() else &""
+
+
 func _next_building_cost() -> int:
 	var cheapest := 0
 	for p in sim.pads:
@@ -175,11 +224,14 @@ func _most_needed_raw() -> StringName:
 	var best := &""
 	var best_have := INF
 	for m in sim.planet.machines:
-		if not s.is_built(m.id) or m.recipe.inputs.size() != 1:
+		if not s.is_built(m.id) or m.recipe.inputs.size() != 1 or not m.recipe.makes_item():
 			continue
 		var raw: StringName = m.recipe.inputs.keys()[0]
 		if not sim.has_nodes_for(raw) or s.queued(m.id, raw) >= m.queue_cap:
 			continue
+		if _damaged_pad() and m.recipe.output == sim.planet.hazard.repair_item:
+			# A repair is waiting on this chain.
+			return raw
 		# Everything already in this chain: queued raw, finished output, output queued downstream.
 		var have: float = s.queued(m.id, raw) + s.outputs.get(m.id, 0)
 		for other in sim.planet.machines:

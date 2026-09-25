@@ -34,6 +34,13 @@ func _ready() -> void:
 	SettingsPanel.apply_audio()
 
 
+## Stops every sound effect and the ambience (tests call this, so nothing is still playing at exit).
+func stop_all() -> void:
+	for p in _pool:
+		p.stop()
+	stop_ambience()
+
+
 ## Plays a sound effect by id (see data/audio.tres). Unknown ids are ignored.
 func play(id: StringName, pitch := 1.0) -> void:
 	var s := def.sound(id)

@@ -18,6 +18,8 @@ extends Resource
 @export var in_pad_offset: Vector2 = Vector2(-1.4, 2.9)
 @export var out_pad_offset: Vector2 = Vector2(1.4, 2.9)
 @export var build_pad_offset: Vector2 = Vector2(0.0, 2.9)
+## The REPAIR pad after a meteor (Kessik), in a second row in front of IN and OUT.
+@export var repair_pad_offset: Vector2 = Vector2(0.0, 5.3)
 ## IN pad colour and subtitle (the OUT pad uses the output item's colour and name).
 @export var in_pad_color: Color = Color.WHITE
 @export var in_pad_label: String
@@ -33,3 +35,14 @@ extends Resource
 @export var upgrade_output_cap: int = 10
 ## Where the UPGRADE pad sits, relative to the machine (beside it, clear of the IN and OUT pads).
 @export var upgrade_pad_offset: Vector2 = Vector2(4.0, 0.9)
+
+@export_group("M5")
+## Above zero, this is a Heat Tower: while it burns its input it keeps machines within this many
+## metres at full speed through a cold snap. It has no OUT pad and takes no colonists.
+@export var heat_radius: float = 0.0
+## Colonists can work here.
+@export var takes_workers: bool = true
+
+
+func is_heat_tower() -> bool:
+	return heat_radius > 0.0

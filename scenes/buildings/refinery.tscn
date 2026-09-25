@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/meshes/refinery.res" id="1_yqnqy"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qid6f"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.84313726, 0.47843137, 0.81960785, 0.4)
+
+[sub_resource type="QuadMesh" id="QuadMesh_2xvxt"]
+material = SubResource("StandardMaterial3D_qid6f")
+size = Vector2(1, 0.45)
+
+[node name="Refinery" type="Node3D" unique_id=1830424802]
+
+[node name="Model" type="MeshInstance3D" parent="." unique_id=81984026]
+mesh = ExtResource("1_yqnqy")
+
+[node name="Glow" type="MeshInstance3D" parent="." unique_id=756460222]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.6, 1.05)
+mesh = SubResource("QuadMesh_2xvxt")
