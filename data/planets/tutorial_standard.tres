@@ -1,0 +1,120 @@
+[gd_resource type="Resource" script_class="TutorialDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tutorial_def.gd" id="1_lsw7h"]
+[ext_resource type="Script" path="res://scripts/data/tutorial_step.gd" id="2_5rgpp"]
+[ext_resource type="Script" path="res://scripts/data/tutorial_condition.gd" id="3_ugrly"]
+
+[sub_resource type="Resource" id="Resource_qmjj4"]
+script = ExtResource("3_ugrly")
+kind = 0
+key = &"regolith"
+amount = 3
+
+[sub_resource type="Resource" id="Resource_cy04y"]
+script = ExtResource("3_ugrly")
+key = &"fed"
+
+[sub_resource type="Resource" id="Resource_5f8j6"]
+script = ExtResource("2_5rgpp")
+text = "Walk into the rust boulders to the west to dig regolith."
+target = Vector2(-15, 7)
+done_when = Array[ExtResource("3_ugrly")]([SubResource("Resource_qmjj4"), SubResource("Resource_cy04y")])
+
+[sub_resource type="Resource" id="Resource_418ji"]
+script = ExtResource("3_ugrly")
+key = &"fed"
+
+[sub_resource type="Resource" id="Resource_kunmk"]
+script = ExtResource("2_5rgpp")
+text = "Carry it to the Smelter and stand on its IN pad."
+target = Vector2(-9.4, -1.1)
+done_when = Array[ExtResource("3_ugrly")]([SubResource("Resource_418ji")])
+
+[sub_resource type="Resource" id="Resource_iry4d"]
+script = ExtResource("3_ugrly")
+kind = 0
+key = &"plate"
+
+[sub_resource type="Resource" id="Resource_aqtk1"]
+script = ExtResource("3_ugrly")
+key = &"delivered"
+
+[sub_resource type="Resource" id="Resource_i1pu3"]
+script = ExtResource("2_5rgpp")
+text = "Stand on the OUT pad to pick up hull plates."
+target = Vector2(-6.6, -1.1)
+done_when = Array[ExtResource("3_ugrly")]([SubResource("Resource_iry4d"), SubResource("Resource_aqtk1")])
+
+[sub_resource type="Resource" id="Resource_n76j4"]
+script = ExtResource("3_ugrly")
+key = &"delivered"
+
+[sub_resource type="Resource" id="Resource_muae1"]
+script = ExtResource("2_5rgpp")
+text = "Deliver plates to the Colony Hub for credits."
+target = Vector2(0, 3.6)
+done_when = Array[ExtResource("3_ugrly")]([SubResource("Resource_n76j4")])
+
+[sub_resource type="Resource" id="Resource_sc6xf"]
+script = ExtResource("3_ugrly")
+kind = 2
+key = &"electrolyser"
+
+[sub_resource type="Resource" id="Resource_agdgd"]
+script = ExtResource("2_5rgpp")
+text = "Save ₵25, then stand on the Electrolyser BUILD pad."
+target = Vector2(8, -1.1)
+done_when = Array[ExtResource("3_ugrly")]([SubResource("Resource_sc6xf")])
+saving_for_pad = &"build_electrolyser"
+saving_text = "Keep delivering plates until you have ₵25, then build the Electrolyser."
+
+[sub_resource type="Resource" id="Resource_3burw"]
+script = ExtResource("3_ugrly")
+key = &"produced_o2"
+
+[sub_resource type="Resource" id="Resource_u3tu6"]
+script = ExtResource("2_5rgpp")
+text = "Mine ice to the east and feed the Electrolyser. O₂ thickens the air."
+target = Vector2(15, 7)
+done_when = Array[ExtResource("3_ugrly")]([SubResource("Resource_3burw")])
+
+[sub_resource type="Resource" id="Resource_a2xpm"]
+script = ExtResource("3_ugrly")
+kind = 2
+key = &"bay"
+
+[sub_resource type="Resource" id="Resource_oftn4"]
+script = ExtResource("2_5rgpp")
+text = "Build the Drone Bay (₵60). Haulers run the chain for you."
+target = Vector2(-15, -6.1)
+done_when = Array[ExtResource("3_ugrly")]([SubResource("Resource_a2xpm")])
+saving_for_pad = &"build_bay"
+saving_text = "Deliver O₂ and plates to reach ₵60 for the Drone Bay."
+
+[sub_resource type="Resource" id="Resource_856fd"]
+script = ExtResource("3_ugrly")
+kind = 2
+key = &"greenhouse"
+
+[sub_resource type="Resource" id="Resource_n3p4x"]
+script = ExtResource("2_5rgpp")
+text = "Build the Greenhouse (₵150). Plates + O₂ grow seedpods."
+target = Vector2(0, -8.1)
+done_when = Array[ExtResource("3_ugrly")]([SubResource("Resource_856fd")])
+saving_for_pad = &"build_greenhouse"
+saving_text = "Save ₵150 for the Greenhouse. Bigger packs make runs faster."
+
+[sub_resource type="Resource" id="Resource_ybaq6"]
+script = ExtResource("3_ugrly")
+kind = 3
+amount = 0
+
+[sub_resource type="Resource" id="Resource_3cqov"]
+script = ExtResource("2_5rgpp")
+text = "Seedpods green the planet fastest. Add haulers and upgrade your kit."
+has_target = false
+done_when = Array[ExtResource("3_ugrly")]([SubResource("Resource_ybaq6")])
+
+[resource]
+script = ExtResource("1_lsw7h")
+steps = Array[ExtResource("2_5rgpp")]([SubResource("Resource_5f8j6"), SubResource("Resource_kunmk"), SubResource("Resource_i1pu3"), SubResource("Resource_muae1"), SubResource("Resource_agdgd"), SubResource("Resource_u3tu6"), SubResource("Resource_oftn4"), SubResource("Resource_n3p4x"), SubResource("Resource_3cqov")])

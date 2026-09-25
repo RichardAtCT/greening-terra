@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_def.gd" id="1_exsv6"]
+
+[resource]
+script = ExtResource("1_exsv6")
+id = &"plate"
+display_name = "Plate"
+color = Color(0.76862746, 0.8, 0.83137256, 1)
+shape = 2
+stack_height = 0.14
+sell_value = 2.0
+terraform_value = 0.15

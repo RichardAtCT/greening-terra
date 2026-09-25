@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ResourceNodeDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/resource_node_def.gd" id="1_qlwvk"]
+
+[resource]
+script = ExtResource("1_qlwvk")
+item = &"ice"
+max_stock = 5
+positions = PackedVector2Array(15, 5, 17.5, 7.5, 13, 8.5, 16, 10.5, 18.5, 4.8)
+idle_point = Vector2(15, 7)
+color = Color(0.62352943, 0.9098039, 1, 1)
+emissive = Color(0.101960786, 0.3019608, 0.3764706, 1)
+translucent = true

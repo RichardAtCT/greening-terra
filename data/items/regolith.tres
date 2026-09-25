@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_def.gd" id="1_1sl1y"]
+
+[resource]
+script = ExtResource("1_1sl1y")
+id = &"regolith"
+display_name = "Regolith"
+color = Color(0.7882353, 0.4392157, 0.24705882, 1)
+stack_height = 0.32

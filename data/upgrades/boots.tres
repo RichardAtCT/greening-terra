@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_def.gd" id="1_lfx21"]
+
+[resource]
+script = ExtResource("1_lfx21")
+id = &"boots"
+display_name = "Boots"
+pad_title = "BOOTS"
+pad_label = "+12% SPEED"
+base_cost = 20.0
+cost_step = 20.0
+max_level = 6
+amount_per_level = 0.12

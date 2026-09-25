@@ -1,0 +1,92 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l106g"]
+specular_mode = 2
+albedo_color = Color(0.3019608, 0.42352942, 0.5019608, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_pfmgm"]
+material = SubResource("StandardMaterial3D_l106g")
+size = Vector3(2.4, 1.2, 2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ggpql"]
+specular_mode = 2
+albedo_color = Color(0.84705883, 0.8666667, 0.8784314, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_3cj8c"]
+material = SubResource("StandardMaterial3D_ggpql")
+top_radius = 0.45
+bottom_radius = 0.45
+height = 2.2
+radial_segments = 12
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7cfpx"]
+specular_mode = 2
+albedo_color = Color(0.84705883, 0.8666667, 0.8784314, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_hycaj"]
+material = SubResource("StandardMaterial3D_7cfpx")
+radius = 0.45
+height = 0.45
+radial_segments = 12
+rings = 6
+is_hemisphere = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eav5k"]
+specular_mode = 2
+albedo_color = Color(0.84705883, 0.8666667, 0.8784314, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_c7aoc"]
+material = SubResource("StandardMaterial3D_eav5k")
+top_radius = 0.45
+bottom_radius = 0.45
+height = 2.2
+radial_segments = 12
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6nve0"]
+specular_mode = 2
+albedo_color = Color(0.84705883, 0.8666667, 0.8784314, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_jc658"]
+material = SubResource("StandardMaterial3D_6nve0")
+radius = 0.45
+height = 0.45
+radial_segments = 12
+rings = 6
+is_hemisphere = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ins5m"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.56078434, 0.8901961, 1, 0.4)
+
+[sub_resource type="QuadMesh" id="QuadMesh_2s5ny"]
+material = SubResource("StandardMaterial3D_ins5m")
+size = Vector2(1.8, 0.25)
+
+[node name="Electrolyser" type="Node3D" unique_id=2087775503]
+
+[node name="Body" type="MeshInstance3D" parent="." unique_id=46055227]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+mesh = SubResource("BoxMesh_pfmgm")
+
+[node name="TankL" type="MeshInstance3D" parent="." unique_id=1334804695]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 1.7, -0.3)
+mesh = SubResource("CylinderMesh_3cj8c")
+
+[node name="CapL" type="MeshInstance3D" parent="." unique_id=1159307107]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 2.8, -0.3)
+mesh = SubResource("SphereMesh_hycaj")
+
+[node name="TankR" type="MeshInstance3D" parent="." unique_id=1776592561]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 1.7, -0.3)
+mesh = SubResource("CylinderMesh_c7aoc")
+
+[node name="CapR" type="MeshInstance3D" parent="." unique_id=1741966771]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 2.8, -0.3)
+mesh = SubResource("SphereMesh_jc658")
+
+[node name="Glow" type="MeshInstance3D" parent="." unique_id=1341578000]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 1.01)
+mesh = SubResource("QuadMesh_2s5ny")
