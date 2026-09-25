@@ -25,16 +25,16 @@ albedo_color = Color(0.8509804, 0.4745098, 0.2901961, 1)
 material = SubResource("StandardMaterial3D_ehhd5")
 size = Vector3(2.9, 0.12, 1.6)
 
-[node name="Outfitter" type="Node3D" unique_id=1459992749]
+[node name="Outfitter" type="Node3D" unique_id=988185441]
 
-[node name="Body" type="MeshInstance3D" parent="." unique_id=1427862474]
+[node name="Body" type="MeshInstance3D" parent="." unique_id=1046416314]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 mesh = SubResource("BoxMesh_3m0tk")
 
-[node name="Sign" type="MeshInstance3D" parent="." unique_id=261112877]
+[node name="Sign" type="MeshInstance3D" parent="." unique_id=779517949]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, 0.66)
 mesh = SubResource("QuadMesh_jwdgg")
 
-[node name="Awning" type="MeshInstance3D" parent="." unique_id=293134685]
+[node name="Awning" type="MeshInstance3D" parent="." unique_id=1855556038]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0.2)
 mesh = SubResource("BoxMesh_hsfmy")

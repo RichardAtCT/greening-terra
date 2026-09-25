@@ -25,7 +25,7 @@ static func flat_mesh(points: PackedVector3Array, colors: PackedColorArray = Pac
 
 ## Triangle soup of a primitive mesh, transformed (so meshes can be merged and flat-shaded).
 static func triangles_of(mesh: Mesh, xform := Transform3D.IDENTITY) -> PackedVector3Array:
-	var arrays: Array = mesh.get_mesh_arrays()
+	var arrays: Array = mesh.surface_get_arrays(0)
 	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
 	var out := PackedVector3Array()
@@ -132,3 +132,16 @@ static func _flip(pts: PackedVector3Array) -> PackedVector3Array:
 	for i in range(0, pts.size(), 3):
 		out.append_array([pts[i], pts[i + 2], pts[i + 1]])
 	return out
+
+
+## Merges parts into one flat-shaded, vertex-coloured mesh (one draw call).
+## Each part is [mesh: Mesh, xform: Transform3D, color: Color].
+static func merge(parts: Array) -> ArrayMesh:
+	var pts := PackedVector3Array()
+	var cols := PackedColorArray()
+	for part in parts:
+		var tri := triangles_of(part[0], part[1])
+		pts.append_array(tri)
+		for i in tri.size():
+			cols.append(part[2])
+	return flat_mesh(pts, cols)

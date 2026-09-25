@@ -50,7 +50,10 @@ func glow(c: Color, opacity := 0.4) -> StandardMaterial3D:
 func add(parent: Node3D, node_name: String, mesh: Mesh, mat: Material, pos: Vector3) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.name = node_name
-	mesh.material = mat
+	if mesh is ArrayMesh:
+		(mesh as ArrayMesh).surface_set_material(0, mat)
+	else:
+		mesh.material = mat
 	mi.mesh = mesh
 	mi.position = pos
 	parent.add_child(mi)
@@ -142,11 +145,13 @@ func _electrolyser() -> Node3D:
 func _greenhouse() -> Node3D:
 	var g := root("Greenhouse")
 	add(g, "Base", cyl(2.6, 2.7, 0.3, 24), lam(Color("5a534e")), Vector3(0, 0.15, 0))
-	var plant := lam(Color("4f9a44"))
+	# Nine seedling cones merged into one mesh (one draw call).
+	var parts := []
 	for i in 9:
 		var a := float(i) / 9.0 * TAU
 		var r := 1.3 if i % 3 != 0 else 0.4
-		add(g, "Plant%d" % i, cyl(0.0, 0.3, 0.9, 5), plant, Vector3(cos(a) * r, 0.75, sin(a) * r))
+		parts.append([cyl(0.0, 0.3, 0.9, 5), Transform3D(Basis(), Vector3(cos(a) * r, 0.75, sin(a) * r)), Color.WHITE])
+	add(g, "Plants", MeshUtil.merge(parts), lam(Color("4f9a44")), Vector3.ZERO)
 	var glass := StandardMaterial3D.new()
 	glass.albedo_color = Color(Color("b6f0b0"), 0.32)
 	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA

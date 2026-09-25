@@ -37,20 +37,20 @@ albedo_color = Color(1, 0.47843137, 0.16470589, 0.4)
 material = SubResource("StandardMaterial3D_uwxfj")
 size = Vector2(1.2, 0.6)
 
-[node name="Smelter" type="Node3D" unique_id=517738204]
+[node name="Smelter" type="Node3D" unique_id=705415350]
 
-[node name="Body" type="MeshInstance3D" parent="." unique_id=2137999269]
+[node name="Body" type="MeshInstance3D" parent="." unique_id=1916779762]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = SubResource("BoxMesh_vf5pb")
 
-[node name="Roof" type="MeshInstance3D" parent="." unique_id=404203073]
+[node name="Roof" type="MeshInstance3D" parent="." unique_id=280077514]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
 mesh = SubResource("BoxMesh_so3u8")
 
-[node name="Chimney" type="MeshInstance3D" parent="." unique_id=136128163]
+[node name="Chimney" type="MeshInstance3D" parent="." unique_id=1628290288]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7, 2.5, -0.4)
 mesh = SubResource("CylinderMesh_qbq2t")
 
-[node name="Glow" type="MeshInstance3D" parent="." unique_id=140466958]
+[node name="Glow" type="MeshInstance3D" parent="." unique_id=1583726289]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 1.11)
 mesh = SubResource("QuadMesh_x7usr")

@@ -65,28 +65,28 @@ albedo_color = Color(0.56078434, 0.8901961, 1, 0.4)
 material = SubResource("StandardMaterial3D_ins5m")
 size = Vector2(1.8, 0.25)
 
-[node name="Electrolyser" type="Node3D" unique_id=2087775503]
+[node name="Electrolyser" type="Node3D" unique_id=42148060]
 
-[node name="Body" type="MeshInstance3D" parent="." unique_id=46055227]
+[node name="Body" type="MeshInstance3D" parent="." unique_id=319446863]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 mesh = SubResource("BoxMesh_pfmgm")
 
-[node name="TankL" type="MeshInstance3D" parent="." unique_id=1334804695]
+[node name="TankL" type="MeshInstance3D" parent="." unique_id=1920631178]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 1.7, -0.3)
 mesh = SubResource("CylinderMesh_3cj8c")
 
-[node name="CapL" type="MeshInstance3D" parent="." unique_id=1159307107]
+[node name="CapL" type="MeshInstance3D" parent="." unique_id=210109025]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 2.8, -0.3)
 mesh = SubResource("SphereMesh_hycaj")
 
-[node name="TankR" type="MeshInstance3D" parent="." unique_id=1776592561]
+[node name="TankR" type="MeshInstance3D" parent="." unique_id=2117628584]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 1.7, -0.3)
 mesh = SubResource("CylinderMesh_c7aoc")
 
-[node name="CapR" type="MeshInstance3D" parent="." unique_id=1741966771]
+[node name="CapR" type="MeshInstance3D" parent="." unique_id=1842199483]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 2.8, -0.3)
 mesh = SubResource("SphereMesh_jc658")
 
-[node name="Glow" type="MeshInstance3D" parent="." unique_id=1341578000]
+[node name="Glow" type="MeshInstance3D" parent="." unique_id=515222824]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 1.01)
 mesh = SubResource("QuadMesh_2s5ny")

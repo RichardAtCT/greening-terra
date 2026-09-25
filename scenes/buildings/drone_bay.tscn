@@ -27,16 +27,16 @@ albedo_color = Color(0.41960785, 0.39215687, 0.40784314, 1)
 material = SubResource("StandardMaterial3D_kctr2")
 size = Vector3(0.5, 2.2, 0.5)
 
-[node name="DroneBay" type="Node3D" unique_id=1422713867]
+[node name="DroneBay" type="Node3D" unique_id=1969055625]
 
-[node name="Platform" type="MeshInstance3D" parent="." unique_id=1383951641]
+[node name="Platform" type="MeshInstance3D" parent="." unique_id=1912520154]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 mesh = SubResource("BoxMesh_1nsp5")
 
-[node name="Ring" type="MeshInstance3D" parent="." unique_id=815147753]
+[node name="Ring" type="MeshInstance3D" parent="." unique_id=1918398554]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.33, 0)
 mesh = SubResource("TorusMesh_j53li")
 
-[node name="Tower" type="MeshInstance3D" parent="." unique_id=1125603106]
+[node name="Tower" type="MeshInstance3D" parent="." unique_id=1839623593]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.3, 1.1, -1.1)
 mesh = SubResource("BoxMesh_xpycv")

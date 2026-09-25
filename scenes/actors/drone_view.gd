@@ -9,9 +9,8 @@ var _cargo: ItemStackView
 var _shadow: MeshInstance3D
 var _phase := 0.0
 
-static var _body_mat: StandardMaterial3D
-static var _ring_mat: StandardMaterial3D
-static var _eye_mat: StandardMaterial3D
+static var _mesh: ArrayMesh
+static var _mat: StandardMaterial3D
 static var _shadow_mat: StandardMaterial3D
 
 
@@ -19,29 +18,16 @@ func setup(p_drone: DroneBrain.Drone, defs: GameDefs) -> void:
 	drone = p_drone
 	hover_height = defs.tuning.drone_hover_height
 	_phase = randf() * TAU
-	if _body_mat == null:
-		_body_mat = ItemVisuals.lambert(Color("d9d4cc"))
-		_ring_mat = ItemVisuals.lambert(Color("f2b35b"))
-		_eye_mat = ItemVisuals.unshaded(Color("8fe3ff"))
+	if _mesh == null:
+		_mesh = _build_mesh()
+		_mat = ItemVisuals.lambert(Color.WHITE)
+		_mat.vertex_color_use_as_albedo = true
 		_shadow_mat = ItemVisuals.unshaded(Color(0, 0, 0, 0.28))
-	var body := SphereMesh.new()
-	body.radius = 0.34
-	body.height = 0.68
-	body.radial_segments = 12
-	body.rings = 8
-	_add(body, _body_mat, Vector3.ZERO)
-	var ring := TorusMesh.new()
-	ring.inner_radius = 0.46
-	ring.outer_radius = 0.58
-	ring.rings = 20
-	ring.ring_segments = 6
-	_add(ring, _ring_mat, Vector3.ZERO)
-	var eye := SphereMesh.new()
-	eye.radius = 0.1
-	eye.height = 0.2
-	eye.radial_segments = 8
-	eye.rings = 6
-	_add(eye, _eye_mat, Vector3(0, 0.02, 0.3))
+	var mi := MeshInstance3D.new()
+	mi.mesh = _mesh
+	mi.material_override = _mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
 	_cargo = ItemStackView.new()
 	_cargo.layout = ItemStackView.Layout.HANGING
 	_cargo.defs = defs
@@ -56,18 +42,33 @@ func setup(p_drone: DroneBrain.Drone, defs: GameDefs) -> void:
 	update_view(0.0)
 
 
-func _add(mesh: Mesh, mat: Material, pos: Vector3) -> void:
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.material_override = mat
-	mi.position = pos
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi)
+## Body, ring and eye in one vertex-coloured mesh (one draw call per drone).
+static func _build_mesh() -> ArrayMesh:
+	var body := SphereMesh.new()
+	body.radius = 0.34
+	body.height = 0.68
+	body.radial_segments = 12
+	body.rings = 8
+	var ring := TorusMesh.new()
+	ring.inner_radius = 0.46
+	ring.outer_radius = 0.58
+	ring.rings = 20
+	ring.ring_segments = 6
+	var eye := SphereMesh.new()
+	eye.radius = 0.1
+	eye.height = 0.2
+	eye.radial_segments = 8
+	eye.rings = 6
+	return MeshUtil.merge([
+		[body, Transform3D.IDENTITY, Color("d9d4cc")],
+		[ring, Transform3D.IDENTITY, Color("f2b35b")],
+		[eye, Transform3D(Basis(), Vector3(0, 0.02, 0.3)), Color("b4f0ff")],
+	])
 
 
 func update_view(delta: float) -> void:
 	_phase += delta * 3.0
 	position = Vector3(drone.position.x, hover_height + sin(_phase) * 0.15, drone.position.y)
 	rotation.y = drone.heading
-	_shadow.global_position = Vector3(drone.position.x, 0.04, drone.position.y)
+	_shadow.global_position = Vector3(drone.position.x, 0.06, drone.position.y)
 	_cargo.show_items(drone.cargo)

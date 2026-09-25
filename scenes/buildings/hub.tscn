@@ -59,24 +59,24 @@ height = 0.24
 radial_segments = 8
 rings = 6
 
-[node name="Hub" type="Node3D" unique_id=902910844]
+[node name="Hub" type="Node3D" unique_id=1169949934]
 
-[node name="Base" type="MeshInstance3D" parent="." unique_id=418388461]
+[node name="Base" type="MeshInstance3D" parent="." unique_id=247008016]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.17, 0)
 mesh = SubResource("CylinderMesh_wurio")
 
-[node name="Dome" type="MeshInstance3D" parent="." unique_id=2030273001]
+[node name="Dome" type="MeshInstance3D" parent="." unique_id=942191486]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
 mesh = SubResource("SphereMesh_ober1")
 
-[node name="Band" type="MeshInstance3D" parent="." unique_id=923353841]
+[node name="Band" type="MeshInstance3D" parent="." unique_id=1885396124]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 mesh = SubResource("TorusMesh_qis63")
 
-[node name="Antenna" type="MeshInstance3D" parent="." unique_id=354592144]
+[node name="Antenna" type="MeshInstance3D" parent="." unique_id=1096088753]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 2.9, -0.4)
 mesh = SubResource("CylinderMesh_pxy5j")
 
-[node name="Blink" type="MeshInstance3D" parent="." unique_id=1335242345]
+[node name="Blink" type="MeshInstance3D" parent="." unique_id=1169954170]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 3.75, -0.4)
 mesh = SubResource("SphereMesh_5gc1q")
