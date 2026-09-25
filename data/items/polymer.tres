@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_def.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"polymer"
+display_name = "Polymer"
+color = Color(0.8431, 0.4784, 0.8196, 1)
+emissive = Color(0.1804, 0.0588, 0.1725, 1)
+shape = 5
+stack_height = 0.3
+sell_value = 4.0
+terraform_value = 0.03

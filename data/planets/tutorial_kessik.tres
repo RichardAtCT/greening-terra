@@ -1,0 +1,115 @@
+[gd_resource type="Resource" script_class="TutorialDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tutorial_def.gd" id="1_tut"]
+[ext_resource type="Script" path="res://scripts/data/tutorial_step.gd" id="2_step"]
+[ext_resource type="Script" path="res://scripts/data/tutorial_condition.gd" id="3_cond"]
+
+[sub_resource type="Resource" id="cond_1"]
+script = ExtResource("3_cond")
+kind = 2
+key = &"scrubber"
+amount = 1
+
+[sub_resource type="Resource" id="step_2"]
+script = ExtResource("2_step")
+text = "Kessik is toxic: terraform can only rise as far as the toxins clear. Build the Scrubber (₵20)."
+target = Vector2(-9, -12.1)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_1")])
+saving_for_pad = &"build_scrubber"
+saving_text = "Dig regolith to the west, smelt it and deliver plates to reach ₵20 for the Scrubber."
+
+[sub_resource type="Resource" id="cond_3"]
+script = ExtResource("3_cond")
+kind = 1
+key = &"produced_filter"
+amount = 1
+
+[sub_resource type="Resource" id="step_4"]
+script = ExtResource("2_step")
+text = "Dig yellow sulphur to the north-west and feed the Scrubber."
+target = Vector2(-17.5, -21)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_3")])
+
+[sub_resource type="Resource" id="cond_5"]
+script = ExtResource("3_cond")
+kind = 1
+key = &"delivered_filter"
+amount = 1
+
+[sub_resource type="Resource" id="step_6"]
+script = ExtResource("2_step")
+text = "Deliver filters to the hub. Each one clears a little toxin."
+target = Vector2(0, 3.6)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_5")])
+
+[sub_resource type="Resource" id="cond_7"]
+script = ExtResource("3_cond")
+kind = 2
+key = &"electrolyser"
+amount = 1
+
+[sub_resource type="Resource" id="step_8"]
+script = ExtResource("2_step")
+text = "Build the Electrolyser (₵25) for O₂."
+target = Vector2(8, -1.1)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_7")])
+saving_for_pad = &"build_electrolyser"
+saving_text = "Deliver filters and plates until you have ₵25 for the Electrolyser."
+
+[sub_resource type="Resource" id="cond_9"]
+script = ExtResource("3_cond")
+kind = 2
+key = &"ice_melter"
+amount = 1
+
+[sub_resource type="Resource" id="step_10"]
+script = ExtResource("2_step")
+text = "Build the Ice Melter (₵60). It sits on a hot vent, so it runs faster."
+target = Vector2(10, -13.1)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_9")])
+saving_for_pad = &"build_ice_melter"
+saving_text = "Save ₵60 for the Ice Melter."
+
+[sub_resource type="Resource" id="cond_11"]
+script = ExtResource("3_cond")
+kind = 2
+key = &"bay"
+amount = 1
+
+[sub_resource type="Resource" id="step_12"]
+script = ExtResource("2_step")
+text = "Build the Drone Bay (₵60)."
+target = Vector2(-15, -6.1)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_11")])
+saving_for_pad = &"build_bay"
+saving_text = "Save ₵60 for the Drone Bay."
+
+[sub_resource type="Resource" id="cond_13"]
+script = ExtResource("3_cond")
+kind = 2
+key = &"algae_pond"
+amount = 1
+
+[sub_resource type="Resource" id="step_14"]
+script = ExtResource("2_step")
+text = "Build the Algae Pond (₵180). O₂ and water grow biomass: food for the colony."
+target = Vector2(0, -8.1)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_13")])
+saving_for_pad = &"build_algae_pond"
+saving_text = "Save ₵180 for the Algae Pond."
+
+[sub_resource type="Resource" id="cond_15"]
+script = ExtResource("3_cond")
+kind = 3
+key = &""
+amount = 0
+
+[sub_resource type="Resource" id="step_16"]
+script = ExtResource("2_step")
+text = "Keep the filters coming. If a meteor hits a machine, bring 5 plates to its REPAIR pad."
+has_target = false
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_15")])
+
+[resource]
+script = ExtResource("1_tut")
+steps = Array[ExtResource("2_step")]([SubResource("step_2"), SubResource("step_4"), SubResource("step_6"), SubResource("step_8"), SubResource("step_10"), SubResource("step_12"), SubResource("step_14"), SubResource("step_16")])

@@ -1,0 +1,139 @@
+[gd_resource type="Resource" script_class="TutorialDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tutorial_def.gd" id="1_tut"]
+[ext_resource type="Script" path="res://scripts/data/tutorial_step.gd" id="2_step"]
+[ext_resource type="Script" path="res://scripts/data/tutorial_condition.gd" id="3_cond"]
+
+[sub_resource type="Resource" id="cond_1"]
+script = ExtResource("3_cond")
+kind = 1
+key = &"delivered"
+amount = 3
+
+[sub_resource type="Resource" id="step_2"]
+script = ExtResource("2_step")
+text = "Orrin b is frozen solid. Get plates going again: dig regolith for the Smelter and deliver."
+target = Vector2(-15, 7)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_1")])
+
+[sub_resource type="Resource" id="cond_3"]
+script = ExtResource("3_cond")
+kind = 2
+key = &"electrolyser"
+amount = 1
+
+[sub_resource type="Resource" id="step_4"]
+script = ExtResource("2_step")
+text = "Build the Electrolyser (₵25) for O₂."
+target = Vector2(8, -1.1)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_3")])
+saving_for_pad = &"build_electrolyser"
+saving_text = "Deliver plates until you have ₵25 for the Electrolyser."
+
+[sub_resource type="Resource" id="cond_5"]
+script = ExtResource("3_cond")
+kind = 2
+key = &"refinery"
+amount = 1
+
+[sub_resource type="Resource" id="step_6"]
+script = ExtResource("2_step")
+text = "Build the Refinery (₵90). It turns carbonite into polymer."
+target = Vector2(10, -15.1)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_5")])
+saving_for_pad = &"build_refinery"
+saving_text = "Save ₵90 for the Refinery. Polymer is what keeps this world warm."
+
+[sub_resource type="Resource" id="cond_7"]
+script = ExtResource("3_cond")
+kind = 1
+key = &"produced_polymer"
+amount = 1
+
+[sub_resource type="Resource" id="step_8"]
+script = ExtResource("2_step")
+text = "Dig dark carbonite to the north-east and feed the Refinery."
+target = Vector2(18, -21)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_7")])
+
+[sub_resource type="Resource" id="cond_9"]
+script = ExtResource("3_cond")
+kind = 2
+key = &"heat_tower_1"
+amount = 1
+
+[sub_resource type="Resource" id="cond_10"]
+script = ExtResource("3_cond")
+kind = 2
+key = &"heat_tower_2"
+amount = 1
+
+[sub_resource type="Resource" id="cond_11"]
+script = ExtResource("3_cond")
+kind = 2
+key = &"heat_tower_3"
+amount = 1
+
+[sub_resource type="Resource" id="step_12"]
+script = ExtResource("2_step")
+text = "Build a Heat Tower. While it burns polymer, machines near it keep working through a cold snap."
+target = Vector2(-6, -7.6)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_9"), SubResource("cond_10"), SubResource("cond_11")])
+saving_for_pad = &"build_heat_tower_1"
+saving_text = "Save ₵60 for a Heat Tower. Three plots: pick the one that covers most machines."
+
+[sub_resource type="Resource" id="cond_13"]
+script = ExtResource("3_cond")
+kind = 1
+key = &"heat"
+amount = 1
+
+[sub_resource type="Resource" id="step_14"]
+script = ExtResource("2_step")
+text = "Feed the tower polymer. Its heat also warms the planet."
+target = Vector2(-6, -7.6)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_13")])
+
+[sub_resource type="Resource" id="cond_15"]
+script = ExtResource("3_cond")
+kind = 2
+key = &"bay"
+amount = 1
+
+[sub_resource type="Resource" id="step_16"]
+script = ExtResource("2_step")
+text = "Build the Drone Bay (₵60). Haulers keep the towers fed."
+target = Vector2(-15, -6.1)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_15")])
+saving_for_pad = &"build_bay"
+saving_text = "Deliver polymer and plates to reach ₵60 for the Drone Bay."
+
+[sub_resource type="Resource" id="cond_17"]
+script = ExtResource("3_cond")
+kind = 2
+key = &"greenhouse"
+amount = 1
+
+[sub_resource type="Resource" id="step_18"]
+script = ExtResource("2_step")
+text = "Build the Greenhouse (₵150). Here seedpods need plates, O₂ and polymer."
+target = Vector2(0, -8.1)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_17")])
+saving_for_pad = &"build_greenhouse"
+saving_text = "Save ₵150 for the Greenhouse."
+
+[sub_resource type="Resource" id="cond_19"]
+script = ExtResource("3_cond")
+kind = 3
+key = &""
+amount = 0
+
+[sub_resource type="Resource" id="step_20"]
+script = ExtResource("2_step")
+text = "Seedpods green the planet fastest. Warm every machine before the next cold snap."
+has_target = false
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_19")])
+
+[resource]
+script = ExtResource("1_tut")
+steps = Array[ExtResource("2_step")]([SubResource("step_2"), SubResource("step_4"), SubResource("step_6"), SubResource("step_8"), SubResource("step_12"), SubResource("step_14"), SubResource("step_16"), SubResource("step_18"), SubResource("step_20")])

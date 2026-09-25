@@ -339,7 +339,7 @@ func _update_buildings() -> void:
 func _update_habitats() -> void:
 	var s := sim.state
 	var planet := sim.planet
-	var cap := defs.colony.habitat_capacity
+	var cap := Colony.habitat_capacity(sim)
 	for i in _habitats.size():
 		var hv := _habitats[i]
 		var key := Colony.habitat_key(i)

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BonusDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/bonus_def.gd" id="1_bonus"]
+
+[resource]
+script = ExtResource("1_bonus")
+id = &"rich_veins"
+display_name = "Rich Veins"
+description = "Rocks and crystals hold 50% more and grow back 30% faster"
+kind = 7
+amount = 0.5
+amount_2 = 0.3
+color = Color(0.9098, 0.8235, 0.2275, 1)

@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/meshes/heat_tower.res" id="1_toyfx"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rlnd8"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.5411765, 0.22745098, 0.5)
+
+[sub_resource type="TorusMesh" id="TorusMesh_awquw"]
+material = SubResource("StandardMaterial3D_rlnd8")
+inner_radius = 0.66
+outer_radius = 0.84
+rings = 32
+ring_segments = 4
+
+[node name="HeatTower" type="Node3D" unique_id=393313475]
+
+[node name="Model" type="MeshInstance3D" parent="." unique_id=116318521]
+mesh = ExtResource("1_toyfx")
+
+[node name="Glow" type="MeshInstance3D" parent="." unique_id=1213697560]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)
+mesh = SubResource("TorusMesh_awquw")

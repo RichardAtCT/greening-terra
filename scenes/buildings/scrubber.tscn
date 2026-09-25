@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/meshes/scrubber.res" id="1_08q5c"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_g8x1s"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.7490196, 0.9098039, 0.84705883, 0.4)
+
+[sub_resource type="TorusMesh" id="TorusMesh_dq3co"]
+material = SubResource("StandardMaterial3D_g8x1s")
+inner_radius = 0.69
+outer_radius = 0.81
+rings = 32
+ring_segments = 4
+
+[node name="Scrubber" type="Node3D" unique_id=1074008860]
+
+[node name="Model" type="MeshInstance3D" parent="." unique_id=1571178341]
+mesh = ExtResource("1_08q5c")
+
+[node name="Glow" type="MeshInstance3D" parent="." unique_id=1981402826]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0.1)
+mesh = SubResource("TorusMesh_dq3co")

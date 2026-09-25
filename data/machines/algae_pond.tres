@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="MachineDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/recipe_def.gd" id="1_recipe"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/algae_pond.tscn" id="2_scene"]
+[ext_resource type="Script" path="res://scripts/data/machine_def.gd" id="3_machine"]
+
+[sub_resource type="Resource" id="Resource_recipe"]
+script = ExtResource("1_recipe")
+inputs = Dictionary[StringName, int]({
+&"o2": 1,
+&"water": 1
+})
+output = &"biomass"
+time = 2.0
+
+[resource]
+script = ExtResource("3_machine")
+id = &"algae_pond"
+display_name = "Algae Pond"
+recipe = SubResource("Resource_recipe")
+build_cost = 180
+position = Vector2(0, -11)
+scene = ExtResource("2_scene")
+footprint = Vector3(5, 1.2, 5)
+collide_radius = 2.6
+label_height = 3.0
+in_pad_color = Color(0.4353, 0.8118, 0.3529, 1)
+in_pad_label = "O₂+WATER"
+upgrade_costs = PackedInt32Array(400, 900, 1800)
+upgrade_pad_offset = Vector2(4.6, 0.9)

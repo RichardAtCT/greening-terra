@@ -55,7 +55,7 @@ func test_full_manual_loop_earns_credits() -> void:
 	assert_eq(sim.state.count_carried(&"plate"), 6)
 	_stand(sim.pad(&"depot").position, 1.0)
 	assert_eq(sim.state.credits, 12.0)
-	assert_almost_eq(sim.state.terraform, 6 * defs.item(&"plate").terraform_value, 0.0001)
+	assert_almost_eq(sim.state.terraform, 6 * defs.item(&"plate").terraform_value / sim.planet.terraform_divisor, 0.0001)
 	assert_eq(sim.state.tutorial_step, 4, "tutorial reached the Electrolyser step")
 
 

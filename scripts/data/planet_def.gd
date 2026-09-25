@@ -38,8 +38,9 @@ extends Resource
 @export var hauler_pad_offset: Vector2 = Vector2(-2.8, 2.9)
 @export var outfitter_position: Vector2 = Vector2(15, -9)
 @export var outfitter_collide_radius: float = 1.5
-@export var pack_pad_offset: Vector2 = Vector2(-1.4, 2.9)
-@export var boots_pad_offset: Vector2 = Vector2(1.4, 2.9)
+@export var pack_pad_offset: Vector2 = Vector2(-2.4, 2.9)
+@export var boots_pad_offset: Vector2 = Vector2(0.0, 2.9)
+@export var dig_pad_offset: Vector2 = Vector2(2.4, 2.9)
 ## Habitats (SPEC 4.1): positions, build costs (the first is free and built by the first lander)
 ## and where each one's BUILD pad sits.
 @export var habitat_positions: Array[Vector2] = [Vector2(-6, 10.5), Vector2(6, 10.5), Vector2(-3, 15)]
@@ -59,6 +60,32 @@ extends Resource
 @export var colonists_per_lander: int = 2
 ## Null for no hazard.
 @export var hazard: HazardDef
+
+@export_group("Surface")
+## Geothermal vents (Kessik): a machine built within vent_radius of one runs vent_boost faster.
+@export var vents: PackedVector2Array = []
+@export var vent_radius: float = 1.5
+@export var vent_boost: float = 0.5
+## Toxicity % at the start (Kessik). Terraform can't rise above 100 - toxicity; delivered items
+## still count, and show once filters clear the air.
+@export var start_toxicity: float = 0.0
+## Frost on the ground (Orrin b), 0..1 at 0% terraform, melting away by frost_gone_at %.
+@export var frost: float = 0.0
+@export var frost_gone_at: float = 60.0
+@export var frost_color: Color = Color("e4eef7")
+## Heat shimmer and steam colour over the vents.
+@export var steam_color: Color = Color("e8e4dc")
+
+@export_group("Vegetation")
+## Terraform % added to each plant layer's thresholds (tundra: grass sooner, trees later).
+@export var grass_shift: float = 0.0
+@export var flower_shift: float = 0.0
+@export var tree_shift: float = 0.0
+## Hue added to grass and trees (-0.08 is yellower tundra, +0.1 bluer), and their saturation scale.
+@export var plant_hue_shift: float = 0.0
+@export var plant_saturation: float = 1.0
+## Share of trees that are pines (-1: TerraformDef's default).
+@export var pine_share: float = -1.0
 
 @export_group("Balance")
 ## Target minutes to reach 100% (min, max), checked by tools/balance_sim.gd.

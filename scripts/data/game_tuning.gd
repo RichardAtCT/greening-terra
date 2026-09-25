@@ -18,6 +18,10 @@ extends Resource
 ## on it doesn't buy the next level by accident.
 @export var pay_rest: float = 2.0
 
+@export_group("Bonuses")
+## Bonuses offered at 100%.
+@export var bonus_offer_count: int = 3
+
 @export_group("Nodes")
 @export var node_respawn_time: float = 5.0
 

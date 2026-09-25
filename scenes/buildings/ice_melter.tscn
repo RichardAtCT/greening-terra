@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/meshes/ice_melter.res" id="1_r4p76"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5l32w"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.30980393, 0.6627451, 1, 0.4)
+
+[sub_resource type="QuadMesh" id="QuadMesh_ou07j"]
+material = SubResource("StandardMaterial3D_5l32w")
+size = Vector2(0.9, 0.35)
+
+[node name="IceMelter" type="Node3D" unique_id=1839426257]
+
+[node name="Model" type="MeshInstance3D" parent="." unique_id=340738846]
+mesh = ExtResource("1_r4p76")
+
+[node name="Glow" type="MeshInstance3D" parent="." unique_id=1745732812]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 1.25)
+mesh = SubResource("QuadMesh_ou07j")

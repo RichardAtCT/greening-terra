@@ -30,6 +30,25 @@ static func mesh(shape: ItemDef.Shape) -> Mesh:
 			c.radial_segments = 10
 			c.rings = 0
 			m = c
+		ItemDef.Shape.CUBE:
+			var b := BoxMesh.new()
+			b.size = Vector3(0.3, 0.26, 0.3)
+			m = b
+		ItemDef.Shape.DROP:
+			var d := SphereMesh.new()
+			d.radius = 0.15
+			d.height = 0.36
+			d.radial_segments = 8
+			d.rings = 4
+			m = d
+		ItemDef.Shape.DISC:
+			var c := CylinderMesh.new()
+			c.top_radius = 0.2
+			c.bottom_radius = 0.2
+			c.height = 0.14
+			c.radial_segments = 10
+			c.rings = 0
+			m = c
 		_:
 			var s := SphereMesh.new()
 			s.radius = 0.18

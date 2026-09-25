@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/meshes/algae_pond.res" id="1_vhkha"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fr2dn"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.5254902, 0.8784314, 0.4862745, 0.4)
+
+[sub_resource type="TorusMesh" id="TorusMesh_1bcle"]
+material = SubResource("StandardMaterial3D_fr2dn")
+inner_radius = 2.02
+outer_radius = 2.14
+rings = 32
+ring_segments = 4
+
+[node name="AlgaePond" type="Node3D" unique_id=638562199]
+
+[node name="Model" type="MeshInstance3D" parent="." unique_id=696227988]
+mesh = ExtResource("1_vhkha")
+
+[node name="Glow" type="MeshInstance3D" parent="." unique_id=795666705]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("TorusMesh_1bcle")

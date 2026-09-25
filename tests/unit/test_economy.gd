@@ -49,11 +49,12 @@ func test_delivery_pays_and_terraforms_per_planet() -> void:
 	var s := WorldState.new()
 	assert_eq(Economy.deliver(s, pod, planet), 9.0)
 	assert_eq(s.credits, 9.0)
-	assert_almost_eq(s.terraform, pod.terraform_value, 0.0001)
+	assert_almost_eq(s.terraform, pod.terraform_value / planet.terraform_divisor, 0.0001)
 	var s2 := WorldState.new()
-	Economy.deliver(s2, pod, defs.planet(1))
-	assert_almost_eq(s2.credits, 13.5, 0.0001)
-	assert_almost_eq(s2.terraform, pod.terraform_value / 1.35, 0.0001)
+	var p2 := defs.planet(1)
+	Economy.deliver(s2, pod, p2)
+	assert_almost_eq(s2.credits, 9.0 * p2.pay_multiplier, 0.0001)
+	assert_almost_eq(s2.terraform, pod.terraform_value / p2.terraform_divisor, 0.0001)
 
 
 func test_food_fills_the_store_before_selling() -> void:
@@ -63,7 +64,7 @@ func test_food_fills_the_store_before_selling() -> void:
 	assert_eq(Economy.deliver(s, pod, planet, 2.0), 0.0)
 	assert_eq(s.food, 2.0)
 	assert_eq(Economy.deliver(s, pod, planet, 2.0), 9.0, "store full: sold")
-	assert_almost_eq(s.terraform, pod.terraform_value * 3, 0.0001, "stored food still terraforms")
+	assert_almost_eq(s.terraform, pod.terraform_value * 3 / planet.terraform_divisor, 0.0001, "stored food still terraforms")
 	assert_eq(Economy.deliver(s, defs.item(&"plate"), planet, 2.0), 2.0, "plates aren't food")
 
 
@@ -77,7 +78,7 @@ func test_colonists_speed_machines_up() -> void:
 
 func test_terraform_caps_at_100() -> void:
 	var s := WorldState.new()
-	s.terraform = 99.99
+	s.growth = 99.99
 	Economy.deliver(s, defs.item(&"seedpod"), planet)
 	assert_eq(s.terraform, 100.0)
 

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="HazardDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/hazard_def.gd" id="1_hazard"]
+
+[resource]
+script = ExtResource("1_hazard")
+id = &"cold_snap"
+kind = 1
+display_name = "Cold snap"
+warning_text = "Cold snap coming"
+active_text = "Cold snap"
+start_percent = 8.0
+end_percent = 85.0
+interval_min = 180.0
+interval_max = 270.0
+interval_growth = 1.3
+duration = 45.0
+player_speed = 1.0
+drone_speed = 1.0
+machine_speed = 0.5
+warning_darken = 0.3
+dark_color = Color(0.1020, 0.1255, 0.2510, 1)
+fog_color = Color(0.7216, 0.7843, 0.8784, 1)
+fog_far = 38.0
+dust_opacity = 0.9
+dust_wind = Vector2(1.6, 0.6)
+dust_color = Color(0.9569, 0.9725, 1.0000, 1)
+dust_fall = 2.2
+frost = 0.7

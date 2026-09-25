@@ -36,16 +36,18 @@ func start(state: WorldState) -> void:
 	EventBus.sim_started.emit()
 
 
-## Travels to the next planet. Credits reset; pack and boots carry over.
+## Travels to the next planet. Credits reset; pack, boots, dig speed and bonuses carry over.
 func next_planet() -> void:
-	var s := sim.state
-	start(GameSim.new_planet_state(defs, s.planet_index + 1, s.pack_level, s.boots_level))
+	start(GameSim.carry_state(defs, sim.state, sim.state.planet_index + 1))
 	save()
 
 
+## Starts this planet again. Kit and bonuses stay (including one picked here, and whether it was).
 func restart_planet() -> void:
 	var s := sim.state
-	start(GameSim.new_planet_state(defs, s.planet_index, s.pack_level, s.boots_level))
+	var fresh := GameSim.carry_state(defs, s, s.planet_index)
+	fresh.bonus_picked = s.bonus_picked
+	start(fresh)
 	save()
 
 
