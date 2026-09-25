@@ -60,6 +60,9 @@ void fragment() {
 			f *= 1.0 - warm[i].w * (1.0 - smoothstep(warm[i].z * 0.45, warm[i].z * 0.9, wd + (n - 0.5) * 2.0));
 		}
 		col = mix(col, frost_color.rgb * mix(0.85, 1.05, n), f * 0.85);
+		// A sparkle of ice crystals.
+		float glint = step(0.975, hash(floor(world_pos.xz * 7.0)));
+		col += glint * f * 0.35;
 	}
 	ALBEDO = col;
 	ROUGHNESS = 1.0;

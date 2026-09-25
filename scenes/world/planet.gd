@@ -223,7 +223,13 @@ func _on_won() -> void:
 
 
 ## The star map (SPEC 3) replaces the old direct "Launch to …": the rocket flies from there.
+## A finished planet's bonus is picked first (the win screen offers it again if it was skipped).
 func _open_star_map() -> void:
+	if sim.state.won and not sim.state.bonus_picked and not Bonuses.offer(defs, sim.state).is_empty():
+		_hud.close_menu()
+		_set_paused(true)
+		_hud.show_win(sim, false)
+		return
 	_hud.hide_win()
 	GameState.save()
 	Audio.stop_ambience()

@@ -10,6 +10,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	Audio.stop_all()
 	DirAccess.remove_absolute(SaveManager.profile_path(99))
 
 
@@ -103,3 +104,72 @@ func test_title_screen_loads_and_lists_three_profiles() -> void:
 		if (l as Label).text.begins_with("Explorer") or (l as Label).text == SaveManager.profile_name(1):
 			names += 1
 	assert_gte(names, 3)
+
+
+func test_orrin_and_kessik_run_through_their_hazards() -> void:
+	for index in [1, 2]:
+		var defs := GameState.defs
+		var s := GameSim.new_planet_state(defs, index)
+		for m in defs.planet(index).machines:
+			s.built[m.id] = true
+		s.built[&"bay"] = true
+		s.drones = 4
+		s.terraform = 30.0
+		s.toxicity = 20.0
+		s.hazard_phase = HazardDirector.Phase.WARNING
+		s.hazard_t = 2.0
+		GameState.start(s)
+		var sim := GameState.sim
+		if sim.planet.hazard.kind == HazardDef.Kind.METEORS:
+			s.impacts = HazardDirector.impact_points(sim)
+		var world: Node3D = load("res://scenes/world/planet.tscn").instantiate()
+		add_child(world)
+		await wait_frames(2)
+		# 60 s of play (the scene caps each step at 0.05 s).
+		for i in 1200:
+			world._process(0.1)
+		assert_eq(sim.state.hazard_count, 1, "%s: the hazard came and went" % sim.planet.display_name)
+		assert_gt(sim.state.stat(&"produced_plate"), 0)
+		if sim.planet.hazard.kind == HazardDef.Kind.METEORS:
+			assert_eq(sim.state.damaged.size(), 1, "a meteor hit a machine")
+		else:
+			assert_gt(sim.state.stat(&"heat"), 0, "haulers fed the heat towers")
+		world.free()
+		await wait_frames(1)
+
+
+func test_win_screen_offers_bonuses_then_the_star_map() -> void:
+	var s := GameSim.new_planet_state(GameState.defs, 0)
+	s.growth = 99.999
+	s.terraform = 99.999
+	GameState.start(s)
+	var world: Node3D = load("res://scenes/world/planet.tscn").instantiate()
+	add_child_autofree(world)
+	await wait_frames(2)
+	GameState.sim.deliver_item(&"seedpod", Vector3.ZERO)
+	world._process(0.05)
+	assert_true(GameState.sim.state.won)
+	var offer := Bonuses.offer(GameState.defs, GameState.sim.state)
+	assert_eq(offer.size(), 3)
+	var hud: Hud = world.get_node("UI/Hud")
+	hud.bonus_picked.emit(offer[2].id)
+	assert_true(GameState.sim.state.bonus_picked)
+	assert_eq(GameState.sim.state.bonuses, [offer[2].id] as Array[StringName])
+
+
+func test_star_map_waits_for_the_bonus_then_launches() -> void:
+	var s := GameSim.new_planet_state(GameState.defs, 0)
+	s.terraform = 100.0
+	s.won = true
+	GameState.start(s)
+	var map: StarMap = load(StarMap.SCENE).instantiate()
+	add_child_autofree(map)
+	await wait_frames(2)
+	assert_false(map._launch.visible, "pick a bonus first")
+	s.bonus_picked = true
+	map._refresh()
+	assert_true(map._launch.visible)
+	map._on_launch()
+	for i in 10:
+		map._process(0.1)
+	assert_between(map._flight, 0.3, 0.6, "the rocket is on its way")

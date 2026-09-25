@@ -91,9 +91,13 @@ func _ready() -> void:
 func _refresh() -> void:
 	var here := GameSim.planet_display_name(defs, state.planet_index)
 	var next := GameSim.planet_display_name(defs, state.planet_index + 1)
-	_launch.visible = state.won
+	var bonus_due := state.won and not state.bonus_picked and not Bonuses.offer(defs, state).is_empty()
+	_launch.visible = state.won and not bonus_due
 	_launch.text = "Launch to %s" % next
-	if state.won:
+	if bonus_due:
+		_status.text = "%s is breathing. Go back and pick your bonus, then launch to %s." % [here, next]
+		_back.grab_focus.call_deferred()
+	elif state.won:
 		_status.text = "%s is breathing. Your pack, boots, dig speed and bonuses come with you; credits stay behind." % here
 		_launch.grab_focus.call_deferred()
 	else:
@@ -114,7 +118,7 @@ func _process(delta: float) -> void:
 
 
 func _on_launch() -> void:
-	if _flight >= 0.0 or not state.won:
+	if _flight >= 0.0 or not _launch.visible:
 		return
 	_flight = 0.0
 	_launch.disabled = true

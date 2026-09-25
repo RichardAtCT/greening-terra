@@ -3,8 +3,7 @@ extends Node3D
 ## Draws every pad in shared MultiMeshes: one for the dark base slabs, one for the bordered tops
 ## with their titles and subtitles, one per item type for the floating icons and one for the pay
 ## pads' coins. That's a few draw calls for every pad (M3 used three per pad plus one per icon).
-## The pads' text is rendered once into an atlas (a SubViewport of Labels) that the top shader
-## reads. Icons float above each pad's far edge, turning and bobbing (JuiceTuning), and everything
+## The pads' text is written once into an atlas texture that the top shader reads. Icons float above each pad's far edge, turning and bobbing (JuiceTuning), and everything
 ## follows each PadView (hidden with it, lifted with it).
 
 const COIN := &"coin"
@@ -26,7 +25,6 @@ var pads: Array[PadView] = []
 var _juice: JuiceTuning
 var _bases: MultiMesh
 var _tops: MultiMesh
-var _atlas: SubViewport
 var _top_mat: ShaderMaterial
 var _icons: Dictionary = {}
 var _time := 0.0
@@ -38,17 +36,16 @@ func setup(p_pads: Array[PadView], defs: GameDefs) -> void:
 	var slab := BoxMesh.new()
 	slab.size = Vector3(2.2, 0.08, 2.2)
 	_bases = _multimesh("Bases", slab, ItemVisuals.lambert(Color("2a1c1f")), pads.size())
-	_build_atlas()
+	var atlas := _build_atlas()
 	var top := QuadMesh.new()
 	top.size = Vector2(2.1, 2.1)
 	top.orientation = PlaneMesh.FACE_Y
 	_top_mat = ShaderMaterial.new()
 	_top_mat.shader = PAD_SHADER
-	_top_mat.set_shader_parameter("atlas", _atlas.get_texture())
-	_top_mat.set_shader_parameter("atlas_cells", Vector2(ATLAS_COLS, _atlas.size.y / (CELL.y * ATLAS_SCALE)))
+	_top_mat.set_shader_parameter("atlas", atlas)
+	_top_mat.set_shader_parameter("atlas_cells", Vector2(ATLAS_COLS, atlas.get_height() / (CELL.y * ATLAS_SCALE)))
 	_top_mat.set_shader_parameter("text_rows", Vector2(CELL_TOP, CELL_TOP + CELL.y) / 256.0)
 	_tops = _multimesh("Tops", top, _top_mat, pads.size(), true)
-	_bake_atlas.call_deferred()
 	var counts := {}
 	for pv in pads:
 		for id in pv.icon_ids():
@@ -100,62 +97,86 @@ func _update() -> void:
 		_icons[id].visible_instance_count = counts.get(id, 0)
 
 
-## Renders every pad's title and subtitle (white on black; the shader reads the red channel as
-## coverage and tints it) into one texture.
-func _build_atlas() -> void:
+## Writes every pad's title and subtitle into one texture, on the CPU: each string is shaped by the
+## TextServer and its glyphs copied from the font's own glyph cache (white on black; the shader
+## reads red as coverage and tints it). Then mipmapped, so it stays crisp at an angle. Drawing
+## Labels into a SubViewport and reading that back came out garbled on WebGL; this can't.
+func _build_atlas() -> Texture2D:
 	var k := ATLAS_SCALE
+	var title_font := _plain(TITLE_FONT)
+	var sub_font := _plain(SUB_FONT)
 	var rows := maxi(1, ceili(float(pads.size()) / ATLAS_COLS))
-	_atlas = SubViewport.new()
-	_atlas.name = "TextAtlas"
-	_atlas.size = Vector2i(CELL.x * ATLAS_COLS, CELL.y * rows) * k
-	_atlas.disable_3d = true
-	_atlas.render_target_update_mode = SubViewport.UPDATE_ONCE
-	add_child(_atlas)
-	var black := ColorRect.new()
-	black.color = Color.BLACK
-	black.size = _atlas.size
-	_atlas.add_child(black)
+	var img := Image.create_empty(CELL.x * ATLAS_COLS * k, CELL.y * rows * k, false, Image.FORMAT_RGBA8)
+	img.fill(Color.BLACK)
 	for i in pads.size():
 		var pv := pads[i]
 		pv.atlas_cell = i
-		var cell := Control.new()
-		cell.position = Vector2((i % ATLAS_COLS) * CELL.x, (i / ATLAS_COLS) * CELL.y) * k
-		cell.size = CELL * k
-		_atlas.add_child(cell)
+		var cell := Vector2((i % ATLAS_COLS) * CELL.x, (i / ATLAS_COLS) * CELL.y) * k
 		# Centres match the old Label3Ds: title 22 px towards the far edge, subtitle 40 px nearer.
 		var has_sub := pv.info.label != ""
-		cell.add_child(_text(pv.info.title, TITLE_FONT, 62 * k, ((128.0 - 22.0 if has_sub else 128.0) - CELL_TOP) * k, 76 * k))
+		var fit := CELL.x * k * 0.9
+		_write(img, pv.info.title, title_font, 62 * k, cell + Vector2(CELL.x * k * 0.5, ((128.0 - 22.0 if has_sub else 128.0) - CELL_TOP) * k), fit)
 		if has_sub:
-			cell.add_child(_text(pv.info.label, SUB_FONT, 25 * k, (128.0 + 40.0 - CELL_TOP) * k, 34 * k))
-
-
-func _text(text: String, font: Font, size: int, center_y: float, height: float) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_override("font", font)
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", Color.WHITE)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	l.position = Vector2(0, center_y - height * 0.5)
-	l.size = Vector2(CELL.x * ATLAS_SCALE, height)
-	return l
-
-
-## Once the atlas has been drawn, keeps it as a mipmapped one-channel texture (a quarter of the
-## memory, and no shimmer at a distance) and frees the viewport. Headless, the viewport stays.
-func _bake_atlas() -> void:
-	await RenderingServer.frame_post_draw
-	if not is_instance_valid(_atlas):
-		return
-	var img := _atlas.get_texture().get_image()
-	if img == null or img.is_empty():
-		return
+			_write(img, pv.info.label, sub_font, 25 * k, cell + Vector2(CELL.x * k * 0.5, (128.0 + 40.0 - CELL_TOP) * k), fit)
 	img.convert(Image.FORMAT_R8)
 	img.generate_mipmaps()
-	_top_mat.set_shader_parameter("atlas", ImageTexture.create_from_image(img))
-	_atlas.queue_free()
-	_atlas = null
+	return ImageTexture.create_from_image(img)
+
+
+## A copy of a font that rasterises plain coverage glyphs (the game's fonts are MSDF, whose glyph
+## cache holds distance fields, not something to copy into a texture).
+static func _plain(font: Font) -> Font:
+	if font is FontVariation:
+		var v := (font as FontVariation).duplicate() as FontVariation
+		v.base_font = _plain(v.base_font)
+		v.fallbacks = []
+		return v
+	var src := font as FontFile
+	var f := FontFile.new()
+	f.data = src.data
+	f.multichannel_signed_distance_field = false
+	f.antialiasing = TextServer.FONT_ANTIALIASING_GRAY
+	f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+	f.generate_mipmaps = false
+	return f
+
+
+## Draws text centred on `center` into img, glyph by glyph from the font's cache, shrunk to fit
+## within max_width.
+static func _write(img: Image, text: String, font: Font, size: int, center: Vector2, max_width: float) -> void:
+	var ts := TextServerManager.get_primary_interface()
+	var line := TextLine.new()
+	line.add_string(text, font, size)
+	var width := line.get_size().x
+	if width > max_width:
+		line = TextLine.new()
+		line.add_string(text, font, floori(size * max_width / width))
+		width = line.get_size().x
+	var baseline := center.y + (line.get_line_ascent() - line.get_line_descent()) * 0.5
+	var pen := Vector2(center.x - width * 0.5, baseline)
+	var pages := {}
+	for g in ts.shaped_text_get_glyphs(line.get_rid()):
+		var rid: RID = g.font_rid
+		var at: Vector2 = pen + g.offset
+		pen.x += g.advance * g.repeat
+		if not rid.is_valid() or g.index == 0:
+			continue
+		var fs := Vector2i(g.font_size, 0)
+		ts.font_render_glyph(rid, fs, g.index)
+		var page: int = ts.font_get_glyph_texture_idx(rid, fs, g.index)
+		if page < 0:
+			continue
+		var key := [rid, fs, page]
+		if not pages.has(key):
+			var tex_img := ts.font_get_texture_image(rid, fs, page)
+			tex_img.convert(Image.FORMAT_RGBA8)
+			pages[key] = tex_img
+		var src: Image = pages[key]
+		var uv: Rect2 = ts.font_get_glyph_uv_rect(rid, fs, g.index)
+		var dst: Vector2 = at + ts.font_get_glyph_offset(rid, fs, g.index)
+		var glyph := src.get_region(Rect2i(uv.position, uv.size))
+		# The cache is white with coverage in alpha: blending over black leaves coverage in red.
+		img.blend_rect(glyph, Rect2i(Vector2i.ZERO, glyph.get_size()), Vector2i(dst.round()))
 
 
 func _multimesh(node_name: String, mesh: Mesh, material: Material, count: int, per_instance := false) -> MultiMesh:

@@ -14,6 +14,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	Audio.stop_all()
 	DirAccess.remove_absolute(SaveManager.profile_path(99))
 
 

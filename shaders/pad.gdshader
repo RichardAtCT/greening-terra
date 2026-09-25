@@ -13,14 +13,21 @@ uniform float fill_edge = 0.04;
 uniform sampler2D atlas : filter_linear_mipmap_anisotropic;
 uniform vec2 atlas_cells = vec2(4.0, 6.0);
 uniform vec2 text_rows = vec2(0.2734, 0.7734);
+// The top sits just above its slab. Pulling it this share of the way towards the camera along the
+// view ray (same pixel, nearer depth) stops it z-fighting the slab where depth precision is low.
+uniform float depth_pull = 0.004;
 
 varying vec4 pad_color;
-varying float cell;
-varying float opacity;
+varying flat float cell;
+varying flat float opacity;
 
 void vertex() {
+	vec4 view = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
+	view.xyz *= 1.0 - depth_pull;
+	POSITION = PROJECTION_MATRIX * view;
 	pad_color = COLOR;
-	cell = INSTANCE_CUSTOM.x;
+	// Rounded: instance data can arrive as 11.999 on some GPUs, and floor() would pick the wrong row.
+	cell = floor(INSTANCE_CUSTOM.x + 0.5);
 	opacity = INSTANCE_CUSTOM.y;
 }
 
@@ -37,13 +44,13 @@ void fragment() {
 	float a = c.a * opacity;
 	vec3 col = c.rgb;
 	float v = (UV.y - text_rows.x) / (text_rows.y - text_rows.x);
-	if (cell >= 0.0 && v >= 0.0 && v <= 1.0) {
-		vec2 at = vec2(mod(cell, atlas_cells.x), floor(cell / atlas_cells.x));
-		// Firmed up a little, as mipmapped text at a glancing angle goes soft.
-		float text = smoothstep(0.08, 0.6, texture(atlas, (at + vec2(UV.x, v)) / atlas_cells).r);
-		col = mix(col, pad_color.rgb, text);
-		a = max(a, text);
-	}
+	// Sampled outside any branch: mipmap selection needs derivatives from every pixel of a quad.
+	vec2 at = vec2(mod(cell, atlas_cells.x), floor(cell / atlas_cells.x));
+	float text = texture(atlas, (at + vec2(UV.x, clamp(v, 0.0, 1.0))) / atlas_cells).r;
+	// Firmed up a little, as mipmapped text at a glancing angle goes soft.
+	text = smoothstep(0.08, 0.6, text) * step(0.0, v) * step(v, 1.0) * step(0.0, cell);
+	col = mix(col, pad_color.rgb, text);
+	a = max(a, text);
 	ALBEDO = col;
 	ALPHA = a;
 }

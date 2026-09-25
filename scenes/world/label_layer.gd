@@ -50,7 +50,6 @@ func _collect() -> void:
 	_shown.clear()
 	if camera == null or not camera.is_inside_tree():
 		return
-	var to_canvas := get_viewport().get_final_transform().affine_inverse()
 	var right := camera.global_basis.x
 	var depths := []
 	for node in get_tree().get_nodes_in_group(WorldLabel.GROUP):
@@ -60,8 +59,9 @@ func _collect() -> void:
 		var p := l.global_position
 		if camera.is_position_behind(p):
 			continue
-		var at := to_canvas * camera.unproject_position(p)
-		var edge := to_canvas * camera.unproject_position(p + right * l.scale_m)
+		# unproject_position is already in canvas units (the visible rect, after content scale).
+		var at := camera.unproject_position(p)
+		var edge := camera.unproject_position(p + right * l.scale_m)
 		var s := at.distance_to(edge) / WorldLabel.CANVAS_W
 		_shown.append([l, at, s])
 		depths.append(camera.global_position.distance_squared_to(p))
