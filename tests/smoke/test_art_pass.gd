@@ -4,6 +4,8 @@ extends GutTest
 const MESHES := "res://assets/meshes/"
 ## SPEC 7.1 budget. The estimate below counts every visible surface, before frustum culling.
 const DRAW_CALL_BUDGET := 150
+## Building labels are drawn in 2D by LabelLayer: panels, titles and subtitles, one pass each.
+const LABEL_LAYER_CALLS := 3
 
 
 func before_each() -> void:
@@ -84,18 +86,35 @@ func test_moss_front_grows_with_terraform() -> void:
 	assert_gt(TerraformView.moss_reach(tf, 100.0), 33.0, "covers the play area at 100%")
 
 
-func test_late_game_fits_draw_call_budget() -> void:
-	var s := GameSim.new_planet_state(GameState.defs, 0)
-	for m in GameState.defs.planet(0).machines:
+func test_late_game_fits_draw_call_budget_on_every_planet() -> void:
+	for index in GameState.defs.planets.size():
+		var calls := await _late_game_calls(index)
+		gut.p("%s late-game drawables (before culling): %d" % [GameState.defs.planet(index).display_name, calls])
+		assert_lt(calls, DRAW_CALL_BUDGET, GameState.defs.planet(index).display_name)
+
+
+## Everything built and levelled, max haulers with mixed cargo, the whole colony with some hungry
+## and two waiting, a lander coming down and the planet's hazard at full strength (with a meteor
+## -damaged machine on Kessik), which never all happen at once in play.
+func _late_game_calls(index: int) -> int:
+	var defs := GameState.defs
+	var planet := defs.planet(index)
+	var s := GameSim.new_planet_state(defs, index)
+	for m in planet.machines:
 		s.built[m.id] = true
+		# Half upgraded, so UPGRADE pads still show on the rest.
+		if not m.upgrade_costs.is_empty() and planet.machines.find(m) % 2 == 0:
+			s.machine_levels[m.id] = 1
 	s.built[&"bay"] = true
-	s.drones = GameState.defs.planet(0).max_drones
+	s.drones = planet.max_drones
 	s.terraform = 100.0
+	s.toxicity = 0.0
+	var items := []
+	for m in planet.machines:
+		if m.recipe.makes_item():
+			items.append(m.recipe.output)
 	for i in 20:
-		s.stack.append([&"regolith", &"plate", &"o2", &"seedpod"][i % 4])
-	# M4: the whole colony (every habitat, every colonist, a few hungry), a lander on its way down
-	# and a dust storm blowing, which never all happen at once in play.
-	var planet := GameState.defs.planet(0)
+		s.stack.append(items[i % items.size()])
 	for i in planet.habitat_positions.size():
 		s.built[Colony.habitat_key(i)] = true
 	s.landers = planet.lander_milestones.size() - 1
@@ -103,36 +122,49 @@ func test_late_game_fits_draw_call_budget() -> void:
 	for i in (planet.lander_milestones.size() - 1) * planet.colonists_per_lander:
 		s.meals.append(0.0 if i % 4 == 0 else 60.0)
 	s.colonists_waiting = planet.colonists_per_lander
-	s.hazard_phase = HazardDirector.Phase.ACTIVE
-	s.hazard_t = 20.0
+	if planet.hazard:
+		s.hazard_phase = HazardDirector.Phase.ACTIVE
+		s.hazard_t = minf(20.0, planet.hazard.duration * 0.5)
+		if planet.hazard.kind == HazardDef.Kind.METEORS:
+			s.impacts.assign([Vector2(5, 14), Vector2(-12, 3), Vector2(14, -2)])
+			for m in planet.machines:
+				if m.takes_workers and m.recipe.output != planet.hazard.repair_item:
+					s.damaged[m.id] = true
+					break
 	GameState.start(s)
 	var world: Node3D = load("res://scenes/world/planet.tscn").instantiate()
-	add_child_autofree(world)
+	add_child(world)
 	await wait_process_frames(3)
 	for i in 50:
-		world._process(0.1)
+		world._process(0.05)
 	# Give every hauler cargo, so each cargo MultiMesh is in use.
 	for d in GameState.sim.drones:
-		d.cargo.assign([&"plate", &"o2", &"seedpod", &"regolith"].slice(0, 1 + d.index % 4))
-	world._process(0.1)
-	var calls := _count_surfaces(world)
-	gut.p("late-game drawables (before culling): %d" % calls)
-	assert_lt(calls, DRAW_CALL_BUDGET)
+		var cargo: Array[StringName] = []
+		for k in 1 + d.index % 4:
+			cargo.append(items[(d.index + k) % items.size()])
+		d.cargo.assign(cargo)
+	world._process(0.05)
+	var calls := _count_surfaces(world) + LABEL_LAYER_CALLS
+	world.queue_free()
+	await wait_process_frames(2)
+	return calls
+
+
+func _count_surfaces_one(g: Node) -> int:
+	var gi := g as GeometryInstance3D
+	var n := 1
+	if gi is MultiMeshInstance3D:
+		var mm := (gi as MultiMeshInstance3D).multimesh
+		n = mm.mesh.get_surface_count() if mm and mm.mesh and mm.visible_instance_count != 0 else 0
+	elif gi is MeshInstance3D:
+		n = (gi as MeshInstance3D).mesh.get_surface_count() if (gi as MeshInstance3D).mesh else 0
+	# A material overlay (frost, soot) draws the mesh a second time.
+	return n * (2 if gi.material_overlay else 1)
 
 
 func _count_surfaces(root: Node) -> int:
 	var n := 0
 	for g in root.find_children("*", "GeometryInstance3D", true, false):
-		var gi := g as GeometryInstance3D
-		if not gi.is_visible_in_tree():
-			continue
-		if gi is MultiMeshInstance3D:
-			var mm := (gi as MultiMeshInstance3D).multimesh
-			if mm and mm.mesh and (mm.visible_instance_count != 0):
-				n += mm.mesh.get_surface_count()
-		elif gi is MeshInstance3D:
-			if (gi as MeshInstance3D).mesh:
-				n += (gi as MeshInstance3D).mesh.get_surface_count()
-		else:
-			n += 1
+		if (g as GeometryInstance3D).is_visible_in_tree():
+			n += _count_surfaces_one(g)
 	return n

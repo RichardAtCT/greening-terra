@@ -6,7 +6,7 @@
 script = ExtResource("1_bonus")
 id = &"rich_veins"
 display_name = "Rich Veins"
-description = "Rocks and crystals hold 50% more and grow back 30% faster"
+description = "Rocks and crystals hold 50% more and regrow faster"
 kind = 7
 amount = 0.5
 amount_2 = 0.3

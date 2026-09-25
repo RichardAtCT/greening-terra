@@ -1,8 +1,10 @@
 class_name TerraformView
 extends Node3D
-## Turns the displayed terraform % into the planet's look: sky, fog, light, ground tint and moss
-## (ground_terraform shader), lakes (water shader), dust, and moss, grass, flowers and trees
-## that spread outward from the hub.
+## Turns the displayed terraform % into the planet's look: sky, fog, light, ground tint, moss and
+## frost (ground_terraform shader), lakes (water shader), dust, and moss, grass, flowers and trees
+## that spread outward from the hub (each planet shifts when its plants come: tundra on Orrin b).
+## The planet's hazard adds its own look on top: a dust storm's orange fog, a cold snap's snow and
+## frost, a meteor shower's darkening sky.
 
 const DUST_COUNT := 260
 const GROUND_SHADER := preload("res://shaders/ground_terraform.gdshader")
@@ -26,6 +28,8 @@ var _lakes: Array[MeshInstance3D] = []
 var _lake_radius: Array[float] = []
 var _dust_mat: ShaderMaterial
 var _drift := Vector2.ZERO
+var _fall := 0.0
+var _frost := 0.0
 var _layers: Array[Dictionary] = []
 
 
@@ -40,6 +44,8 @@ func build(p_defs: GameDefs, p_planet: PlanetDef, rng: RandomNumberGenerator) ->
 	ground_mat.set_shader_parameter("hub", planet.hub_position)
 	ground_mat.set_shader_parameter("moss_edge", tf.ground_moss_edge)
 	ground_mat.set_shader_parameter("moss_strength", tf.ground_moss_strength)
+	ground_mat.set_shader_parameter("frost_color", planet.frost_color)
+	set_warm_spots([])
 	var ground := MeshInstance3D.new()
 	ground.name = "Ground"
 	ground.mesh = TerrainBuilder.ground_mesh(rng)
@@ -79,7 +85,7 @@ func build(p_defs: GameDefs, p_planet: PlanetDef, rng: RandomNumberGenerator) ->
 		_lakes.append(mi)
 		_lake_radius.append(lake.z)
 
-	var pines := int(round(tf.tree_count * tf.tree_pine_share))
+	var pines := int(round(tf.tree_count * (planet.pine_share if planet.pine_share >= 0.0 else tf.tree_pine_share)))
 	_layers.append(_build_layer("Moss", MeshUtil.disc(1.0, 7), tf.moss_count, rng, _place_moss))
 	_layers.append(_build_layer("Grass", GRASS_MESH, tf.grass_count, rng, _place_grass))
 	_layers.append(_build_layer("Flowers", FLOWER_MESH, tf.flower_count, rng, _place_flower))
@@ -98,13 +104,14 @@ func apply(t: float, delta: float, snap: bool, player_pos: Vector3, storm := 0.0
 	var dark := storm if h else 0.0
 	# 0 during the warning, rising to 1 as the hazard itself arrives.
 	var thick := clampf(inverse_lerp(h.warning_darken, 1.0, storm), 0.0, 1.0) if h and storm > 0.0 else 0.0
+	var fog := thick if h and h.fog_enabled else 0.0
 	var sky := TerraformMath.sky_color(tf, planet, t)
 	if h:
 		sky = sky.lerp(h.dark_color, dark * 0.6)
-	environment.background_color = sky.lerp(h.fog_color * 0.8, thick * 0.7) if h else sky
-	environment.fog_light_color = sky.lerp(h.fog_color, thick) if h else sky
-	environment.fog_depth_begin = lerpf(tf.fog_near + tf.fog_near_gain * k, h.fog_near if h else 0.0, thick)
-	environment.fog_depth_end = lerpf(tf.fog_far + tf.fog_far_gain * k, h.fog_far if h else 0.0, thick)
+	environment.background_color = sky.lerp(h.fog_color * 0.8, fog * 0.7) if h else sky
+	environment.fog_light_color = sky.lerp(h.fog_color, fog) if h else sky
+	environment.fog_depth_begin = lerpf(tf.fog_near + tf.fog_near_gain * k, h.fog_near if h else 0.0, fog)
+	environment.fog_depth_end = lerpf(tf.fog_far + tf.fog_far_gain * k, h.fog_far if h else 0.0, fog)
 	var hemi := sky.lerp(Color.WHITE, 0.5) * (tf.ambient_energy + tf.ambient_energy_gain * k)
 	environment.ambient_light_color = Color(hemi.r + 0.18, hemi.g + 0.18, hemi.b + 0.18)
 	sun.light_energy = (tf.sun_energy + tf.sun_energy_gain * k) * (1.0 - 0.45 * dark)
@@ -116,11 +123,23 @@ func apply(t: float, delta: float, snap: bool, player_pos: Vector3, storm := 0.0
 	rock_mat.albedo_color = planet.ground_start * tf.rock_darken
 	crater_mat.albedo_color = ground * tf.rock_darken
 	var dust := tf.dust_opacity * maxf(0.0, 1.0 - t / tf.dust_gone_at)
-	_dust_mat.set_shader_parameter("opacity", lerpf(dust, h.dust_opacity, thick) if h else dust)
-	var wind := tf.dust_wind.lerp(h.dust_wind, thick) if h else tf.dust_wind
+	var gust := thick if h and h.dust_opacity > 0.0 else 0.0
+	_dust_mat.set_shader_parameter("opacity", lerpf(dust, h.dust_opacity, gust) if h else dust)
+	var wind := tf.dust_wind.lerp(h.dust_wind, gust) if h else tf.dust_wind
 	_drift = (_drift + wind * delta).posmod(40.0)
 	_dust_mat.set_shader_parameter("drift", _drift)
-	_dust_mat.set_shader_parameter("color", planet.ground_start.lerp(Color.WHITE, 0.45))
+	var mote := planet.ground_start.lerp(Color.WHITE, 0.45)
+	if h and h.dust_color.a > 0.0:
+		mote = mote.lerp(Color(h.dust_color, 1.0), gust)
+	_dust_mat.set_shader_parameter("color", mote)
+	# Snow falls; dust only drifts.
+	_fall = fposmod(_fall + (h.dust_fall * gust if h else 0.0) * delta, 60.0)
+	_dust_mat.set_shader_parameter("fall", _fall)
+	# Frost (Orrin b) melts off as the planet warms, from the hub outwards; a cold snap brings it back.
+	var melt := clampf(1.0 - t / maxf(planet.frost_gone_at, 0.01), 0.0, 1.0)
+	_frost = maxf(planet.frost * melt, (h.frost if h else 0.0) * thick)
+	ground_mat.set_shader_parameter("frost", _frost)
+	ground_mat.set_shader_parameter("frost_reach", moss_reach(tf, t) * 1.3)
 	_dust_mat.set_shader_parameter("center", player_pos)
 	var ls := TerraformMath.lake_scale(tf, t)
 	for i in _lakes.size():
@@ -130,6 +149,20 @@ func apply(t: float, delta: float, snap: bool, player_pos: Vector3, storm := 0.0
 		mi.scale = Vector3.ONE * maxf(0.001, cur)
 	for layer in _layers:
 		_step_layer(layer, t, delta, snap)
+
+
+## How much frost is on the ground right now (0..1), for frosting machines to match.
+func frost_amount() -> float:
+	return _frost
+
+
+## Burning Heat Towers melt the frost round them: up to four (x, z, radius) spots.
+func set_warm_spots(spots: Array) -> void:
+	var packed := PackedVector4Array()
+	for i in 4:
+		var w: Vector3 = spots[i] if i < spots.size() else Vector3(0, 0, 0)
+		packed.append(Vector4(w.x, w.y, w.z, 1.0 if i < spots.size() else 0.0))
+	ground_mat.set_shader_parameter("warm", packed)
 
 
 ## How far (metres from the hub) the ground moss has spread at terraform % t. It tracks the middle
@@ -208,8 +241,8 @@ func _place_grass(_i: int, rng: RandomNumberGenerator) -> Dictionary:
 	var p := _open_spot(rng, 2.0, tf.grass_radius, -1.0, -0.2)
 	return {
 		"x": p.x, "z": p.y, "y": 0.0, "rot": rng.randf() * TAU, "s": 0.7 + rng.randf() * 0.7,
-		"th": tf.grass_threshold_base + p.length() / tf.grass_radius * tf.grass_threshold_spread + rng.randf() * tf.grass_threshold_jitter,
-		"color": hsl(0.25 + rng.randf() * 0.08, 0.4 + rng.randf() * 0.2, 0.42 + rng.randf() * 0.14),
+		"th": planet.grass_shift + tf.grass_threshold_base + p.length() / tf.grass_radius * tf.grass_threshold_spread + rng.randf() * tf.grass_threshold_jitter,
+		"color": hsl(0.25 + planet.plant_hue_shift + rng.randf() * 0.08, (0.4 + rng.randf() * 0.2) * planet.plant_saturation, 0.42 + rng.randf() * 0.14),
 	}
 
 
@@ -218,7 +251,7 @@ func _place_flower(_i: int, rng: RandomNumberGenerator) -> Dictionary:
 	var p := _open_spot(rng, 3.0, tf.flower_radius, -0.8, 0.0)
 	return {
 		"x": p.x, "z": p.y, "y": 0.0, "rot": rng.randf() * TAU, "s": 0.8 + rng.randf() * 0.5,
-		"th": tf.flower_threshold_base + p.length() / tf.flower_radius * tf.flower_threshold_spread + rng.randf() * tf.flower_threshold_jitter,
+		"th": planet.flower_shift + tf.flower_threshold_base + p.length() / tf.flower_radius * tf.flower_threshold_spread + rng.randf() * tf.flower_threshold_jitter,
 		"color": Color.WHITE.lerp(hsl(rng.randf(), 0.7, 0.75), 0.35),
 	}
 
@@ -251,8 +284,8 @@ func _place_tree(_i: int, rng: RandomNumberGenerator) -> Dictionary:
 	var dist := Vector2(x, z).length()
 	return {
 		"x": x, "z": z, "y": 0.0, "rot": rng.randf() * TAU, "s": 0.7 + rng.randf() * 0.8,
-		"th": tf.tree_threshold_base + dist / tf.tree_max_radius * tf.tree_threshold_spread + rng.randf() * tf.tree_threshold_jitter,
-		"color": hsl(0.28 + rng.randf() * 0.07, 0.45, 0.28 + rng.randf() * 0.1),
+		"th": planet.tree_shift + tf.tree_threshold_base + dist / tf.tree_max_radius * tf.tree_threshold_spread + rng.randf() * tf.tree_threshold_jitter,
+		"color": hsl(0.28 + planet.plant_hue_shift + rng.randf() * 0.07, 0.45 * planet.plant_saturation, 0.28 + rng.randf() * 0.1),
 	}
 
 

@@ -6,6 +6,7 @@
 script = ExtResource("1_hazard")
 id = &"cold_snap"
 kind = 1
+warning_sound = &"snap"
 display_name = "Cold snap"
 warning_text = "Cold snap coming"
 active_text = "Cold snap"

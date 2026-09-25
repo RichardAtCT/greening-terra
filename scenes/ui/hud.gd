@@ -1,15 +1,20 @@
 class_name Hud
 extends Control
-## The in-game HUD: terraform panel, credits and pack, objective bar, toasts, menu and win screen.
-## Laid out to match the prototype's HTML HUD.
+## The in-game HUD: terraform panel (with Kessik's toxicity), credits and pack, objective bar,
+## toasts, hazard banner, menu and the win screen with its bonus picker. Laid out to match the
+## prototype's HTML HUD.
 
 signal menu_opened
 signal menu_closed
 signal restart_requested
-signal launch_requested
+## The player wants the star map (to launch onwards once this planet is done).
+signal star_map_requested
+signal bonus_picked(id: StringName)
 signal stay_requested
 signal title_requested
 signal restore_requested(state: WorldState)
+
+const TOXIC := Color("e8c23a")
 
 var _safe := Vector4.ZERO
 var _root: MarginContainer
@@ -17,6 +22,11 @@ var _planet: Label
 var _pct: Label
 var _bar_fill: ColorRect
 var _bar_back: Panel
+var _bar_cap: ColorRect
+var _tox_row: HBoxContainer
+var _tox: Label
+var _tox_back: Panel
+var _tox_fill: ColorRect
 var _stage: Label
 var _atmo: Label
 var _credits: Label
@@ -47,6 +57,9 @@ var _win: Control
 var _win_title: Label
 var _win_body: Label
 var _launch_button: Button
+var _bonus_title: Label
+var _bonus_cards: VBoxContainer
+var _star_map_button: Button
 var _settings: SettingsPanel
 
 
@@ -81,6 +94,7 @@ func update_hud(sim: GameSim, shown_tf: float, delta: float) -> void:
 	_planet.text = sim.planet_name().to_upper()
 	_pct.text = "%.1f%%" % shown_tf
 	_bar_fill.size = Vector2(_bar_back.size.x * clampf(shown_tf / 100.0, 0.0, 1.0), _bar_back.size.y)
+	_update_toxicity(sim)
 	_stage.text = TerraformMath.stage_name(tf, sim.state.terraform)
 	_atmo.text = TerraformMath.atmosphere_text(tf, shown_tf)
 	_credits.text = str(floori(sim.state.credits))
@@ -108,6 +122,24 @@ func update_hud(sim: GameSim, shown_tf: float, delta: float) -> void:
 		_menu_stats.boots.text = "+%d%%" % roundi(sim.state.boots_level * sim.defs.boots_upgrade.amount_per_level * 100.0)
 		_menu_stats.colonists.text = str(sim.state.meals.size() + sim.state.colonists_waiting)
 		_menu_stats.food.text = str(floori(sim.state.food))
+		_star_map_button.visible = sim.state.won
+
+
+## Kessik: the toxicity readout and bar, and the part of the terraform bar it still holds back.
+func _update_toxicity(sim: GameSim) -> void:
+	var on := sim.planet.start_toxicity > 0.0
+	_tox_row.visible = on
+	_tox_back.visible = on
+	_bar_cap.visible = on and sim.state.toxicity > 0.0
+	if not on:
+		return
+	var tox := clampf(sim.state.toxicity, 0.0, 100.0)
+	_tox.text = "Toxins %d%%" % ceili(tox) if tox > 0.0 else "Air clear"
+	_tox.add_theme_color_override("font_color", TOXIC if tox > 0.0 else UiStyle.GREEN)
+	_tox_fill.size = Vector2(_tox_back.size.x * tox / 100.0, _tox_back.size.y)
+	var w := _bar_back.size.x
+	_bar_cap.position = Vector2(w * (1.0 - tox / 100.0), 0)
+	_bar_cap.size = Vector2(w * tox / 100.0, _bar_back.size.y)
 
 
 ## Food store and colonists (top right), once the first lander has come.
@@ -152,6 +184,7 @@ func _update_banner(sim: GameSim) -> void:
 	_banner_text.text = "%s · %d" % [h.warning_text if warn else h.active_text, ceili(s.hazard_t)]
 	_banner_text.add_theme_color_override("font_color", color)
 	_banner_icon.color = color
+	_banner_icon.kind = h.kind
 	_banner_icon.spin = 0.0 if warn else 1.0
 
 
@@ -179,13 +212,71 @@ func close_menu() -> void:
 	menu_closed.emit()
 
 
-func show_win(planet_name: String, next_name: String, body: String) -> void:
-	_win_title.text = "%s is breathing" % planet_name
-	_win_body.text = body
-	_launch_button.text = "Launch to %s" % next_name
+## The win screen: pick one of three bonuses (SPEC 4.3), then on to the star map.
+func show_win(sim: GameSim, confetti := true) -> void:
+	_win_title.text = "%s is breathing" % sim.planet_name()
+	_win_body.text = sim.planet.win_text
+	_launch_button.text = "To the star map"
+	_fill_bonuses(sim)
 	_win.visible = true
-	_launch_button.grab_focus()
-	_confetti()
+	if confetti:
+		_confetti()
+
+
+func _fill_bonuses(sim: GameSim) -> void:
+	for c in _bonus_cards.get_children():
+		c.queue_free()
+	var offer := Bonuses.offer(sim.defs, sim.state)
+	var picking := not sim.state.bonus_picked and not offer.is_empty()
+	_bonus_title.text = "PICK A BONUS FOR THE REST OF YOUR JOURNEY" if picking else "YOUR BONUSES"
+	_bonus_title.visible = picking or not sim.state.bonuses.is_empty()
+	if picking:
+		for b in offer:
+			_bonus_cards.add_child(_bonus_card(b, true))
+	else:
+		for id in sim.state.bonuses:
+			var b := sim.defs.bonus(id)
+			if b:
+				_bonus_cards.add_child(_bonus_card(b, false))
+	_launch_button.disabled = picking
+	if picking:
+		(_bonus_cards.get_child(0) as Control).grab_focus.call_deferred()
+	else:
+		_launch_button.grab_focus.call_deferred()
+
+
+func _bonus_card(b: BonusDef, pickable: bool) -> Control:
+	var btn := Button.new()
+	btn.focus_mode = Control.FOCUS_ALL if pickable else Control.FOCUS_NONE
+	btn.disabled = not pickable
+	btn.custom_minimum_size.y = 66 if pickable else 44
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var st := UiStyle.panel(8, 12, 8, Color(b.color, 0.12 if state != "pressed" else 0.22))
+		st.border_color = b.color if state == "focus" or state == "hover" else Color(b.color, 0.45)
+		st.border_width_left = 4
+		if state == "focus":
+			st.set_border_width_all(2)
+			st.border_width_left = 4
+		btn.add_theme_stylebox_override(state, st)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 1)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.set_anchors_preset(Control.PRESET_FULL_RECT)
+	col.offset_left = 14
+	col.offset_top = 6
+	col.offset_right = -10
+	col.offset_bottom = -6
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn.add_child(col)
+	col.add_child(UiStyle.label(b.display_name, UiStyle.DISPLAY_BOLD, 15, b.color.lerp(UiStyle.INK, 0.3)))
+	var d := UiStyle.label(b.description, UiStyle.MONO, 11, UiStyle.MUTE)
+	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(d)
+	if pickable:
+		btn.pressed.connect(func():
+			Audio.play(&"bonus")
+			bonus_picked.emit(b.id))
+	return btn
 
 
 ## A burst of confetti from the top of the screen. Skipped with "Fewer effects" on.
@@ -283,6 +374,35 @@ func _build_top() -> void:
 	_bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bar_fill.material = _gradient_material()
 	_bar_back.add_child(_bar_fill)
+	# Kessik: the share of the bar toxins still hold back.
+	_bar_cap = ColorRect.new()
+	_bar_cap.color = Color(TOXIC, 0.35)
+	_bar_cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bar_cap.visible = false
+	_bar_back.add_child(_bar_cap)
+	_tox_row = HBoxContainer.new()
+	_tox_row.add_theme_constant_override("separation", 8)
+	_tox_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tox_row.visible = false
+	col.add_child(_tox_row)
+	_tox = UiStyle.label("Toxins 100%", UiStyle.MONO_SEMI, 11, TOXIC)
+	_tox_row.add_child(_tox)
+	_tox_back = Panel.new()
+	_tox_back.custom_minimum_size.y = 5
+	_tox_back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tox_back.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_tox_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tox_back.clip_contents = true
+	_tox_back.visible = false
+	var tox_style := StyleBoxFlat.new()
+	tox_style.bg_color = Color(UiStyle.INK, 0.1)
+	tox_style.set_corner_radius_all(3)
+	_tox_back.add_theme_stylebox_override("panel", tox_style)
+	_tox_row.add_child(_tox_back)
+	_tox_fill = ColorRect.new()
+	_tox_fill.color = TOXIC
+	_tox_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tox_back.add_child(_tox_fill)
 	_stage = UiStyle.label("Barren regolith", UiStyle.DISPLAY, 15, UiStyle.GREEN)
 	col.add_child(_stage)
 	_atmo = UiStyle.label("0.6 kPa · −63 °C", UiStyle.MONO, 11, UiStyle.MUTE)
@@ -427,10 +547,12 @@ func _build_banner() -> void:
 	row.add_child(_banner_text)
 
 
-## Three gusting wind lines, so the banner reads without reading.
+## The hazard's own icon, so the banner reads without reading: three gusting wind lines (storm),
+## a turning snowflake (cold snap) or a falling meteor (shower).
 class HazardIcon:
 	extends Control
 	var color := UiStyle.AMBER
+	var kind: HazardDef.Kind = HazardDef.Kind.STORM
 	## 0: still (warning), 1: blowing.
 	var spin := 0.0
 	var _t := 0.0
@@ -443,14 +565,36 @@ class HazardIcon:
 	func _draw() -> void:
 		var w := size.x
 		var h := size.y
-		for i in 3:
-			var y := h * (0.25 + 0.25 * i)
-			var pts := PackedVector2Array()
-			var len := w * (0.95 - 0.2 * absf(i - 1.0))
-			for k in 9:
-				var x := len * k / 8.0
-				pts.append(Vector2(x, y + sin(x * 0.45 + _t * 4.0 + i) * 1.6))
-			draw_polyline(pts, color, 2.0, true)
+		match kind:
+			HazardDef.Kind.COLD_SNAP:
+				var c := size * 0.5
+				var r := minf(w, h) * 0.48
+				for i in 3:
+					var a := _t * 0.6 + i * PI / 3.0
+					var d := Vector2(cos(a), sin(a)) * r
+					draw_line(c - d, c + d, color, 2.0, true)
+					for e: float in [-1.0, 1.0]:
+						var tip: Vector2 = c + d * e * 0.62
+						var back := -d.normalized() * e * r * 0.28
+						draw_line(tip, tip + back.rotated(0.8), color, 1.5, true)
+						draw_line(tip, tip + back.rotated(-0.8), color, 1.5, true)
+			HazardDef.Kind.METEORS:
+				var k := fmod(_t * 0.8, 1.0)
+				var at := Vector2(w * (0.75 - 0.35 * k), h * (0.25 + 0.4 * k))
+				for i in 3:
+					var off := Vector2(1, -1).normalized() * (5.0 + i * 3.0)
+					draw_line(at + off.rotated((i - 1) * 0.35) * 0.5, at + off.rotated((i - 1) * 0.35) * 1.5, Color(color, 0.8 - i * 0.2), 1.5, true)
+				draw_circle(at, minf(w, h) * 0.2, color)
+				draw_line(Vector2(w * 0.1, h * 0.95), Vector2(w * 0.9, h * 0.95), Color(color, 0.6), 1.5, true)
+			_:
+				for i in 3:
+					var y := h * (0.25 + 0.25 * i)
+					var pts := PackedVector2Array()
+					var len := w * (0.95 - 0.2 * absf(i - 1.0))
+					for k in 9:
+						var x := len * k / 8.0
+						pts.append(Vector2(x, y + sin(x * 0.45 + _t * 4.0 + i) * 1.6))
+					draw_polyline(pts, color, 2.0, true)
 
 
 func _build_toast() -> void:
@@ -541,6 +685,10 @@ func _build_menu() -> Control:
 	var restore := UiStyle.button("Restore save")
 	restore.pressed.connect(_on_restore)
 	more.add_child(restore)
+	_star_map_button = UiStyle.button("Star map")
+	_star_map_button.visible = false
+	_star_map_button.pressed.connect(func(): star_map_requested.emit())
+	more.add_child(_star_map_button)
 	var switch := UiStyle.button("Switch explorer")
 	switch.pressed.connect(func(): title_requested.emit())
 	more.add_child(switch)
@@ -585,12 +733,17 @@ func _build_win() -> Control:
 	col.add_child(_win_title)
 	_win_body = _paragraph("")
 	col.add_child(_win_body)
+	_bonus_title = UiStyle.label("PICK A BONUS", UiStyle.DISPLAY_WIDE, 11, UiStyle.AMBER)
+	col.add_child(_bonus_title)
+	_bonus_cards = VBoxContainer.new()
+	_bonus_cards.add_theme_constant_override("separation", 8)
+	col.add_child(_bonus_cards)
 	var btns := HFlowContainer.new()
 	btns.add_theme_constant_override("h_separation", 8)
 	btns.add_theme_constant_override("v_separation", 8)
 	col.add_child(btns)
-	_launch_button = UiStyle.button("Launch", true)
-	_launch_button.pressed.connect(func(): launch_requested.emit())
+	_launch_button = UiStyle.button("To the star map", true)
+	_launch_button.pressed.connect(func(): star_map_requested.emit())
 	btns.add_child(_launch_button)
 	var stay := UiStyle.button("Stay here")
 	stay.pressed.connect(func():

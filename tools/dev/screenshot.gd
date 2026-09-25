@@ -8,7 +8,10 @@ extends SceneTree
 ## --win=25 opens the win screen 25 frames before the shot (confetti in the air).
 ## --levels=1 sets every machine to Mk II; --haul=3 buys three hauler upgrades.
 ## M4 state: --colonists=6 --hungry=1 --waiting=2 --food=5 --lander=2.5 --storm=on|warn --storm-t=20 --debug=1
-## (see below). Uses throwaway profile 97, so real saves are untouched.
+## (see below). M5: --tox=40 (Kessik toxicity), --warm=1 (Heat Towers burning), --damaged=scrubber,
+## --bonus=overclock,... (--storm= also runs a cold snap or meteor shower, with its
+## impact points), --scene=res://scenes/ui/star_map.tscn for the star map.
+## Uses throwaway profile 97, so real saves are untouched.
 
 func _init() -> void:
 	var args := {}
@@ -52,9 +55,24 @@ func _init() -> void:
 	if args.has("storm"):
 		s.hazard_phase = 1 if args.storm == "warn" else 2
 		s.hazard_t = float(args.get("storm-t", "4" if args.storm == "warn" else "20"))
+	if args.has("won"):
+		s.won = true
+		s.bonus_picked = true
+	if args.has("tox"):
+		s.toxicity = float(args.tox)
+	for id in String(args.get("bonus", "")).split(",", false):
+		s.bonuses.append(StringName(id))
+	for id in String(args.get("damaged", "")).split(",", false):
+		s.damaged[StringName(id)] = true
+	for m in pdef.machines:
+		if args.has("warm") and m.is_heat_tower() and s.is_built(m.id):
+			s.queues[m.id] = {&"polymer": 6}
+			s.busy[m.id] = 3.0
 	if args.has("debug"):
 		root.get_node("SaveManager").settings["debug_overlay"] = true
 	gs.start(s)
+	if pdef.hazard and pdef.hazard.kind == HazardDef.Kind.METEORS and s.hazard_phase != 0:
+		s.impacts = HazardDirector.impact_points(gs.sim)
 	var planet: Node = load(args.get("scene", "res://scenes/world/planet.tscn")).instantiate()
 	root.add_child(planet)
 	if args.has("zoom") and planet.has_node("Camera"):

@@ -64,3 +64,5 @@ extends Resource
 @export var pad_stack_max: int = 18
 @export var toast_time: float = 2.4
 @export var autosave_interval: float = 10.0
+## Seconds the rocket takes between worlds on the star map.
+@export var star_map_flight_time: float = 2.2

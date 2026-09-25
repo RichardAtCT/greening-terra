@@ -6,6 +6,7 @@
 script = ExtResource("1_hazard")
 id = &"meteor_shower"
 kind = 2
+warning_sound = &"meteors"
 display_name = "Meteor shower"
 warning_text = "Meteors coming"
 active_text = "Meteors"

@@ -28,4 +28,4 @@ max_drones = 8
 terraform_divisor = 1.3
 hazard = ExtResource("10_storm")
 tutorial = ExtResource("9_yxwmf")
-win_text = "Lakes, lichen and young forest now cover the landing zone. The next world pays more but greens more slowly. Your pack and boots come with you."
+win_text = "Lakes, lichen and young forest now cover the landing zone. Next stop: frozen Orrin b."

@@ -46,6 +46,11 @@ enum Kind {
 @export var repair_item: StringName = &"plate"
 @export var repair_cost: int = 5
 
+@export_group("Sound")
+## Sound ids (data/audio.tres) for the warning, and for a meteor shower landing.
+@export var warning_sound: StringName = &"warning"
+@export var impact_sound: StringName = &"impact"
+
 @export_group("Look")
 ## Seconds to blend in and out at the start and end.
 @export var fade_time: float = 2.5
