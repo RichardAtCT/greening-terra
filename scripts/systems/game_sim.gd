@@ -314,12 +314,14 @@ func _build_pads() -> void:
 		p_in.title = "IN"
 		p_in.label = m.in_pad_label
 		p_in.color = m.in_pad_color
+		p_in.icons.assign(m.recipe.inputs.keys())
 		pads.append(p_in)
 		var p_out := PadInfo.new(StringName("out_" + m.id), PadInfo.Kind.OUT, m.position + m.out_pad_offset)
 		p_out.machine = m
 		p_out.title = "OUT"
 		p_out.label = out_item.short_label()
 		p_out.color = out_item.color
+		p_out.icons.append(out_item.id)
 		pads.append(p_out)
 		var p_build := _pay_pad(StringName("build_" + m.id), PadInfo.Pay.BUILD_MACHINE, m.position + m.build_pad_offset, "BUILD", "₵%d" % m.build_cost)
 		p_build.machine = m
@@ -327,6 +329,7 @@ func _build_pads() -> void:
 	depot.title = "DELIVER"
 	depot.label = " ".join(_sellable_names())
 	depot.color = Color("86e07c")
+	depot.icons.assign(_sellable_ids())
 	pads.append(depot)
 	var bay_pad := planet.bay_position + planet.bay_pad_offset
 	_pay_pad(&"build_bay", PadInfo.Pay.BUILD_BAY, bay_pad, "BUILD", "₵%d" % planet.bay_cost)
@@ -347,8 +350,15 @@ func _pay_pad(key: StringName, pay: PadInfo.Pay, pos: Vector2, title: String, la
 
 func _sellable_names() -> PackedStringArray:
 	var names := PackedStringArray()
+	for id in _sellable_ids():
+		names.append(defs.item(id).short_label())
+	return names
+
+
+func _sellable_ids() -> Array[StringName]:
+	var ids: Array[StringName] = []
 	for m in planet.machines:
 		var it := defs.item(m.recipe.output)
 		if it.is_sellable():
-			names.append(it.short_label())
-	return names
+			ids.append(it.id)
+	return ids

@@ -6,6 +6,7 @@ extends Camera3D
 @export var target: Node3D
 
 var _focus: Vector3 = Vector3.ZERO
+var _nudge_t := -1.0
 
 
 func _ready() -> void:
@@ -22,11 +23,18 @@ func _process(delta: float) -> void:
 	if target:
 		var goal := target.get_global_transform_interpolated().origin
 		_focus = _focus.lerp(goal, minf(1.0, delta * tuning.follow_rate))
+	if _nudge_t >= 0.0:
+		_nudge_t += delta
+		if _nudge_t > tuning.nudge_duration:
+			_nudge_t = -1.0
 	_place()
 
 
 func _place() -> void:
-	global_position = _focus + tuning.offset
+	var punch := 0.0
+	if _nudge_t >= 0.0:
+		punch = tuning.nudge_strength * sin(_nudge_t * tuning.nudge_frequency) * exp(-_nudge_t * tuning.nudge_decay)
+	global_position = _focus + tuning.offset - tuning.offset.normalized() * punch
 	look_at(_focus + Vector3(0.0, tuning.look_height, 0.0), Vector3.UP)
 
 
@@ -37,6 +45,12 @@ func _update_fov() -> void:
 	keep_aspect = Camera3D.KEEP_HEIGHT
 	fov = Movement.vertical_fov_for_aspect(size.x / size.y, tuning.horizontal_half_fov_deg,
 			tuning.fov_min_deg, tuning.fov_max_deg)
+
+
+## A short kick (a building completed). Skipped with "Fewer effects" on.
+func nudge() -> void:
+	if not SaveManager.settings.get("reduced_effects", false):
+		_nudge_t = 0.0
 
 
 ## Jumps straight to the target (after spawning or loading), skipping the ease-in.

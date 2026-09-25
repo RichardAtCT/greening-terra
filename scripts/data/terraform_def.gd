@@ -47,6 +47,30 @@ extends Resource
 @export var moss_threshold_spread: float = 55.0
 @export var moss_threshold_jitter: float = 22.0
 
+@export_group("Ground moss")
+## The moss front on the ground shader follows the moss patches' thresholds (see Moss above).
+## Width of its ragged edge, in metres.
+@export var ground_moss_edge: float = 7.0
+## Share of the ground inside the front that is mossy, from cover_min at cover_start % to cover_max at cover_full %.
+@export var ground_moss_cover_min: float = 0.35
+@export var ground_moss_cover_max: float = 0.95
+@export var ground_moss_cover_start: float = 15.0
+@export var ground_moss_cover_full: float = 85.0
+@export var ground_moss_strength: float = 0.85
+
+@export_group("Grass and flowers")
+@export var grass_count: int = 220
+@export var grass_radius: float = 40.0
+@export var grass_threshold_base: float = 40.0
+@export var grass_threshold_spread: float = 40.0
+@export var grass_threshold_jitter: float = 15.0
+@export var flower_count: int = 90
+@export var flower_radius: float = 34.0
+## Flowers open from this terraform % (the same point birdsong starts).
+@export var flower_threshold_base: float = 70.0
+@export var flower_threshold_spread: float = 22.0
+@export var flower_threshold_jitter: float = 8.0
+
 @export_group("Trees")
 @export var tree_count: int = 150
 @export var tree_min_radius: float = 8.0
@@ -54,3 +78,5 @@ extends Resource
 @export var tree_threshold_base: float = 55.0
 @export var tree_threshold_spread: float = 30.0
 @export var tree_threshold_jitter: float = 14.0
+## Share of trees that are pines; the rest are round-crowned.
+@export var tree_pine_share: float = 0.6

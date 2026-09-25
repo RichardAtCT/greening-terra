@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="ResourceNodeDef" format=3]
 
+[ext_resource type="ArrayMesh" path="res://assets/meshes/node_regolith.res" id="2_mesh"]
 [ext_resource type="Script" path="res://scripts/data/resource_node_def.gd" id="1_bqs3u"]
 
 [resource]
@@ -8,3 +9,4 @@ item = &"regolith"
 positions = PackedVector2Array(-15, 5, -17.5, 7.5, -13, 8.5, -16, 10.5, -12.5, 5.8, -18.5, 4.5)
 idle_point = Vector2(-15, 7)
 color = Color(0.6627451, 0.33333334, 0.18431373, 1)
+mesh = ExtResource("2_mesh")

@@ -3,67 +3,13 @@
 [ext_resource type="Script" path="res://scenes/actors/player.gd" id="1"]
 [ext_resource type="Resource" path="res://data/player_tuning.tres" id="2"]
 [ext_resource type="Script" path="res://scenes/world/item_stack_view.gd" id="3"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/astronaut_body.res" id="4"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/astronaut_leg_left.res" id="5"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/astronaut_leg_right.res" id="6"]
 
 [sub_resource type="CapsuleShape3D" id="shape"]
 radius = 0.4
 height = 1.6
-
-[sub_resource type="StandardMaterial3D" id="suit"]
-albedo_color = Color(0.909804, 0.894118, 0.862745, 1)
-roughness = 1.0
-specular_mode = 2
-
-[sub_resource type="CylinderMesh" id="body"]
-material = SubResource("suit")
-top_radius = 0.38
-bottom_radius = 0.42
-height = 0.9
-radial_segments = 12
-rings = 1
-
-[sub_resource type="SphereMesh" id="head"]
-material = SubResource("suit")
-radius = 0.36
-height = 0.72
-radial_segments = 14
-rings = 10
-
-[sub_resource type="StandardMaterial3D" id="visor_mat"]
-albedo_color = Color(1, 0.690196, 0.290196, 1)
-roughness = 1.0
-specular_mode = 2
-emission_enabled = true
-emission = Color(0.478431, 0.227451, 0, 1)
-
-[sub_resource type="SphereMesh" id="visor"]
-material = SubResource("visor_mat")
-radius = 0.27
-height = 0.27
-radial_segments = 14
-rings = 6
-is_hemisphere = true
-
-[sub_resource type="StandardMaterial3D" id="leg_mat"]
-albedo_color = Color(0.741176, 0.717647, 0.678431, 1)
-roughness = 1.0
-specular_mode = 2
-
-[sub_resource type="CylinderMesh" id="leg"]
-material = SubResource("leg_mat")
-top_radius = 0.13
-bottom_radius = 0.13
-height = 0.4
-radial_segments = 8
-rings = 1
-
-[sub_resource type="StandardMaterial3D" id="pack_mat"]
-albedo_color = Color(0.85098, 0.47451, 0.290196, 1)
-roughness = 1.0
-specular_mode = 2
-
-[sub_resource type="BoxMesh" id="pack"]
-material = SubResource("pack_mat")
-size = Vector3(0.6, 0.7, 0.3)
 
 [sub_resource type="StandardMaterial3D" id="shadow_mat"]
 transparency = 1
@@ -94,37 +40,19 @@ shape = SubResource("shape")
 [node name="Model" type="Node3D" parent="."]
 
 [node name="Body" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
 cast_shadow = 0
-mesh = SubResource("body")
-
-[node name="Head" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.42, 0)
-cast_shadow = 0
-mesh = SubResource("head")
-
-[node name="Visor" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 1.44, 0.16)
-cast_shadow = 0
-mesh = SubResource("visor")
+mesh = ExtResource("4")
 
 [node name="LegL" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.17, 0.2, 0)
 cast_shadow = 0
-mesh = SubResource("leg")
+mesh = ExtResource("5")
 
 [node name="LegR" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.17, 0.2, 0)
 cast_shadow = 0
-mesh = SubResource("leg")
-
-[node name="Pack" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, -0.42)
-cast_shadow = 0
-mesh = SubResource("pack")
+mesh = ExtResource("6")
 
 [node name="Stack" type="Node3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.32, -0.45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, -0.52)
 script = ExtResource("3")
 layout = 0
 

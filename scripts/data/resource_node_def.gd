@@ -11,3 +11,5 @@ extends Resource
 @export var color: Color = Color.WHITE
 @export var emissive: Color = Color.BLACK
 @export var translucent: bool = false
+## Model for one node, tinted by color (vertex colour × color). Empty means the procedural placeholder.
+@export var mesh: Mesh

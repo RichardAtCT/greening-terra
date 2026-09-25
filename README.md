@@ -49,6 +49,16 @@ xvfb-run -a -s "-screen 0 1280x1024x24" tools/godot/godot --resolution 390x844 \
   -s tools/dev/screenshot.gd -- --tf=60 --drones=6 --built=all --out=/tmp/shot.png
 ```
 
+## Models
+
+The Kenney GLBs in `assets/models/` are sources only. `tools/dev/bake_models.gd` merges each one into a single vertex-coloured mesh (`assets/meshes/*.res`) and writes the building scenes in `scenes/buildings/`. That keeps each building, drone and rock to one draw call. After changing a model or its placement in that script, run:
+
+```sh
+tools/godot/godot --headless --import && tools/godot/godot --headless --script tools/dev/bake_models.gd
+```
+
+`tools/dev/screenshot.gd` also takes `--zoom=0.4` for a closer look, `--face=90` to turn the astronaut, and `--win=25` to show the win screen.
+
 ## Exporting for web
 
 ```sh

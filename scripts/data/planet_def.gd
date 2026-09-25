@@ -12,6 +12,10 @@ extends Resource
 @export var sky_end: Color
 @export var ground_start: Color
 @export var ground_end: Color
+## Moss blended into the ground as it spreads from the hub.
+@export var moss_color: Color = Color("4f7a3a")
+@export var water_deep: Color = Color("2f6f8f")
+@export var water_shallow: Color = Color("5aa7b5")
 
 @export_group("Economy")
 ## Multiplies hub payouts.

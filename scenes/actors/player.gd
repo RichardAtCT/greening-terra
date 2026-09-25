@@ -12,16 +12,24 @@ extends CharacterBody3D
 
 ## Current walk speed (base speed times boots), set by whoever owns the game rules.
 var move_speed: float = 0.0
+## Where fed items leave the back stack, in model space.
+const STACK_TOP := Vector3(0, 1.5, -0.5)
 ## False while a menu or the win screen is open.
 var controls_enabled := true
 var moving := false
 
 var _walk_time := 0.0
+var _leg_rest := Vector3.ZERO
+var _body_rest := Vector3.ZERO
 
 
 func _ready() -> void:
 	if move_speed <= 0.0:
 		move_speed = tuning.move_speed
+	if leg_left:
+		_leg_rest = leg_left.position
+	if body:
+		_body_rest = body.position
 
 
 func _physics_process(delta: float) -> void:
@@ -40,10 +48,10 @@ func _process(delta: float) -> void:
 	_walk_time += delta
 	var wob := sin(_walk_time * 14.0) if moving else 0.0
 	if leg_left:
-		leg_left.position.y = 0.2 + maxf(0.0, wob) * 0.12
-		leg_right.position.y = 0.2 + maxf(0.0, -wob) * 0.12
+		leg_left.position.y = _leg_rest.y + maxf(0.0, wob) * 0.12
+		leg_right.position.y = _leg_rest.y + maxf(0.0, -wob) * 0.12
 	if body:
-		body.position.y = 0.75 + (absf(wob) * 0.05 if moving else 0.0)
+		body.position.y = _body_rest.y + (absf(wob) * 0.05 if moving else 0.0)
 
 
 ## Joystick and keys add together, as in the prototype.
@@ -61,4 +69,4 @@ func ground_position() -> Vector2:
 
 ## World position of the top of the back stack (where fed items fly from).
 func stack_top() -> Vector3:
-	return model.to_global(Vector3(0, 1.6, -0.45)) if model else global_position + Vector3.UP * 1.6
+	return model.to_global(STACK_TOP) if model else global_position + Vector3.UP * STACK_TOP.y

@@ -2,8 +2,11 @@ class_name ItemVisuals
 extends RefCounted
 ## Shared meshes and materials for items, so every stack and flyer reuses the same resources.
 
+const COIN_COLOR := Color("f2b35b")
+
 static var _meshes: Dictionary = {}
 static var _materials: Dictionary = {}
+static var _coin_mesh: CylinderMesh
 
 
 static func mesh(shape: ItemDef.Shape) -> Mesh:
@@ -57,6 +60,26 @@ static func instance(item: ItemDef) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh(item.shape)
 	mi.material_override = material(item)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
+
+
+## A gold coin standing on its edge (pay pads, the coin pop).
+static func coin() -> MeshInstance3D:
+	if _coin_mesh == null:
+		_coin_mesh = CylinderMesh.new()
+		_coin_mesh.top_radius = 0.2
+		_coin_mesh.bottom_radius = 0.2
+		_coin_mesh.height = 0.07
+		_coin_mesh.radial_segments = 12
+		_coin_mesh.rings = 0
+		var mat := lambert(COIN_COLOR)
+		mat.emission_enabled = true
+		mat.emission = COIN_COLOR * 0.25
+		_coin_mesh.material = mat
+	var mi := MeshInstance3D.new()
+	mi.mesh = _coin_mesh
+	mi.rotation.x = PI / 2
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return mi
 

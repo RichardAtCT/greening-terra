@@ -13,3 +13,10 @@ extends Resource
 ## Vertical field of view limits, in degrees.
 @export var fov_min_deg: float = 42.0
 @export var fov_max_deg: float = 70.0
+
+@export_group("Nudge")
+## The small camera kick when a building completes: it punches in along its offset and springs back.
+@export var nudge_strength: float = 0.9
+@export var nudge_frequency: float = 15.0
+@export var nudge_decay: float = 5.5
+@export var nudge_duration: float = 1.0

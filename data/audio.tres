@@ -1,0 +1,94 @@
+[gd_resource type="Resource" script_class="AudioDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/audio_def.gd" id="1_audio"]
+[ext_resource type="Script" path="res://scripts/data/sound_def.gd" id="2_sound"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/click_002.ogg" id="s0"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/confirmation_002.ogg" id="s1"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/confirmation_004.ogg" id="s2"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/drop_002.ogg" id="s3"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/drop_003.ogg" id="s4"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/impactMining_000.ogg" id="s5"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/impactMining_001.ogg" id="s6"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/impactMining_002.ogg" id="s7"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/maximize_006.ogg" id="s8"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/pluck_001.ogg" id="s9"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/pluck_002.ogg" id="s10"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/spaceEngineLow_001.ogg" id="s11"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/tick_001.ogg" id="s12"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/tick_002.ogg" id="s13"]
+
+[sub_resource type="Resource" id="snd_pickup"]
+script = ExtResource("2_sound")
+id = &"pickup"
+streams = Array[AudioStream]([ExtResource("s9"), ExtResource("s10")])
+volume_db = -8.0
+pitch_jitter = 0.08
+min_interval = 0.06
+
+[sub_resource type="Resource" id="snd_drop"]
+script = ExtResource("2_sound")
+id = &"drop"
+streams = Array[AudioStream]([ExtResource("s3"), ExtResource("s4")])
+volume_db = -8.0
+pitch_jitter = 0.08
+min_interval = 0.06
+
+[sub_resource type="Resource" id="snd_coin"]
+script = ExtResource("2_sound")
+id = &"coin"
+streams = Array[AudioStream]([ExtResource("s12"), ExtResource("s13")])
+volume_db = -10.0
+pitch_jitter = 0.05
+min_interval = 0.08
+
+[sub_resource type="Resource" id="snd_dig"]
+script = ExtResource("2_sound")
+id = &"dig"
+streams = Array[AudioStream]([ExtResource("s5"), ExtResource("s6"), ExtResource("s7")])
+volume_db = -14.0
+pitch_jitter = 0.1
+min_interval = 0.12
+
+[sub_resource type="Resource" id="snd_build"]
+script = ExtResource("2_sound")
+id = &"build"
+streams = Array[AudioStream]([ExtResource("s1")])
+volume_db = -4.0
+pitch_jitter = 0.0
+min_interval = 0.3
+
+[sub_resource type="Resource" id="snd_upgrade"]
+script = ExtResource("2_sound")
+id = &"upgrade"
+streams = Array[AudioStream]([ExtResource("s8")])
+volume_db = -6.0
+pitch_jitter = 0.03
+min_interval = 0.2
+
+[sub_resource type="Resource" id="snd_win"]
+script = ExtResource("2_sound")
+id = &"win"
+streams = Array[AudioStream]([ExtResource("s2")])
+volume_db = -3.0
+pitch_jitter = 0.0
+min_interval = 1.0
+
+[sub_resource type="Resource" id="snd_lander"]
+script = ExtResource("2_sound")
+id = &"lander"
+streams = Array[AudioStream]([ExtResource("s11")])
+volume_db = -6.0
+pitch_jitter = 0.0
+min_interval = 1.0
+
+[sub_resource type="Resource" id="snd_click"]
+script = ExtResource("2_sound")
+id = &"click"
+streams = Array[AudioStream]([ExtResource("s0")])
+volume_db = -10.0
+pitch_jitter = 0.04
+min_interval = 0.05
+
+[resource]
+script = ExtResource("1_audio")
+sounds = Array[ExtResource("2_sound")]([SubResource("snd_pickup"), SubResource("snd_drop"), SubResource("snd_coin"), SubResource("snd_dig"), SubResource("snd_build"), SubResource("snd_upgrade"), SubResource("snd_win"), SubResource("snd_lander"), SubResource("snd_click")])

@@ -86,6 +86,26 @@ static func disc(radius: float, segments: int) -> ArrayMesh:
 	return flat_mesh(_flip(pts))
 
 
+## Unit disc lying on the ground, split into rings so a shader can move its inner vertices (lakes).
+static func water_disc(rings: int, segments: int) -> ArrayMesh:
+	var pts := PackedVector3Array()
+	for i in rings:
+		var r0 := float(i) / rings
+		var r1 := float(i + 1) / rings
+		for j in segments:
+			var a0 := TAU * j / segments
+			var a1 := TAU * (j + 1) / segments
+			var i0 := Vector3(cos(a0), 0, sin(a0)) * r0
+			var i1 := Vector3(cos(a1), 0, sin(a1)) * r0
+			var o0 := Vector3(cos(a0), 0, sin(a0)) * r1
+			var o1 := Vector3(cos(a1), 0, sin(a1)) * r1
+			if i == 0:
+				pts.append_array([Vector3.ZERO, o0, o1])
+			else:
+				pts.append_array([i0, o0, o1, i0, o1, i1])
+	return flat_mesh(pts)
+
+
 ## Flat ring on the ground.
 static func ring(inner: float, outer: float, segments: int) -> PackedVector3Array:
 	var pts := PackedVector3Array()

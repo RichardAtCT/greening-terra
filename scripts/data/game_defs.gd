@@ -10,6 +10,7 @@ extends Resource
 @export var pack_upgrade: UpgradeDef
 @export var boots_upgrade: UpgradeDef
 @export var drone_upgrade: UpgradeDef
+@export var juice: JuiceTuning
 
 
 func item(id: StringName) -> ItemDef:

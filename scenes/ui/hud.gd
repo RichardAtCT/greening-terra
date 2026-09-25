@@ -127,6 +127,44 @@ func show_win(planet_name: String, next_name: String, body: String) -> void:
 	_launch_button.text = "Launch to %s" % next_name
 	_win.visible = true
 	_launch_button.grab_focus()
+	_confetti()
+
+
+## A burst of confetti from the top of the screen. Skipped with "Fewer effects" on.
+func _confetti() -> void:
+	if SaveManager.settings.get("reduced_effects", false):
+		return
+	var j := GameState.defs.juice
+	var p := CPUParticles2D.new()
+	p.name = "Confetti"
+	p.one_shot = true
+	p.explosiveness = 0.35
+	p.amount = j.confetti_amount
+	p.lifetime = j.confetti_lifetime
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(size.x * 0.5, 10.0)
+	p.position = Vector2(size.x * 0.5, -20.0)
+	p.direction = Vector2(0, 1)
+	p.spread = 35.0
+	p.initial_velocity_min = 30.0
+	p.initial_velocity_max = 160.0
+	p.gravity = Vector2(0, 130.0)
+	p.damping_min = 20.0
+	p.damping_max = 60.0
+	p.angular_velocity_min = -540.0
+	p.angular_velocity_max = 540.0
+	p.angle_min = 0.0
+	p.angle_max = 360.0
+	p.scale_amount_min = 6.0
+	p.scale_amount_max = 10.0
+	var ramp := Gradient.new()
+	ramp.interpolation_mode = Gradient.GRADIENT_INTERPOLATE_CONSTANT
+	ramp.offsets = PackedFloat32Array([0.0, 0.2, 0.4, 0.6, 0.8])
+	ramp.colors = PackedColorArray([UiStyle.GREEN, UiStyle.AMBER, Color("8fe3ff"), Color("ff6a4a"), Color("f4efe6")])
+	p.color_initial_ramp = ramp
+	add_child(p)
+	p.emitting = true
+	p.finished.connect(p.queue_free)
 
 
 func hide_win() -> void:
