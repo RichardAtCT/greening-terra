@@ -36,6 +36,8 @@ var drones: Array[DroneBrain.Drone] = []
 var colonists: Array[Colony.Colonist] = []
 
 var _timers: Dictionary = {}
+## Pay pad key -> seconds it still rests after a purchase (not saved: a reload never double-buys).
+var _resting: Dictionary = {}
 var _machines: Dictionary = {}
 
 
@@ -278,6 +280,10 @@ func _step_nodes(dt: float) -> void:
 
 
 func _step_pads(dt: float, player_pos: Vector2) -> void:
+	for key in _resting.keys():
+		_resting[key] -= dt
+		if _resting[key] <= 0.0:
+			_resting.erase(key)
 	var interval := defs.tuning.transfer_interval
 	for p in pads:
 		if not pad_visible(p):
@@ -308,7 +314,15 @@ func _step_pads(dt: float, player_pos: Vector2) -> void:
 				_step_pay(p, dt)
 
 
+## Is this pay pad resting after a purchase?
+func pad_resting(p: PadInfo) -> bool:
+	return _resting.has(p.key)
+
+
 func _step_pay(p: PadInfo, dt: float) -> void:
+	if pad_resting(p):
+		_timers[p.key] = 0.0
+		return
 	var cost := pad_cost(p)
 	if cost < 0 or not _tick(p.key, dt, defs.tuning.pay_interval):
 		return
@@ -320,6 +334,7 @@ func _step_pay(p: PadInfo, dt: float) -> void:
 		state.paid[p.key] = paid
 	if paid >= cost:
 		state.paid[p.key] = 0
+		_resting[p.key] = defs.tuning.pay_rest
 		_buy(p)
 
 

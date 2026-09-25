@@ -30,7 +30,7 @@ An ad-free arcade idle game about terraforming planets. You walk a small astrona
 | Feed | Stand on a machine's **IN** pad. Matching items fly off your stack into the machine's input queue. |
 | Collect | Stand on a machine's **OUT** pad to pick up products. |
 | Deliver | Stand on the Colony Hub **DELIVER** pad. Products become credits (₵) and terraform %. |
-| Build / buy | Stand on a **BUILD** or upgrade pad. Credits drain into it in chunks until the cost is met. Partial payments persist. |
+| Build / buy | Stand on a **BUILD** or upgrade pad. Credits drain into it in chunks until the cost is met. Partial payments persist. After a purchase the pad dims and rests for 2 s, so standing still never buys the next level by accident. |
 | Automate | The Drone Bay produces haulers that run routes (node → machine, machine → machine, machine → hub). |
 
 Rules to keep from the prototype:

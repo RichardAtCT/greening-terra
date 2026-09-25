@@ -173,15 +173,6 @@ func test_hint_says_when_the_next_lander_comes() -> void:
 	assert_string_starts_with(Tutorial.hint_text(sim), "Upgrade machines")
 
 
-## Stands on the HAULERS pad until one upgrade goes through (and no longer, so it doesn't buy twice).
-func _buy_one_hauler_upgrade(p: PadInfo) -> void:
-	var before := sim.state.hauler_level
-	for i in roundi(10.0 / DT):
-		sim.step(DT, p.position)
-		if sim.state.hauler_level != before:
-			return
-
-
 func test_hauler_upgrades_alternate_cargo_and_speed() -> void:
 	_build_chain()
 	sim.state.built[&"bay"] = true
@@ -191,12 +182,12 @@ func test_hauler_upgrades_alternate_cargo_and_speed() -> void:
 	assert_eq(sim.upgrade_pad_label(p), "+%d CARGO ₵%d" % [t.hauler_upgrade_cargo, defs.hauler_upgrade.cost(0)])
 	var speed := sim.drone_speed()
 	sim.state.credits = 100000.0
-	_buy_one_hauler_upgrade(p)
+	_stand(p.position, 3.0)
 	assert_eq(sim.state.hauler_level, 1)
 	assert_eq(sim.drone_capacity(), t.drone_capacity + t.hauler_upgrade_cargo)
 	assert_almost_eq(sim.drone_speed(), speed, 0.0001, "the first one is cargo")
 	assert_string_starts_with(sim.upgrade_pad_label(p), "+%d%% SPEED" % roundi(t.hauler_upgrade_speed * 100.0))
-	_buy_one_hauler_upgrade(p)
+	_stand(p.position, 3.0)
 	assert_eq(sim.state.hauler_level, 2)
 	assert_almost_eq(sim.drone_speed(), speed * (1.0 + t.hauler_upgrade_speed), 0.0001)
 	_stand(p.position, 30.0)
@@ -210,3 +201,15 @@ func test_buy_pad_goes_at_the_hauler_cap() -> void:
 	assert_true(sim.pad_visible(sim.pad(&"buy_drone")))
 	sim.state.drones = sim.planet.max_drones
 	assert_false(sim.pad_visible(sim.pad(&"buy_drone")))
+
+
+func test_pay_pad_rests_after_a_purchase() -> void:
+	var p := sim.pad(&"pack")
+	sim.state.credits = 100000.0
+	# The first level (₵15) takes about 0.7 s; the pad then rests for pay_rest.
+	_stand(p.position, 0.8 + defs.tuning.pay_rest * 0.5)
+	assert_eq(sim.state.pack_level, 1, "standing still doesn't buy a second level straight away")
+	assert_true(sim.pad_resting(p))
+	assert_eq(sim.state.paid.get(&"pack", 0), 0, "no credits drained while resting")
+	_stand(p.position, 3.0)
+	assert_eq(sim.state.pack_level, 2, "buys again once the rest is over")

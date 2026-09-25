@@ -14,6 +14,9 @@ extends Resource
 @export var pay_interval: float = 0.045
 ## A cost is paid in about this many chunks.
 @export var pay_chunks: int = 35
+## After a purchase the pad rests this long before taking credits again, so a player still standing
+## on it doesn't buy the next level by accident.
+@export var pay_rest: float = 2.0
 
 @export_group("Nodes")
 @export var node_respawn_time: float = 5.0

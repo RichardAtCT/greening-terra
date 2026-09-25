@@ -149,7 +149,8 @@ func _process(delta: float) -> void:
 		pv.visible = vis
 		if vis and (pv.info.pay == PadInfo.Pay.UPGRADE_MACHINE or pv.info.pay == PadInfo.Pay.UPGRADE_HAULERS):
 			pv.set_label(sim.upgrade_pad_label(pv.info))
-		pv.set_near(vis and Vector2(p.x, p.z).distance_to(pv.info.position) < defs.tuning.pad_radius)
+		# A pay pad dims while it rests after a purchase, so the player sees it's done.
+		pv.set_near(vis and not sim.pad_resting(pv.info) and Vector2(p.x, p.z).distance_to(pv.info.position) < defs.tuning.pad_radius)
 	_update_buildings()
 	_drones.hauler_level = sim.state.hauler_level
 	_drones.update_view(dt)
