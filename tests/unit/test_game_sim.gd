@@ -104,15 +104,17 @@ func test_hint_switches_to_saving_text() -> void:
 	assert_string_starts_with(Tutorial.hint_text(sim), "Keep delivering plates")
 	sim.state.credits = 25.0
 	assert_string_starts_with(Tutorial.hint_text(sim), "Save ₵25")
-	assert_eq(Tutorial.step_label(sim), "5/9")
+	assert_eq(Tutorial.step_label(sim), "5/10")
 
 
 func test_world_state_round_trips_through_dict() -> void:
 	_stand(Vector2(-15, 5), 1.0)
 	sim.state.queues[&"smelter"] = {&"regolith": 3}
+	sim.state.machine_levels[&"smelter"] = 2
 	var copy := WorldState.from_dict(JSON.parse_string(JSON.stringify(sim.state.to_dict(), "", true, true)))
 	assert_eq(copy.to_dict(), sim.state.to_dict())
 	assert_eq(copy.stack[0], &"regolith")
+	assert_eq(copy.machine_level(&"smelter"), 2)
 	assert_eq(copy.queued(&"smelter", &"regolith"), 3)
 
 
@@ -124,3 +126,46 @@ func test_bot_player_progresses_through_the_build_order() -> void:
 	assert_true(sim.state.is_built(&"bay"))
 	assert_true(sim.state.is_built(&"greenhouse"))
 	assert_gt(sim.state.drones, 1)
+
+
+func _build_chain() -> void:
+	for m in sim.planet.machines:
+		sim.state.built[m.id] = true
+
+
+func test_upgrade_pads_open_once_the_chain_stands() -> void:
+	sim.state.built[&"electrolyser"] = true
+	assert_false(sim.pad_visible(sim.pad(&"upgrade_smelter")), "not before the Greenhouse")
+	_build_chain()
+	for m in sim.planet.machines:
+		assert_true(sim.pad_visible(sim.pad(StringName("upgrade_" + m.id))), m.id)
+
+
+func test_upgrading_a_machine_makes_it_faster_until_max() -> void:
+	_build_chain()
+	var gh := sim.machine_def(&"greenhouse")
+	var p := sim.pad(&"upgrade_greenhouse")
+	assert_eq(sim.upgrade_pad_label(p), "MK II ₵%d" % gh.upgrade_costs[0])
+	sim.state.credits = 100000.0
+	_stand(p.position, 3.0)
+	assert_eq(sim.state.machine_level(&"greenhouse"), 1)
+	assert_eq(sim.machine_title(gh), "Greenhouse Mk II")
+	assert_almost_eq(sim.machine_speed(gh), 1.0 + gh.upgrade_speed, 0.0001)
+	assert_eq(Economy.output_cap(sim.state, gh), gh.output_cap + gh.upgrade_output_cap)
+	assert_eq(sim.state.stat(&"machine_upgrades"), 1)
+	_stand(p.position, 20.0)
+	assert_eq(sim.state.machine_level(&"greenhouse"), gh.upgrade_costs.size(), "stops at the last mark")
+	assert_false(sim.pad_visible(p), "pad goes once maxed")
+	assert_eq(sim.upgrade_pad_label(p), "MAX")
+
+
+func test_hint_says_when_the_next_lander_comes() -> void:
+	sim.state.tutorial_step = sim.tutorial_steps().size() - 1
+	sim.state.terraform = 12.0
+	assert_string_starts_with(Tutorial.hint_text(sim), "At 25% a lander brings 2 colonists.")
+	sim.state.colonists_waiting = 2
+	assert_string_starts_with(Tutorial.hint_text(sim), "2 colonists need a Habitat.")
+	sim.state.colonists_waiting = 0
+	sim.state.terraform = 90.0
+	assert_eq(Colony.next_lander_at(sim.planet, sim.state.terraform), -1.0)
+	assert_string_starts_with(Tutorial.hint_text(sim), "Upgrade machines")

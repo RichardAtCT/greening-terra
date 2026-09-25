@@ -25,6 +25,8 @@ var _pack: Label
 var _pack_count: Label
 var _colony_panel: PanelContainer
 var _food: Label
+var _food_row: HBoxContainer
+var _lander: Label
 var _people: Label
 var _banner: PanelContainer
 var _banner_icon: HazardIcon
@@ -112,7 +114,15 @@ func update_hud(sim: GameSim, shown_tf: float, delta: float) -> void:
 func _update_colony(sim: GameSim) -> void:
 	var s := sim.state
 	var people := s.meals.size() + s.colonists_waiting
-	_colony_panel.visible = people > 0
+	var next := Colony.next_lander_at(sim.planet, s.terraform)
+	if s.lander_t >= 0.0:
+		_lander.text = "lander landing"
+	elif next >= 0.0:
+		_lander.text = "lander at %d%%" % roundi(next)
+	_lander.visible = s.lander_t >= 0.0 or next >= 0.0
+	_colony_panel.visible = people > 0 or _lander.visible
+	_food_row.visible = people > 0
+	_people.visible = people > 0
 	if people == 0:
 		return
 	var hungry := Colony.hungry_count(sim)
@@ -325,6 +335,7 @@ func _build_top() -> void:
 	colony_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_colony_panel.add_child(colony_col)
 	var food_row := HBoxContainer.new()
+	_food_row = food_row
 	food_row.add_theme_constant_override("separation", 6)
 	food_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	food_row.alignment = BoxContainer.ALIGNMENT_END
@@ -335,6 +346,10 @@ func _build_top() -> void:
 	_people = UiStyle.label("", UiStyle.MONO, 11, UiStyle.MUTE)
 	_people.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	colony_col.add_child(_people)
+	# When the next colonists come: landers are called by terraform % (SPEC 4.1).
+	_lander = UiStyle.label("", UiStyle.MONO, 11, UiStyle.MUTE)
+	_lander.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	colony_col.add_child(_lander)
 	_menu_button = UiStyle.button("MENU")
 	_menu_button.add_theme_font_size_override("font_size", 13)
 	for state in ["normal", "hover", "pressed", "focus"]:

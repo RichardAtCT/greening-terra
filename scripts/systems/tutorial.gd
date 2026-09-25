@@ -43,6 +43,11 @@ static func hint_text(sim: GameSim) -> String:
 		if cost > 0 and sim.state.credits + sim.state.paid.get(step.saving_for_pad, 0) < cost:
 			text = step.saving_text
 	var last := sim.state.tutorial_step >= steps.size() - 1
+	# Once the tutorial is done, the bar also says how more colonists come (SPEC 4.1).
+	if last:
+		var colony := Colony.outlook(sim)
+		if colony != "":
+			text = colony + " " + text
 	if sim.pack_full() and not last and sim.state.tutorial_step != 0:
 		text = "Pack full. " + text
 	return text

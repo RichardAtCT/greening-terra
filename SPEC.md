@@ -86,6 +86,7 @@ Planets 2 and 3 exist as re-skins of Planet 1: the prototype's palettes and its 
 
 ### 4.1 Colonists
 - Landers arrive at the hub at terraform milestones (10%, 25%, 40%, 55%, 70%, 85%). Each brings 2 colonists: 12 per planet.
+- The HUD's colony panel shows when the next lander comes ("lander at 25%"), and once the tutorial is done the objective bar says it too.
 - Landers come one at a time: a lander appears as terraform passes a milestone and touches down 5 s later on a landing pad east of the hub. A save from before colonists existed catches up, one lander after another.
 - Colonists auto-assign to built machines, a maximum of 2 per machine, spread one per machine before doubling up. Each working colonist makes the machine 25% faster. They walk there visibly and stand working beside it. The rest are off duty and stroll near their habitat.
 - **Food:** each colonist eats 1 seedpod (or biomass on P3) every 90 s, taken from the hub's stock. A hungry colonist stops working and shows a small pod icon but never leaves or dies. The player feeds them by delivering food as normal. The hub keeps a food store, shown in the HUD, that deliveries top up before converting the surplus to credits. Food priority: the hub keeps enough food for 5 minutes and sells the rest. A pod that goes into the store still adds its terraform %.
@@ -112,7 +113,7 @@ When a planet reaches 100%, the player picks 1 of 3 random bonuses from a pool. 
 ### 4.4 Upgrades (carried over, extended)
 - **Outfitter:** pack +4 (10 levels), boots +12% speed (6 levels), dig speed +15% (5 levels).
 - **Drone Bay:** buy haulers (cost ×1.55 each, max 12 on P1 and 16 on P2–3); hauler capacity +1 (3 levels).
-- **Machines:** each machine gets a level-2 upgrade pad (+50% speed, +10 output cap).
+- **Machines:** each machine gets an UPGRADE pad beside it once the whole chain is built: +50% speed and +10 output cap per mark, up to Mk IV (P1: Smelter and Electrolyser ₵120/300/700, Greenhouse ₵200/500/1100). Built.
 
 ### 4.5 Drone routing
 Replace the prototype's fixed modulo assignment with a small dispatcher:
@@ -182,7 +183,7 @@ Scene-specific scripts sit next to their scene (for example `scenes/actors/playe
 - `GameDefs` (`data/game.tres`): the root. Holds the items, planets, upgrades, `GameTuning`, `TerraformDef`, `PlayerTuning`, `JuiceTuning` and `ColonyTuning`.
 - `ItemDef`: id, display name, short pad label, colour, emissive, shape, stack height, sell value (0 = raw, can't be sold), terraform value, food value.
 - `RecipeDef`: inputs {item: count}, output item, time.
-- `MachineDef`: id, name, recipe, build cost, starts built, position, scene, footprint, collision radius, label height, pad offsets, IN pad colour and label, queue cap (20), output cap (40). *(Level-2 cost to come with SPEC 4.4.)*
+- `MachineDef`: id, name, recipe, build cost, starts built, position, scene, footprint, collision radius, label height, pad offsets, IN pad colour and label, queue cap (20), output cap (40), upgrade costs (one per mark), speed and output cap per mark, UPGRADE pad offset.
 - `ResourceNodeDef`: item, max stock, positions, drone idle point, look (colour and a baked mesh it tints).
 - `PlanetDef`: name, seed, palette (sky start/mid/end, ground start/end, moss, water deep/shallow), pay multiplier, terraform divisor, hub/depot/bay/outfitter layout, machines, resource nodes, lakes, clear zones, habitat plots and costs, landing pad, lander milestones and colonists per lander, hazard, tutorial, win text, balance target minutes and `balance_enforced`. *(Vegetation set to come in M5.)*
 - `UpgradeDef`: cost = round((base + step × level) × growth^level), max level, amount per level. Used for pack, boots and haulers.
@@ -257,9 +258,9 @@ Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as 
 Ads, in-app purchases, analytics, accounts, cloud saves, leaderboards, multiplayer, offline earnings, procedural planets, native store builds.
 
 ## 11. Open questions (decide during build)
-- Late-game credit sink: once pack, boots and 12 haulers are maxed, credits pile up (thousands by the end of Planet 1). SPEC 4.4's dig-speed, hauler-capacity and machine level-2 upgrades should absorb this; re-run the balance sim when they land.
+- Late-game credit sink: machine upgrades (DECISIONS #59) keep Planet 1 buying until about 28 minutes. SPEC 4.4's dig-speed and hauler-capacity upgrades are still to come; re-run the balance sim when they land.
 - Should drones need recharging at the bay, as a light extra loop?
 - On P3, does toxicity capping terraform feel good, or should toxicity just slow terraform gains?
 - Free-play revisit of completed planets: keep or drop?
-- Idle colonists: on Planet 1 only six of the twelve colonists have a machine to work (two per machine). Machine level-2 pads, or a job at the habitats, would give the rest something to do.
+- Idle colonists: on Planet 1 only six of the twelve colonists have a machine to work (two per machine). More work spots on upgraded machines, or a job at the habitats, would give the rest something to do.
 - Storm frequency for a child: the greedy bot sees one or two storms per planet. A slower player sees more (they're timed in minutes, not %). Check that it doesn't feel nagging.

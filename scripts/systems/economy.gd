@@ -54,6 +54,24 @@ static func deliver(state: WorldState, item: ItemDef, planet: PlanetDef, food_ta
 	return credits
 
 
+## Cost of a machine's next upgrade, or -1 when it has none left.
+static func machine_upgrade_cost(state: WorldState, machine: MachineDef) -> int:
+	var level := state.machine_level(machine.id)
+	if level >= machine.upgrade_costs.size():
+		return -1
+	return machine.upgrade_costs[level]
+
+
+## How much faster a machine's upgrades make it run (1.0 at Mk I).
+static func machine_upgrade_speed(state: WorldState, machine: MachineDef) -> float:
+	return 1.0 + machine.upgrade_speed * state.machine_level(machine.id)
+
+
+## Finished items the machine's OUT pad holds before it stops, with its upgrades.
+static func output_cap(state: WorldState, machine: MachineDef) -> int:
+	return machine.output_cap + machine.upgrade_output_cap * state.machine_level(machine.id)
+
+
 static func accepts(state: WorldState, machine: MachineDef, item: StringName) -> bool:
 	return machine.recipe.inputs.has(item) and state.queued(machine.id, item) < machine.queue_cap
 
@@ -121,7 +139,7 @@ static func step_machine(state: WorldState, machine: MachineDef, dt: float, spee
 			state.outputs[machine.id] = state.outputs.get(machine.id, 0) + 1
 			state.add_stat(StringName("produced_" + machine.recipe.output))
 			produced = 1
-	if left <= 0.0 and state.outputs.get(machine.id, 0) < machine.output_cap and has_inputs(state, machine):
+	if left <= 0.0 and state.outputs.get(machine.id, 0) < output_cap(state, machine) and has_inputs(state, machine):
 		for item in machine.recipe.inputs:
 			state.queues[machine.id][item] -= machine.recipe.inputs[item]
 		left = machine.recipe.time

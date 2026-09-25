@@ -24,3 +24,5 @@ footprint = Vector3(2.4, 3, 2.2)
 label_height = 4.1
 in_pad_color = Color(0.56078434, 0.8901961, 1, 1)
 in_pad_label = "ICE"
+upgrade_costs = PackedInt32Array(120, 300, 700)
+upgrade_pad_offset = Vector2(4, 0.9)

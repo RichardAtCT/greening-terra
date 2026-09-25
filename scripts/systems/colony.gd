@@ -43,6 +43,28 @@ static func landers_due(planet: PlanetDef, terraform: float) -> int:
 	return n
 
 
+## Terraform % that calls the next lander, or -1 once they've all been called.
+static func next_lander_at(planet: PlanetDef, terraform: float) -> float:
+	for m in planet.lander_milestones:
+		if terraform < m:
+			return m
+	return -1.0
+
+
+## Where the colony stands, for the objective bar: who's waiting for a home, or when the next
+## colonists come. Empty once every lander has landed and everyone is housed.
+static func outlook(sim: GameSim) -> String:
+	var s := sim.state
+	if s.colonists_waiting > 0:
+		return "%d colonist%s need a Habitat." % [s.colonists_waiting, "s" if s.colonists_waiting > 1 else ""]
+	if s.lander_t >= 0.0:
+		return "A lander is coming down."
+	var next := next_lander_at(sim.planet, s.terraform)
+	if next < 0.0:
+		return ""
+	return "At %d%% a lander brings %d colonists." % [roundi(next), sim.planet.colonists_per_lander]
+
+
 static func habitat_key(index: int) -> StringName:
 	return StringName("habitat_%d" % (index + 1))
 
@@ -124,10 +146,12 @@ static func _step_landers(sim: GameSim, dt: float) -> void:
 		s.built[habitat_key(0)] = true
 	house(sim)
 	sim.lander_landed.emit(n)
-	if s.colonists_waiting > 0:
-		sim.toast.emit("Lander arrived · %d waiting for a habitat" % s.colonists_waiting)
-	else:
-		sim.toast.emit("Lander arrived: %d colonists" % n)
+	var text := "Lander arrived · %d waiting for a habitat" % s.colonists_waiting if s.colonists_waiting > 0 \
+		else "Lander arrived: %d colonists" % n
+	var next := next_lander_at(sim.planet, s.terraform)
+	if next >= 0.0:
+		text += " · next at %d%%" % roundi(next)
+	sim.toast.emit(text)
 
 
 static func _step_food(sim: GameSim, dt: float) -> void:

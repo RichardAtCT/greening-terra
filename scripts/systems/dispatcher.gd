@@ -85,7 +85,7 @@ static func jobs(sim: GameSim, d: DroneBrain.Drone) -> Array[Job]:
 		if avail <= 0:
 			continue
 		var item := m.recipe.output
-		var full := float(s.outputs.get(m.id, 0)) / m.output_cap
+		var full := float(s.outputs.get(m.id, 0)) / Economy.output_cap(s, m)
 		for other in sim.planet.machines:
 			if other == m or not s.is_built(other.id) or not other.recipe.inputs.has(item):
 				continue

@@ -23,3 +23,13 @@ extends Resource
 @export var in_pad_label: String
 @export var queue_cap: int = 20
 @export var output_cap: int = 40
+
+@export_group("Upgrades")
+## Cost of each upgrade after Mk I (SPEC 4.4): one entry per level. Empty means no UPGRADE pad.
+@export var upgrade_costs: PackedInt32Array = []
+## Each upgrade makes the machine this much faster (0.5 = +50% per level, added up).
+@export var upgrade_speed: float = 0.5
+## Each upgrade holds this many more finished items on the OUT pad.
+@export var upgrade_output_cap: int = 10
+## Where the UPGRADE pad sits, relative to the machine (beside it, clear of the IN and OUT pads).
+@export var upgrade_pad_offset: Vector2 = Vector2(4.0, 0.9)

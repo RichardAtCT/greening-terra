@@ -147,6 +147,8 @@ func _process(delta: float) -> void:
 	for pv in _pads:
 		var vis := sim.pad_visible(pv.info)
 		pv.visible = vis
+		if vis and pv.info.pay == PadInfo.Pay.UPGRADE_MACHINE:
+			pv.set_label(sim.upgrade_pad_label(pv.info))
 		pv.set_near(vis and Vector2(p.x, p.z).distance_to(pv.info.position) < defs.tuning.pad_radius)
 	_update_buildings()
 	_drones.update_view(dt)
@@ -298,7 +300,7 @@ func _update_buildings() -> void:
 			for item in m.recipe.inputs:
 				total += s.queued(m.id, item)
 			queue_text = "%d in" % total
-		bv.label.set_text(m.display_name, "%s · %d out" % [queue_text, outs], Color("86e07c") if busy else muted)
+		bv.label.set_text(sim.machine_title(m), "%s · %d out" % [queue_text, outs], Color("86e07c") if busy else muted)
 		var in_items: Array[StringName] = []
 		for item in m.recipe.inputs:
 			for k in s.queued(m.id, item):

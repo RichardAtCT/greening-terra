@@ -165,6 +165,8 @@ func pad_visible(p: PadInfo) -> bool:
 					return not state.is_built(&"bay")
 				PadInfo.Pay.BUY_DRONE:
 					return state.is_built(&"bay")
+				PadInfo.Pay.UPGRADE_MACHINE:
+					return upgrades_open() and Economy.machine_upgrade_cost(state, p.machine) > 0
 				PadInfo.Pay.BUILD_HABITAT:
 					# Offered one at a time, once colonists have a first home.
 					return not state.is_built(Colony.habitat_key(p.index)) and state.is_built(Colony.habitat_key(p.index - 1))
@@ -186,7 +188,32 @@ func pad_cost(p: PadInfo) -> int:
 			return Economy.upgrade_cost(defs.boots_upgrade, state.boots_level)
 		PadInfo.Pay.BUILD_HABITAT:
 			return planet.habitat_costs[p.index]
+		PadInfo.Pay.UPGRADE_MACHINE:
+			return Economy.machine_upgrade_cost(state, p.machine)
 	return -1
+
+
+## UPGRADE pads appear once the whole chain stands, so early credits go on the chain and haulers.
+func upgrades_open() -> bool:
+	for m in planet.machines:
+		if not state.is_built(m.id):
+			return false
+	return true
+
+
+## How fast a machine runs right now: its upgrades times the colonists working it.
+func machine_speed(m: MachineDef) -> float:
+	return Economy.machine_upgrade_speed(state, m) * Colony.machine_speed(self, m.id)
+
+
+## "Smelter", then "Smelter Mk II" and so on once upgraded.
+func machine_title(m: MachineDef) -> String:
+	var level := state.machine_level(m.id)
+	return m.display_name + (" Mk " + mark(level + 1) if level > 0 else "")
+
+
+static func mark(n: int) -> String:
+	return ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"][clampi(n, 1, 8) - 1]
 
 
 ## Advances the whole planet by dt with the player standing at player_pos.
@@ -199,7 +226,7 @@ func step(dt: float, player_pos: Vector2) -> void:
 	Colony.step(self, dt)
 	for m in planet.machines:
 		if state.is_built(m.id):
-			Economy.step_machine(state, m, dt, Colony.machine_speed(self, m.id))
+			Economy.step_machine(state, m, dt, machine_speed(m))
 	for d in drones:
 		DroneBrain.step(self, d, dt)
 	Tutorial.advance(tutorial_steps(), state)
@@ -312,6 +339,10 @@ func _buy(p: PadInfo) -> void:
 			state.built[Colony.habitat_key(p.index)] = true
 			toast.emit("Habitat %d built · room for %d more" % [p.index + 1, defs.colony.habitat_capacity])
 			Colony.house(self)
+		PadInfo.Pay.UPGRADE_MACHINE:
+			state.machine_levels[p.machine.id] = state.machine_level(p.machine.id) + 1
+			state.add_stat(&"machine_upgrades")
+			toast.emit("%s · +%d%% speed" % [machine_title(p.machine), roundi(p.machine.upgrade_speed * 100.0)])
 	purchased.emit(p.key)
 
 
@@ -366,6 +397,10 @@ func _build_pads() -> void:
 		pads.append(p_out)
 		var p_build := _pay_pad(StringName("build_" + m.id), PadInfo.Pay.BUILD_MACHINE, m.position + m.build_pad_offset, "BUILD", "₵%d" % m.build_cost)
 		p_build.machine = m
+		if not m.upgrade_costs.is_empty():
+			var p_up := _pay_pad(StringName("upgrade_" + m.id), PadInfo.Pay.UPGRADE_MACHINE, m.position + m.upgrade_pad_offset, "UPGRADE", "")
+			p_up.machine = m
+			p_up.label = upgrade_pad_label(p_up)
 	var depot := PadInfo.new(&"depot", PadInfo.Kind.DEPOT, planet.depot_position)
 	depot.title = "DELIVER"
 	depot.label = " ".join(_sellable_names())
@@ -382,6 +417,14 @@ func _build_pads() -> void:
 			var h := _pay_pad(StringName("build_" + Colony.habitat_key(i)), PadInfo.Pay.BUILD_HABITAT,
 				planet.habitat_positions[i] + planet.habitat_pad_offset, "BUILD", "₵%d" % planet.habitat_costs[i])
 			h.index = i
+
+
+## An UPGRADE pad's subtitle: the next mark and its cost ("MK II ₵150").
+func upgrade_pad_label(p: PadInfo) -> String:
+	var cost := Economy.machine_upgrade_cost(state, p.machine)
+	if cost < 0:
+		return "MAX"
+	return "MK %s ₵%d" % [mark(state.machine_level(p.machine.id) + 2), cost]
 
 
 func _pay_pad(key: StringName, pay: PadInfo.Pay, pos: Vector2, title: String, label: String) -> PadInfo:
