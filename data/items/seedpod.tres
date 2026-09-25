@@ -12,5 +12,5 @@ emissive = Color(0.078431375, 0.20784314, 0.05882353, 1)
 shape = 4
 stack_height = 0.34
 sell_value = 9.0
-terraform_value = 0.06
+terraform_value = 0.048
 food_value = 1.0

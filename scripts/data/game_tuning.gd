@@ -14,6 +14,9 @@ extends Resource
 @export var pay_interval: float = 0.045
 ## A cost is paid in about this many chunks.
 @export var pay_chunks: int = 35
+## After a purchase the pad rests this long before taking credits again, so a player still standing
+## on it doesn't buy the next level by accident.
+@export var pay_rest: float = 2.0
 
 @export_group("Nodes")
 @export var node_respawn_time: float = 5.0
@@ -21,6 +24,10 @@ extends Resource
 @export_group("Drones")
 @export var drone_speed: float = 5.5
 @export var drone_capacity: int = 4
+## Hauler upgrades alternate: the 1st, 3rd, 5th... add this much cargo to every hauler,
+## the 2nd, 4th, 6th... make every hauler this much faster (0.15 = +15%, added up).
+@export var hauler_upgrade_cargo: int = 1
+@export var hauler_upgrade_speed: float = 0.15
 @export var drone_arrive_radius: float = 0.25
 @export var drone_dig_interval: float = 0.35
 @export var drone_transfer_interval: float = 0.12

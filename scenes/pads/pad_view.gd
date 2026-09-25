@@ -68,6 +68,12 @@ func _flat_label(font: Font, size: int, text: String, offset_px: float) -> Label
 	return l
 
 
+## Changes the subtitle (an UPGRADE pad's next mark and cost).
+func set_label(text: String) -> void:
+	if _sub and _sub.text != text:
+		_sub.text = text
+
+
 func set_near(near: bool) -> void:
 	if near == _near:
 		return

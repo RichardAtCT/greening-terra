@@ -120,6 +120,18 @@ func test_full_output_pauses_machine() -> void:
 	assert_eq(s.busy[&"smelter"], 0.0)
 
 
+func test_upgraded_machine_holds_more_output() -> void:
+	var s := WorldState.new()
+	s.queues[&"smelter"] = {&"regolith": 5}
+	s.outputs[&"smelter"] = 40
+	s.machine_levels[&"smelter"] = 1
+	Economy.step_machine(s, smelter, 0.1)
+	assert_eq(s.queued(&"smelter", &"regolith"), 4, "room for 10 more at Mk II")
+	assert_eq(Economy.machine_upgrade_cost(s, smelter), smelter.upgrade_costs[1])
+	s.machine_levels[&"smelter"] = smelter.upgrade_costs.size()
+	assert_eq(Economy.machine_upgrade_cost(s, smelter), -1)
+
+
 func test_take_output_respects_pack() -> void:
 	var s := WorldState.new()
 	s.outputs[&"smelter"] = 2

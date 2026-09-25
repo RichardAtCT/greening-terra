@@ -59,7 +59,7 @@ The Kenney GLBs in `assets/models/` are sources only. `tools/dev/bake_models.gd`
 tools/godot/godot --headless --import && tools/godot/godot --headless --script tools/dev/bake_models.gd
 ```
 
-`tools/dev/screenshot.gd` also takes `--zoom=0.4` for a closer look, `--face=90` to turn the astronaut, and `--win=25` to show the win screen. For the colony and hazards: `--colonists=6` (habitats built to fit), `--hungry=1`, `--waiting=2`, `--food=5`, `--lander=2.5` (seconds before touchdown), `--storm=warn` or `--storm=on` (with `--storm-t=` seconds left), and `--debug=1` for the debug overlay.
+`tools/dev/screenshot.gd` also takes `--zoom=0.4` for a closer look, `--face=90` to turn the astronaut, and `--win=25` to show the win screen. For the colony and hazards: `--colonists=6` (habitats built to fit), `--hungry=1`, `--waiting=2`, `--food=5`, `--lander=2.5` (seconds before touchdown), `--storm=warn` or `--storm=on` (with `--storm-t=` seconds left), and `--debug=1` for the debug overlay. `--levels=1` sets every machine to Mk II, and `--haul=3` buys three hauler upgrades.
 
 The Mini Characters used for colonists are rigged and use a colour-atlas texture. The bake tool poses them from their `idle` animation and samples the atlas into vertex colours, so they share the one vertex-colour material too.
 

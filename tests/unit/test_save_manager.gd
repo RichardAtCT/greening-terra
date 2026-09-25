@@ -20,12 +20,17 @@ func _played_state() -> WorldState:
 	return sim.state
 
 
+## Godot's JSON can come back one bit off in a float's last digit, so compare at 14 digits.
+func _same(a: WorldState, b: WorldState) -> String:
+	return "" if JSON.stringify(a.to_dict(), "", true) == JSON.stringify(b.to_dict(), "", true) else "states differ"
+
+
 func test_save_and_load_round_trip() -> void:
 	var state := _played_state()
 	assert_true(SaveManager.save_state(96, state))
 	var loaded := SaveManager.load_state(96)
 	assert_not_null(loaded)
-	assert_eq(loaded.to_dict(), state.to_dict())
+	assert_eq(_same(loaded, state), "")
 
 
 func test_loaded_state_resumes_play() -> void:
@@ -73,7 +78,7 @@ func test_export_import_text_round_trip() -> void:
 	assert_string_starts_with(text, "GT1:")
 	var back := SaveManager.import_text("  " + text + "\n")
 	assert_not_null(back)
-	assert_eq(back.to_dict(), state.to_dict())
+	assert_eq(_same(back, state), "")
 
 
 func test_import_rejects_junk() -> void:

@@ -10,4 +10,4 @@ color = Color(0.93333334, 0.9647059, 1, 1)
 shape = 3
 stack_height = 0.36
 sell_value = 3.0
-terraform_value = 0.034
+terraform_value = 0.0272

@@ -12,7 +12,11 @@ var boots_level: int = 0
 var stack: Array[StringName] = []
 ## Building id -> true once built (machine ids and &"bay").
 var built: Dictionary = {}
+## Machine id -> upgrades bought (0 = Mk I).
+var machine_levels: Dictionary = {}
 var drones: int = 0
+## Hauler upgrades bought at the Drone Bay (cargo and speed, alternately).
+var hauler_level: int = 0
 var tutorial_step: int = 0
 ## &"fed", &"delivered", &"produced_<item>" -> count.
 var stats: Dictionary = {}
@@ -59,6 +63,10 @@ func is_built(id: StringName) -> bool:
 	return built.get(id, false)
 
 
+func machine_level(machine_id: StringName) -> int:
+	return machine_levels.get(machine_id, 0)
+
+
 func queued(machine_id: StringName, item: StringName) -> int:
 	return queues.get(machine_id, {}).get(item, 0)
 
@@ -76,7 +84,9 @@ func to_dict() -> Dictionary:
 		"boots_level": boots_level,
 		"stack": stack.map(func(s): return String(s)),
 		"built": _keys_to_str(built),
+		"machine_levels": _keys_to_str(machine_levels),
 		"drones": drones,
+		"hauler_level": hauler_level,
 		"tutorial_step": tutorial_step,
 		"stats": _keys_to_str(stats),
 		"queues": _nested_to_str(queues),
@@ -109,7 +119,9 @@ static func from_dict(d: Dictionary) -> WorldState:
 	for item in d.get("stack", []):
 		s.stack.append(StringName(item))
 	s.built = _keys_to_name(d.get("built", {}), TYPE_BOOL)
+	s.machine_levels = _keys_to_name(d.get("machine_levels", {}), TYPE_INT)
 	s.drones = int(d.get("drones", 0))
+	s.hauler_level = int(d.get("hauler_level", 0))
 	s.tutorial_step = int(d.get("tutorial_step", 0))
 	s.stats = _keys_to_name(d.get("stats", {}), TYPE_INT)
 	for m in d.get("queues", {}):

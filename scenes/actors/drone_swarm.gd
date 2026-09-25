@@ -8,6 +8,11 @@ const MESH := preload("res://assets/meshes/drone.res")
 ## Cargo hangs below the hull, one item every CARGO_STEP metres.
 const CARGO_TOP := -0.45
 const CARGO_STEP := 0.3
+## Each hauler upgrade makes every hull this much bigger, so a purchase shows (0.06 = +6%).
+const HULL_GROWTH := 0.06
+
+## Hauler upgrades bought (GameSim's state.hauler_level); the planet sets it every frame.
+var hauler_level := 0
 
 var defs: GameDefs
 var drones: Array[DroneBrain.Drone] = []
@@ -16,14 +21,17 @@ var _hulls: MultiMesh
 var _shadows: MultiMesh
 var _cargo: Dictionary = {}
 var _phase: PackedFloat32Array = []
+var _max_cargo := 1
 
 
 func setup(p_defs: GameDefs, max_drones: int) -> void:
 	defs = p_defs
+	# Room for the most a fully upgraded hauler carries.
+	_max_cargo = Economy.hauler_capacity(defs, defs.hauler_upgrade.max_level if defs.hauler_upgrade else 0)
 	_hulls = _multimesh("Hulls", MESH, max_drones, null)
 	_shadows = _multimesh("Shadows", MeshUtil.disc(0.45, 14), max_drones, ItemVisuals.unshaded(Color(0, 0, 0, 0.28)))
 	for item in defs.items:
-		_cargo[item.id] = _multimesh("Cargo_" + item.id, ItemVisuals.mesh(item.shape), max_drones * defs.tuning.drone_capacity, ItemVisuals.material(item))
+		_cargo[item.id] = _multimesh("Cargo_" + item.id, ItemVisuals.mesh(item.shape), max_drones * _max_cargo, ItemVisuals.material(item))
 
 
 func add(d: DroneBrain.Drone) -> void:
@@ -35,19 +43,20 @@ func add(d: DroneBrain.Drone) -> void:
 		for mm in [_hulls, _shadows]:
 			mm.instance_count = need
 		for id in _cargo:
-			_cargo[id].instance_count = need * defs.tuning.drone_capacity
+			_cargo[id].instance_count = need * _max_cargo
 	update_view(0.0)
 
 
 func update_view(delta: float) -> void:
 	var hover := defs.tuning.drone_hover_height
 	var counts := {}
+	var size := 1.0 + HULL_GROWTH * hauler_level
 	for i in drones.size():
 		var d := drones[i]
 		_phase[i] += delta * 3.0
 		var pos := Vector3(d.position.x, hover + sin(_phase[i]) * 0.15, d.position.y)
 		var basis := Basis(Vector3.UP, d.heading)
-		_hulls.set_instance_transform(i, Transform3D(basis, pos + Vector3(0, -0.2, 0)))
+		_hulls.set_instance_transform(i, Transform3D(basis.scaled(Vector3.ONE * size), pos + Vector3(0, -0.2, 0)))
 		_shadows.set_instance_transform(i, Transform3D(Basis(), Vector3(d.position.x, 0.06, d.position.y)))
 		for k in d.cargo.size():
 			var id: StringName = d.cargo[k]

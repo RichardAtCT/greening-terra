@@ -3,7 +3,7 @@ extends RefCounted
 ## A standing pad in the world. Built by GameSim from the planet layout.
 
 enum Kind { IN, OUT, DEPOT, PAY }
-enum Pay { NONE, BUILD_MACHINE, BUILD_BAY, BUY_DRONE, PACK, BOOTS, BUILD_HABITAT }
+enum Pay { NONE, BUILD_MACHINE, BUILD_BAY, BUY_DRONE, PACK, BOOTS, BUILD_HABITAT, UPGRADE_MACHINE, UPGRADE_HAULERS }
 
 var key: StringName
 var kind: Kind

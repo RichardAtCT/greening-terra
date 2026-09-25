@@ -19,6 +19,7 @@
 [ext_resource type="Resource" path="res://data/game_tuning.tres" id="17_akfar"]
 [ext_resource type="Resource" path="res://data/juice.tres" id="18_juice"]
 [ext_resource type="Resource" path="res://data/colony_tuning.tres" id="19_colony"]
+[ext_resource type="Resource" path="res://data/upgrades/hauler.tres" id="20_hauler"]
 
 [resource]
 script = ExtResource("15_aeqsm")
@@ -30,5 +31,6 @@ player = ExtResource("14_85007")
 pack_upgrade = ExtResource("9_cnyv5")
 boots_upgrade = ExtResource("1_ftb2l")
 drone_upgrade = ExtResource("2_7qjd5")
+hauler_upgrade = ExtResource("20_hauler")
 juice = ExtResource("18_juice")
 colony = ExtResource("19_colony")

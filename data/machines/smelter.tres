@@ -23,3 +23,5 @@ scene = ExtResource("2_dr436")
 footprint = Vector3(2.8, 2, 2.4)
 in_pad_color = Color(0.8509804, 0.4745098, 0.2901961, 1)
 in_pad_label = "REGOLITH"
+upgrade_costs = PackedInt32Array(120, 300, 700)
+upgrade_pad_offset = Vector2(-4, 0.9)

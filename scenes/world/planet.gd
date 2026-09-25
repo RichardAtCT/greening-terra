@@ -147,8 +147,12 @@ func _process(delta: float) -> void:
 	for pv in _pads:
 		var vis := sim.pad_visible(pv.info)
 		pv.visible = vis
-		pv.set_near(vis and Vector2(p.x, p.z).distance_to(pv.info.position) < defs.tuning.pad_radius)
+		if vis and (pv.info.pay == PadInfo.Pay.UPGRADE_MACHINE or pv.info.pay == PadInfo.Pay.UPGRADE_HAULERS):
+			pv.set_label(sim.upgrade_pad_label(pv.info))
+		# A pay pad dims while it rests after a purchase, so the player sees it's done.
+		pv.set_near(vis and not sim.pad_resting(pv.info) and Vector2(p.x, p.z).distance_to(pv.info.position) < defs.tuning.pad_radius)
 	_update_buildings()
+	_drones.hauler_level = sim.state.hauler_level
 	_drones.update_view(dt)
 	_colony.update_view(dt)
 
@@ -298,7 +302,7 @@ func _update_buildings() -> void:
 			for item in m.recipe.inputs:
 				total += s.queued(m.id, item)
 			queue_text = "%d in" % total
-		bv.label.set_text(m.display_name, "%s · %d out" % [queue_text, outs], Color("86e07c") if busy else muted)
+		bv.label.set_text(sim.machine_title(m), "%s · %d out" % [queue_text, outs], Color("86e07c") if busy else muted)
 		var in_items: Array[StringName] = []
 		for item in m.recipe.inputs:
 			for k in s.queued(m.id, item):
@@ -314,7 +318,7 @@ func _update_buildings() -> void:
 	if not bay_built:
 		_bay.label.set_text("Drone Bay", "₵ %d / %d" % [s.paid.get(&"build_bay", 0), sim.planet.bay_cost])
 	elif s.drones >= sim.planet.max_drones:
-		_bay.label.set_text("Drone Bay", "%d haulers · max" % s.drones)
+		_bay.label.set_text("Drone Bay", "%d haulers · carry %d" % [s.drones, sim.drone_capacity()])
 	else:
 		var paid: int = s.paid.get(&"buy_drone", 0)
 		var next_cost := Economy.drone_cost(defs, s.drones, sim.planet.max_drones)

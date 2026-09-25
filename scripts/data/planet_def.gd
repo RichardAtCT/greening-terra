@@ -34,6 +34,8 @@ extends Resource
 @export var bay_collide_radius: float = 1.9
 @export var bay_cost: int = 60
 @export var max_drones: int = 12
+## The HAULERS upgrade pad, relative to the Drone Bay (beside its BUY pad).
+@export var hauler_pad_offset: Vector2 = Vector2(-2.8, 2.9)
 @export var outfitter_position: Vector2 = Vector2(15, -9)
 @export var outfitter_collide_radius: float = 1.5
 @export var pack_pad_offset: Vector2 = Vector2(-1.4, 2.9)

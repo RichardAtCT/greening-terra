@@ -111,10 +111,22 @@ amount = 0
 
 [sub_resource type="Resource" id="Resource_3cqov"]
 script = ExtResource("2_5rgpp")
-text = "Seedpods green the planet fastest. Add haulers and upgrade your kit."
+text = "Upgrade machines and add haulers to keep them fed."
 has_target = false
 done_when = Array[ExtResource("3_ugrly")]([SubResource("Resource_ybaq6")])
 
+[sub_resource type="Resource" id="Resource_upg1c"]
+script = ExtResource("3_ugrly")
+key = &"machine_upgrades"
+
+[sub_resource type="Resource" id="Resource_upg1s"]
+script = ExtResource("2_5rgpp")
+text = "Upgrades are open. Stand on the Greenhouse UPGRADE pad: it's the slowest machine."
+target = Vector2(4.6, -10.1)
+done_when = Array[ExtResource("3_ugrly")]([SubResource("Resource_upg1c")])
+saving_for_pad = &"upgrade_greenhouse"
+saving_text = "Save ₵200 to upgrade the Greenhouse to Mk II. Faster machines need more haulers."
+
 [resource]
 script = ExtResource("1_lsw7h")
-steps = Array[ExtResource("2_5rgpp")]([SubResource("Resource_5f8j6"), SubResource("Resource_kunmk"), SubResource("Resource_i1pu3"), SubResource("Resource_muae1"), SubResource("Resource_agdgd"), SubResource("Resource_u3tu6"), SubResource("Resource_oftn4"), SubResource("Resource_n3p4x"), SubResource("Resource_3cqov")])
+steps = Array[ExtResource("2_5rgpp")]([SubResource("Resource_5f8j6"), SubResource("Resource_kunmk"), SubResource("Resource_i1pu3"), SubResource("Resource_muae1"), SubResource("Resource_agdgd"), SubResource("Resource_u3tu6"), SubResource("Resource_oftn4"), SubResource("Resource_n3p4x"), SubResource("Resource_upg1s"), SubResource("Resource_3cqov")])
