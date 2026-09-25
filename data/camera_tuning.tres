@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CameraTuning" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/camera_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+offset = Vector3(0, 13.5, 11)
+follow_rate = 6.0
+look_height = 0.5
+horizontal_half_fov_deg = 20.0
+fov_min_deg = 42.0
+fov_max_deg = 70.0

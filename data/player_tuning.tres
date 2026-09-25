@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PlayerTuning" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/player_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+move_speed = 6.0
+turn_rate = 14.0
+input_deadzone = 0.08
+world_radius = 40.0
