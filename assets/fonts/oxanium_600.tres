@@ -1,0 +1,11 @@
+[gd_resource type="FontVariation" format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/Oxanium-Variable.ttf" id="1_kofkg"]
+[ext_resource type="FontFile" path="res://assets/fonts/IBMPlexMono-SemiBold.ttf" id="2_jnifr"]
+
+[resource]
+fallbacks = Array[Font]([ExtResource("2_jnifr")])
+base_font = ExtResource("1_kofkg")
+variation_opentype = {
+2003265652: 600
+}

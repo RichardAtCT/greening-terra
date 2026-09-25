@@ -2,55 +2,90 @@
 
 [ext_resource type="Script" path="res://scenes/actors/player.gd" id="1"]
 [ext_resource type="Resource" path="res://data/player_tuning.tres" id="2"]
+[ext_resource type="Script" path="res://scenes/world/item_stack_view.gd" id="3"]
 
 [sub_resource type="CapsuleShape3D" id="shape"]
 radius = 0.4
 height = 1.6
 
 [sub_resource type="StandardMaterial3D" id="suit"]
-albedo_color = Color(0.94, 0.92, 0.88, 1)
-roughness = 0.9
+albedo_color = Color(0.909804, 0.894118, 0.862745, 1)
+roughness = 1.0
+specular_mode = 2
 
-[sub_resource type="CapsuleMesh" id="body"]
+[sub_resource type="CylinderMesh" id="body"]
 material = SubResource("suit")
-radius = 0.35
-height = 1.5
-radial_segments = 16
-rings = 6
+top_radius = 0.38
+bottom_radius = 0.42
+height = 0.9
+radial_segments = 12
+rings = 1
+
+[sub_resource type="SphereMesh" id="head"]
+material = SubResource("suit")
+radius = 0.36
+height = 0.72
+radial_segments = 14
+rings = 10
 
 [sub_resource type="StandardMaterial3D" id="visor_mat"]
-albedo_color = Color(1, 0.69, 0.29, 1)
+albedo_color = Color(1, 0.690196, 0.290196, 1)
+roughness = 1.0
+specular_mode = 2
 emission_enabled = true
-emission = Color(0.48, 0.23, 0, 1)
+emission = Color(0.478431, 0.227451, 0, 1)
 
-[sub_resource type="BoxMesh" id="visor"]
+[sub_resource type="SphereMesh" id="visor"]
 material = SubResource("visor_mat")
-size = Vector3(0.42, 0.2, 0.12)
+radius = 0.27
+height = 0.27
+radial_segments = 14
+rings = 6
+is_hemisphere = true
+
+[sub_resource type="StandardMaterial3D" id="leg_mat"]
+albedo_color = Color(0.741176, 0.717647, 0.678431, 1)
+roughness = 1.0
+specular_mode = 2
+
+[sub_resource type="CylinderMesh" id="leg"]
+material = SubResource("leg_mat")
+top_radius = 0.13
+bottom_radius = 0.13
+height = 0.4
+radial_segments = 8
+rings = 1
 
 [sub_resource type="StandardMaterial3D" id="pack_mat"]
-albedo_color = Color(0.85, 0.47, 0.29, 1)
+albedo_color = Color(0.85098, 0.47451, 0.290196, 1)
+roughness = 1.0
+specular_mode = 2
 
 [sub_resource type="BoxMesh" id="pack"]
 material = SubResource("pack_mat")
-size = Vector3(0.5, 0.6, 0.25)
+size = Vector3(0.6, 0.7, 0.3)
 
 [sub_resource type="StandardMaterial3D" id="shadow_mat"]
 transparency = 1
 shading_mode = 0
-albedo_color = Color(0, 0, 0, 0.3)
+albedo_color = Color(0, 0, 0, 0.28)
 
 [sub_resource type="CylinderMesh" id="shadow"]
-top_radius = 0.5
-bottom_radius = 0.5
+material = SubResource("shadow_mat")
+top_radius = 0.6
+bottom_radius = 0.6
 height = 0.01
-radial_segments = 20
+radial_segments = 16
 rings = 1
 
-[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("model")]
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("model", "body", "leg_left", "leg_right")]
 motion_mode = 1
 script = ExtResource("1")
 tuning = ExtResource("2")
 model = NodePath("Model")
+body = NodePath("Model/Body")
+leg_left = NodePath("Model/LegL")
+leg_right = NodePath("Model/LegR")
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
@@ -60,18 +95,40 @@ shape = SubResource("shape")
 
 [node name="Body" type="MeshInstance3D" parent="Model"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+cast_shadow = 0
 mesh = SubResource("body")
 
+[node name="Head" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.42, 0)
+cast_shadow = 0
+mesh = SubResource("head")
+
 [node name="Visor" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0.3)
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 1.44, 0.16)
+cast_shadow = 0
 mesh = SubResource("visor")
 
+[node name="LegL" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.17, 0.2, 0)
+cast_shadow = 0
+mesh = SubResource("leg")
+
+[node name="LegR" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.17, 0.2, 0)
+cast_shadow = 0
+mesh = SubResource("leg")
+
 [node name="Pack" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, -0.42)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, -0.42)
+cast_shadow = 0
 mesh = SubResource("pack")
+
+[node name="Stack" type="Node3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.32, -0.45)
+script = ExtResource("3")
+layout = 0
 
 [node name="Shadow" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
 cast_shadow = 0
 mesh = SubResource("shadow")
-material_override = SubResource("shadow_mat")

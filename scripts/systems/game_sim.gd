@@ -85,8 +85,13 @@ func move_speed() -> float:
 
 
 func planet_name() -> String:
-	var cycle := state.planet_index / defs.planets.size()
-	return planet.display_name + (" " + "I".repeat(cycle + 1) if cycle > 0 else "")
+	return planet_display_name(defs, state.planet_index)
+
+
+## "Tessera-4", or "Tessera-4 II" on the second time round the planet list.
+static func planet_display_name(p_defs: GameDefs, index: int) -> String:
+	var cycle := index / p_defs.planets.size()
+	return p_defs.planet(index).display_name + (" " + "I".repeat(cycle + 1) if cycle > 0 else "")
 
 
 func has_nodes_for(item: StringName) -> bool:
