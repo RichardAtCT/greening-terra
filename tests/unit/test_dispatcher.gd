@@ -127,3 +127,16 @@ func test_storm_slows_haulers() -> void:
 	sim.state.hazard_phase = HazardDirector.Phase.ACTIVE
 	sim.state.hazard_t = 10.0
 	assert_almost_eq(sim.drone_speed(), normal * sim.planet.hazard.drone_speed, 0.0001)
+
+
+func test_upgraded_haulers_carry_more() -> void:
+	_add_drones(1)
+	sim.state.hauler_level = 1
+	var cap := defs.tuning.drone_capacity + defs.tuning.hauler_upgrade_cargo
+	var job := Dispatcher.best_job(sim, sim.drones[0])
+	assert_eq(job.amount, cap, "a node holds more than a hold")
+	for i in roundi(20.0 / DT):
+		sim.step(DT, Vector2(0, 30))
+		if sim.drones[0].cargo.size() >= cap:
+			break
+	assert_eq(sim.drones[0].cargo.size(), cap, "fills the bigger hold before leaving")

@@ -63,7 +63,7 @@ static func step(sim: GameSim, d: Drone, dt: float) -> void:
 					d.wait += dt
 					if d.wait > tuning.drone_output_wait:
 						_leave_source(d)
-			if d.cargo.size() >= tuning.drone_capacity:
+			if d.cargo.size() >= sim.drone_capacity():
 				_leave_source(d)
 		State.TO_DEST:
 			if _move(d, job.target_point(sim), sim.drone_speed(), tuning.drone_arrive_radius, dt):

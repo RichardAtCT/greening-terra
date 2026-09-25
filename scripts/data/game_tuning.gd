@@ -21,6 +21,10 @@ extends Resource
 @export_group("Drones")
 @export var drone_speed: float = 5.5
 @export var drone_capacity: int = 4
+## Hauler upgrades alternate: the 1st, 3rd, 5th... add this much cargo to every hauler,
+## the 2nd, 4th, 6th... make every hauler this much faster (0.15 = +15%, added up).
+@export var hauler_upgrade_cargo: int = 1
+@export var hauler_upgrade_speed: float = 0.15
 @export var drone_arrive_radius: float = 0.25
 @export var drone_dig_interval: float = 0.35
 @export var drone_transfer_interval: float = 0.12

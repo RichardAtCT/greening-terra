@@ -58,7 +58,7 @@ static func jobs(sim: GameSim, d: DroneBrain.Drone) -> Array[Job]:
 	var out: Array[Job] = []
 	var s := sim.state
 	var t := sim.defs.tuning
-	var cap := t.drone_capacity
+	var cap := sim.drone_capacity()
 	for m in sim.planet.machines:
 		if not s.is_built(m.id):
 			continue
@@ -117,7 +117,7 @@ static func _score(sim: GameSim, d: DroneBrain.Drone, j: Job, need: float, full:
 	var src := j.source_point(sim)
 	var travel := d.position.distance_to(src) + src.distance_to(j.target_point(sim))
 	j.score = need * t.dispatch_need_weight + full * t.dispatch_full_weight + bonus \
-		+ float(j.amount) / t.drone_capacity * t.dispatch_load_weight - travel * t.dispatch_distance_weight
+		+ float(j.amount) / sim.drone_capacity() * t.dispatch_load_weight - travel * t.dispatch_distance_weight
 
 
 ## The node of this item with unreserved stock that makes the shortest trip (hauler → node → dest).

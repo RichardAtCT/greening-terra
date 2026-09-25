@@ -15,6 +15,8 @@ var built: Dictionary = {}
 ## Machine id -> upgrades bought (0 = Mk I).
 var machine_levels: Dictionary = {}
 var drones: int = 0
+## Hauler upgrades bought at the Drone Bay (cargo and speed, alternately).
+var hauler_level: int = 0
 var tutorial_step: int = 0
 ## &"fed", &"delivered", &"produced_<item>" -> count.
 var stats: Dictionary = {}
@@ -84,6 +86,7 @@ func to_dict() -> Dictionary:
 		"built": _keys_to_str(built),
 		"machine_levels": _keys_to_str(machine_levels),
 		"drones": drones,
+		"hauler_level": hauler_level,
 		"tutorial_step": tutorial_step,
 		"stats": _keys_to_str(stats),
 		"queues": _nested_to_str(queues),
@@ -118,6 +121,7 @@ static func from_dict(d: Dictionary) -> WorldState:
 	s.built = _keys_to_name(d.get("built", {}), TYPE_BOOL)
 	s.machine_levels = _keys_to_name(d.get("machine_levels", {}), TYPE_INT)
 	s.drones = int(d.get("drones", 0))
+	s.hauler_level = int(d.get("hauler_level", 0))
 	s.tutorial_step = int(d.get("tutorial_step", 0))
 	s.stats = _keys_to_name(d.get("stats", {}), TYPE_INT)
 	for m in d.get("queues", {}):

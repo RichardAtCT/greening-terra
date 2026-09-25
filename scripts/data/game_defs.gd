@@ -10,6 +10,8 @@ extends Resource
 @export var pack_upgrade: UpgradeDef
 @export var boots_upgrade: UpgradeDef
 @export var drone_upgrade: UpgradeDef
+## Hauler upgrades at the Drone Bay: odd levels add cargo, even levels add speed (GameTuning).
+@export var hauler_upgrade: UpgradeDef
 @export var juice: JuiceTuning
 @export var colony: ColonyTuning
 

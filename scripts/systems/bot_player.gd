@@ -14,6 +14,8 @@ const BUY_VALUE := {
 	PadInfo.Pay.BOOTS: 1.0,
 	PadInfo.Pay.BUILD_HABITAT: 1.5,
 	PadInfo.Pay.UPGRADE_MACHINE: 2.0,
+	# Per hauler it improves, scaled by how much it improves each (see _decide).
+	PadInfo.Pay.UPGRADE_HAULERS: 2.0,
 }
 
 var sim: GameSim
@@ -97,6 +99,8 @@ func _decide() -> void:
 		var value: float = BUY_VALUE[p.pay] / cost
 		if p.pay == PadInfo.Pay.UPGRADE_MACHINE:
 			value *= _backlog(p.machine)
+		elif p.pay == PadInfo.Pay.UPGRADE_HAULERS:
+			value *= s.drones * _hauler_gain()
 		if value > best_value:
 			best_value = value
 			best = p
@@ -144,6 +148,15 @@ func _backlog(m: MachineDef) -> float:
 	for item in m.recipe.inputs:
 		fill = minf(fill, float(sim.state.queued(m.id, item)) / m.queue_cap)
 	return clampf(fill * 2.0, 0.0, 1.0)
+
+
+## Fraction more hauling every hauler does after the next hauler upgrade.
+func _hauler_gain() -> float:
+	var d := sim.defs
+	var level := sim.state.hauler_level
+	if Economy.hauler_next_is_cargo(level):
+		return float(d.tuning.hauler_upgrade_cargo) / Economy.hauler_capacity(d, level)
+	return d.tuning.hauler_upgrade_speed / Economy.hauler_speed_factor(d, level)
 
 
 func _next_building_cost() -> int:

@@ -6,7 +6,7 @@ extends SceneTree
 ## --scene=res://scenes/ui/title.tscn renders another scene instead of the planet.
 ## --zoom=0.4 moves the camera closer; --face=90 turns the astronaut.
 ## --win=25 opens the win screen 25 frames before the shot (confetti in the air).
-## --levels=1 sets every machine to Mk II (machine upgrades).
+## --levels=1 sets every machine to Mk II; --haul=3 buys three hauler upgrades.
 ## M4 state: --colonists=6 --hungry=1 --waiting=2 --food=5 --lander=2.5 --storm=on|warn --storm-t=20 --debug=1
 ## (see below). Uses throwaway profile 97, so real saves are untouched.
 
@@ -35,6 +35,7 @@ func _init() -> void:
 	if args.has("levels"):
 		for m in defs.planet(s.planet_index).machines:
 			s.machine_levels[m.id] = int(args.levels)
+	s.hauler_level = int(args.get("haul", "0"))
 	# M4: --colonists=N housed (habitats built to fit), --hungry=N of them, --waiting=N at the pad,
 	# --lander=T (seconds from touchdown), --storm=warn|on (with --storm-t=seconds left), --food=N.
 	var pdef := defs.planet(s.planet_index)

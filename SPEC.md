@@ -48,7 +48,7 @@ Each planet adds one new resource, one or two new machines, one hazard, and a di
 ### Planet 1: Tessera-4 (rust desert)
 - **Resources:** Regolith (rust rock), Ice (blue crystal).
 - **Machines:** Smelter (regolith → plate), Electrolyser (ice → O₂), Greenhouse (plate + O₂ → seedpod).
-- **Terraform values:** plate 0.0135%, O₂ 0.034%, seedpod 0.06%. The prototype's values (0.15 / 0.4 / 1.6) finished the planet in about 5 minutes; these were tuned with the balance sim for a ~30-minute greedy run, including colonists speeding up the machines. Credits are unchanged: plate ₵2, O₂ ₵3, seedpod ₵9.
+- **Terraform values:** plate 0.0108%, O₂ 0.0272%, seedpod 0.048%. The prototype's values (0.15 / 0.4 / 1.6) finished the planet in about 5 minutes; these were tuned with the balance sim for a ~30-minute greedy run, including colonists and machine and hauler upgrades speeding up the chain. Credits are unchanged: plate ₵2, O₂ ₵3, seedpod ₵9.
 - **Hazard: dust storm.** Every 4–6 minutes after 15% terraform. Lasts 30 s, with thick orange fog, driving dust and a louder wind. Player speed −30%, drones −40%. Telegraphed 10 s ahead by a HUD warning (with a bong) and a darkening sky. Frequency falls as terraform rises (the gap grows up to 1.5× by 60%) and storms stop at 60%.
 - **Look:** maroon haze → pink dusk → blue sky; rust ground → ochre; lakes from 25%; lichen spreading out from the hub from ~15%; forests from 55%.
 - **Target duration:** 25–35 minutes.
@@ -112,7 +112,7 @@ When a planet reaches 100%, the player picks 1 of 3 random bonuses from a pool. 
 
 ### 4.4 Upgrades (carried over, extended)
 - **Outfitter:** pack +4 (10 levels), boots +12% speed (6 levels), dig speed +15% (5 levels).
-- **Drone Bay:** buy haulers (cost ×1.55 each, max 12 on P1 and 16 on P2–3); hauler capacity +1 (3 levels).
+- **Drone Bay:** buy haulers (cost ×1.55 each, max 8 on P1 and 16 on P2–3). Once the whole chain is built, a HAULERS pad upgrades every hauler, alternating +1 cargo and +15% speed (6 levels, ₵250 ×1.7 each). Built.
 - **Machines:** each machine gets an UPGRADE pad beside it once the whole chain is built: +50% speed and +10 output cap per mark, up to Mk IV (P1: Smelter and Electrolyser ₵120/300/700, Greenhouse ₵200/500/1100). Built.
 
 ### 4.5 Drone routing
@@ -180,7 +180,7 @@ reference/greening-tessera-prototype.html
 Scene-specific scripts sit next to their scene (for example `scenes/actors/player.gd`). Everything in `scripts/systems/` is free of scene access, so tests and the balance sim can run it headless.
 
 ### 7.3 Data model (custom Resources)
-- `GameDefs` (`data/game.tres`): the root. Holds the items, planets, upgrades, `GameTuning`, `TerraformDef`, `PlayerTuning`, `JuiceTuning` and `ColonyTuning`.
+- `GameDefs` (`data/game.tres`): the root. Holds the items, planets, upgrades (pack, boots, hauler count, hauler upgrades), `GameTuning`, `TerraformDef`, `PlayerTuning`, `JuiceTuning` and `ColonyTuning`.
 - `ItemDef`: id, display name, short pad label, colour, emissive, shape, stack height, sell value (0 = raw, can't be sold), terraform value, food value.
 - `RecipeDef`: inputs {item: count}, output item, time.
 - `MachineDef`: id, name, recipe, build cost, starts built, position, scene, footprint, collision radius, label height, pad offsets, IN pad colour and label, queue cap (20), output cap (40), upgrade costs (one per mark), speed and output cap per mark, UPGRADE pad offset.
@@ -188,7 +188,7 @@ Scene-specific scripts sit next to their scene (for example `scenes/actors/playe
 - `PlanetDef`: name, seed, palette (sky start/mid/end, ground start/end, moss, water deep/shallow), pay multiplier, terraform divisor, hub/depot/bay/outfitter layout, machines, resource nodes, lakes, clear zones, habitat plots and costs, landing pad, lander milestones and colonists per lander, hazard, tutorial, win text, balance target minutes and `balance_enforced`. *(Vegetation set to come in M5.)*
 - `UpgradeDef`: cost = round((base + step × level) × growth^level), max level, amount per level. Used for pack, boots and haulers.
 - `TutorialDef` → `TutorialStep` (text, marker target, `TutorialCondition`s that complete it, "keep saving" text for a pay pad).
-- `GameTuning`: transfer, dig and pay intervals, radii, respawn time, drone speed, capacity and waits, dispatcher weights, fly time, autosave interval.
+- `GameTuning`: transfer, dig and pay intervals, radii, respawn time, drone speed, capacity and waits, what each hauler upgrade adds, dispatcher weights, fly time, autosave interval.
 - `ColonyTuning` (`data/colony_tuning.tres`): lander descent and stay, machine boost, colonists per machine, walking speed and work spots, meal interval, food reserve, habitat capacity.
 - `HazardDef` (`data/hazards/dust_storm.tres`): see 4.2, plus the look (sky darkening, fog, dust).
 - `TerraformDef`: stage names and limits, pressure and temperature formulas, and how % maps to sky, fog, light, lakes, dust, the ground-moss front, moss patches, grass, flowers and trees.
@@ -258,7 +258,7 @@ Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as 
 Ads, in-app purchases, analytics, accounts, cloud saves, leaderboards, multiplayer, offline earnings, procedural planets, native store builds.
 
 ## 11. Open questions (decide during build)
-- Late-game credit sink: machine upgrades (DECISIONS #59) keep Planet 1 buying until about 28 minutes. SPEC 4.4's dig-speed and hauler-capacity upgrades are still to come; re-run the balance sim when they land.
+- Late-game credit sink: machine upgrades (DECISIONS #59) and hauler upgrades (#63) keep Planet 1 buying until about 28 minutes. SPEC 4.4's dig-speed upgrade is still to come; re-run the balance sim when they land.
 - Should drones need recharging at the bay, as a light extra loop?
 - On P3, does toxicity capping terraform feel good, or should toxicity just slow terraform gains?
 - Free-play revisit of completed planets: keep or drop?

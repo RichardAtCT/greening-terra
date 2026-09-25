@@ -94,7 +94,11 @@ func move_speed() -> float:
 
 
 func drone_speed() -> float:
-	return defs.tuning.drone_speed * HazardDirector.drone_factor(self)
+	return defs.tuning.drone_speed * Economy.hauler_speed_factor(defs, state.hauler_level) * HazardDirector.drone_factor(self)
+
+
+func drone_capacity() -> int:
+	return Economy.hauler_capacity(defs, state.hauler_level)
 
 
 func planet_name() -> String:
@@ -164,7 +168,9 @@ func pad_visible(p: PadInfo) -> bool:
 				PadInfo.Pay.BUILD_BAY:
 					return not state.is_built(&"bay")
 				PadInfo.Pay.BUY_DRONE:
-					return state.is_built(&"bay")
+					return state.is_built(&"bay") and state.drones < planet.max_drones
+				PadInfo.Pay.UPGRADE_HAULERS:
+					return state.is_built(&"bay") and upgrades_open() and pad_cost(p) > 0
 				PadInfo.Pay.UPGRADE_MACHINE:
 					return upgrades_open() and Economy.machine_upgrade_cost(state, p.machine) > 0
 				PadInfo.Pay.BUILD_HABITAT:
@@ -190,6 +196,8 @@ func pad_cost(p: PadInfo) -> int:
 			return planet.habitat_costs[p.index]
 		PadInfo.Pay.UPGRADE_MACHINE:
 			return Economy.machine_upgrade_cost(state, p.machine)
+		PadInfo.Pay.UPGRADE_HAULERS:
+			return Economy.upgrade_cost(defs.hauler_upgrade, state.hauler_level)
 	return -1
 
 
@@ -339,6 +347,11 @@ func _buy(p: PadInfo) -> void:
 			state.built[Colony.habitat_key(p.index)] = true
 			toast.emit("Habitat %d built · room for %d more" % [p.index + 1, defs.colony.habitat_capacity])
 			Colony.house(self)
+		PadInfo.Pay.UPGRADE_HAULERS:
+			var cargo := Economy.hauler_next_is_cargo(state.hauler_level)
+			state.hauler_level += 1
+			toast.emit("Haulers carry %d" % drone_capacity() if cargo \
+				else "Haulers +%d%% speed" % roundi((Economy.hauler_speed_factor(defs, state.hauler_level) - 1.0) * 100.0))
 		PadInfo.Pay.UPGRADE_MACHINE:
 			state.machine_levels[p.machine.id] = state.machine_level(p.machine.id) + 1
 			state.add_stat(&"machine_upgrades")
@@ -410,6 +423,9 @@ func _build_pads() -> void:
 	var bay_pad := planet.bay_position + planet.bay_pad_offset
 	_pay_pad(&"build_bay", PadInfo.Pay.BUILD_BAY, bay_pad, "BUILD", "₵%d" % planet.bay_cost)
 	_pay_pad(&"buy_drone", PadInfo.Pay.BUY_DRONE, bay_pad, defs.drone_upgrade.pad_title, defs.drone_upgrade.pad_label)
+	if defs.hauler_upgrade:
+		var hp := _pay_pad(&"upgrade_haulers", PadInfo.Pay.UPGRADE_HAULERS, planet.bay_position + planet.hauler_pad_offset, defs.hauler_upgrade.pad_title, "")
+		hp.label = upgrade_pad_label(hp)
 	_pay_pad(&"pack", PadInfo.Pay.PACK, planet.outfitter_position + planet.pack_pad_offset, defs.pack_upgrade.pad_title, defs.pack_upgrade.pad_label)
 	_pay_pad(&"boots", PadInfo.Pay.BOOTS, planet.outfitter_position + planet.boots_pad_offset, defs.boots_upgrade.pad_title, defs.boots_upgrade.pad_label)
 	for i in planet.habitat_positions.size():
@@ -419,11 +435,15 @@ func _build_pads() -> void:
 			h.index = i
 
 
-## An UPGRADE pad's subtitle: the next mark and its cost ("MK II ₵150").
+## An upgrade pad's subtitle: what the next level gives and its cost ("MK II ₵150", "+1 CARGO ₵150").
 func upgrade_pad_label(p: PadInfo) -> String:
-	var cost := Economy.machine_upgrade_cost(state, p.machine)
+	var cost := pad_cost(p)
 	if cost < 0:
 		return "MAX"
+	if p.pay == PadInfo.Pay.UPGRADE_HAULERS:
+		var what := "+%d CARGO" % defs.tuning.hauler_upgrade_cargo if Economy.hauler_next_is_cargo(state.hauler_level) \
+			else "+%d%% SPEED" % roundi(defs.tuning.hauler_upgrade_speed * 100.0)
+		return "%s ₵%d" % [what, cost]
 	return "MK %s ₵%d" % [mark(state.machine_level(p.machine.id) + 2), cost]
 
 

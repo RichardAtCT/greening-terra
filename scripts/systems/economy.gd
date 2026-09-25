@@ -26,6 +26,21 @@ static func drone_cost(defs: GameDefs, drones: int, max_drones: int) -> int:
 	return defs.drone_upgrade.cost(maxi(0, drones - 1))
 
 
+## Items each hauler carries: the base plus every cargo upgrade (levels 1, 3, 5...).
+static func hauler_capacity(defs: GameDefs, level: int) -> int:
+	return defs.tuning.drone_capacity + defs.tuning.hauler_upgrade_cargo * ((level + 1) / 2)
+
+
+## How much faster hauler upgrades make every hauler (levels 2, 4, 6...).
+static func hauler_speed_factor(defs: GameDefs, level: int) -> float:
+	return 1.0 + defs.tuning.hauler_upgrade_speed * (level / 2)
+
+
+## Does the next hauler upgrade add cargo (rather than speed)?
+static func hauler_next_is_cargo(level: int) -> bool:
+	return level % 2 == 0
+
+
 ## Credits the hub pays for one item on this planet (0 for raw resources).
 static func payout(item: ItemDef, planet: PlanetDef) -> float:
 	return item.sell_value * planet.pay_multiplier
