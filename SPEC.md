@@ -48,37 +48,37 @@ Each planet adds one new resource, one or two new machines, one hazard, and a di
 ### Planet 1: Tessera-4 (rust desert)
 - **Resources:** Regolith (rust rock), Ice (blue crystal).
 - **Machines:** Smelter (regolith → plate), Electrolyser (ice → O₂), Greenhouse (plate + O₂ → seedpod).
-- **Terraform values:** plate 0.0108%, O₂ 0.0272%, seedpod 0.048%. The prototype's values (0.15 / 0.4 / 1.6) finished the planet in about 5 minutes; these were tuned with the balance sim for a ~30-minute greedy run, including colonists and machine and hauler upgrades speeding up the chain. Credits are unchanged: plate ₵2, O₂ ₵3, seedpod ₵9.
+- **Terraform values:** plate 0.0108%, O₂ 0.0272%, seedpod 0.048%, divided by the planet's terraform divisor (1.0 here). The prototype's values (0.15 / 0.4 / 1.6) finished the planet in about 5 minutes; these were tuned with the balance sim for a ~30-minute greedy run, including colonists, machine and hauler upgrades and dig speed speeding up the chain. Credits are unchanged: plate ₵2, O₂ ₵3, seedpod ₵9.
 - **Hazard: dust storm.** Every 4–6 minutes after 15% terraform. Lasts 30 s, with thick orange fog, driving dust and a louder wind. Player speed −30%, drones −40%. Telegraphed 10 s ahead by a HUD warning (with a bong) and a darkening sky. Frequency falls as terraform rises (the gap grows up to 1.5× by 60%) and storms stop at 60%.
 - **Look:** maroon haze → pink dusk → blue sky; rust ground → ochre; lakes from 25%; lichen spreading out from the hub from ~15%; forests from 55%.
 - **Target duration:** 25–35 minutes.
 
 ### Planet 2: Orrin b (frozen world)
-- **New resource:** Carbonite (dark CO₂-rich rock).
+- **New resource:** Carbonite (dark CO₂-rich rock), north-east of the hub.
 - **New machines:**
-  - Refinery: carbonite → polymer.
-  - Heat Tower: polymer → heat. Heat is not an item; it powers a warm radius around the tower.
-- **Hazard: cold snap.** Machines outside any Heat Tower radius run at 50% speed during a snap, with frost visible on the machine. Snaps last 45 s. This introduces placement: Heat Towers are built on fixed plots, and the player chooses which plots to unlock first.
-- **Chain:** the Planet 1 chain still exists (the greenhouse needs plates + O₂) plus polymer. Seedpods here need plate + O₂ + polymer. Tune so the player feels the upgrade.
-- **Look:** violet night → teal → blue; frost sheen that melts off the ground via shader; meltwater lakes; tundra grass rather than forest early.
+  - Refinery (₵90): carbonite → polymer (₵4, 0.03%).
+  - Heat Tower: polymer → heat. Heat is not an item: a burning tower (1 polymer every 6 s) keeps machines within 9 m at full speed through a cold snap, and each burn adds 0.05% terraform directly. Towers are built on three fixed plots (₵60, ₵90, ₵120), each covering two machines; the player chooses which plots to unlock first. Haulers keep them fed.
+- **Hazard: cold snap.** Every 3–4.5 minutes between 8% and 85% (the gap grows to 1.3×). Warned 10 s ahead, lasts 45 s. Machines outside any burning Heat Tower's radius run at 50% speed, with frost visible on the machine. Snow falls and a pale fog rolls in.
+- **Chain:** the Planet 1 chain still exists, plus polymer. Seedpods here need plate + O₂ + polymer.
+- **Look:** violet night → teal → blue; frost that melts off the ground via shader, back from the hub and round burning towers, gone by 55%; meltwater lakes; tundra grass rather than forest early (grass sooner, trees later, mostly pines).
+- **Economy:** pay ×1.5, terraform divisor 2.15, up to 16 haulers.
 - **Target duration:** 35–45 minutes.
 
 ### Planet 3: Kessik (sulphur volcanic world)
-- **New resource:** Sulphur (yellow crystal), plus geothermal vents (fixed plots that power buildings built on them).
-- **New machines:**
-  - Scrubber: sulphur → filter; delivering filters clears toxins.
-  - Algae Pond: O₂ + water → biomass. Water comes from an Ice Melter: ice → water.
-- **Hazard: meteor shower.** A few meteors land at marked impact points (shown 5 s ahead). A machine that's hit is "damaged" and stops until the player stands on it and pays 5 plates to repair it. Drones never repair. Keep it rare (one shower every 6–8 min) and never damage the hub.
-- **Two meters:** terraform % and toxicity. Toxicity starts at 100% and caps terraform % at (100 − toxicity). Scrubbers are the way through.
-- **Look:** mustard haze → green-grey → blue; basalt ground; steam from vents; algae-green lakes.
+- **New resource:** Sulphur (yellow crystal), north-west of the hub, plus three geothermal vents: fixed plots that power the buildings on them (+50% speed).
+- **New machines** (all three on vents):
+  - Scrubber (₵20): sulphur → filter. Each filter delivered clears 0.08% toxicity and sells for ₵1.
+  - Ice Melter (₵60): ice → water.
+  - Algae Pond (₵180): O₂ + water → biomass (₵12, 0.07%). **Biomass is the colonists' food here;** Kessik has no Greenhouse.
+- **Hazard: meteor shower.** One every 6–8 min between 5% and 95%. Three meteors land at impact points marked 5 s ahead: one on a machine, two on open ground. A machine that's hit is "damaged" and stops until the player stands on its REPAIR pad and pays 5 plates from their back. Drones never repair. Meteors never hit the hub, a Heat Tower or the Smelter (so plates, and a repair, are always possible).
+- **Two meters:** terraform % and toxicity. Toxicity starts at 100% and caps terraform % at (100 − toxicity). Deliveries still count while capped: they're banked as growth and show as the filters clear the air (DECISIONS #70).
+- **Look:** mustard haze → green-grey → blue; basalt ground; steam and haze rising from the vents over dark craters; algae-green lakes.
+- **Economy:** pay ×1.6, terraform divisor 2.7, up to 16 haulers.
 - **Target duration:** 45–60 minutes.
 
-### Until M5: placeholder planets
-Planets 2 and 3 exist as re-skins of Planet 1: the prototype's palettes and its pay (×1.5, ×2) and terraform-divisor (×1.35, ×1.7) multipliers, on Planet 1's layout. This keeps the prototype's "launch to the next world" flow working. They are marked `balance_enforced = false` until M5 replaces them.
-
 ### Between planets: star map
-- A simple screen: three planet nodes on a line with a rocket animation between them. Completed planets show as green.
-- The player can revisit a completed planet in a free-play mode where nothing is at stake. This is a nice-to-have.
+- A simple screen: three planet nodes on a line with a rocket animation between them. Completed planets show as green. It opens from the win screen (after the bonus pick) or from the menu once a planet is done; "Launch" flies the rocket to the next world. After Kessik the route starts again at Tessera-4 II.
+- The player can revisit a completed planet in a free-play mode where nothing is at stake. This is a nice-to-have, **not built** (see 11).
 
 ---
 
@@ -88,32 +88,32 @@ Planets 2 and 3 exist as re-skins of Planet 1: the prototype's palettes and its 
 - Landers arrive at the hub at terraform milestones (10%, 25%, 40%, 55%, 70%, 85%). Each brings 2 colonists: 12 per planet.
 - The HUD's colony panel shows when the next lander comes ("lander at 25%"), and once the tutorial is done the objective bar says it too.
 - Landers come one at a time: a lander appears as terraform passes a milestone and touches down 5 s later on a landing pad east of the hub. A save from before colonists existed catches up, one lander after another.
-- Colonists auto-assign to built machines, a maximum of 2 per machine, spread one per machine before doubling up. Each working colonist makes the machine 25% faster. They walk there visibly and stand working beside it. The rest are off duty and stroll near their habitat.
+- Colonists auto-assign to built machines, a maximum of 2 per machine (4 once upgraded; none at a Heat Tower), spread one per machine before doubling up. Each working colonist makes the machine 25% faster. They walk there visibly and stand working beside it. The rest are off duty and stroll near their habitat.
 - **Food:** each colonist eats 1 seedpod (or biomass on P3) every 90 s, taken from the hub's stock. A hungry colonist stops working and shows a small pod icon but never leaves or dies. The player feeds them by delivering food as normal. The hub keeps a food store, shown in the HUD, that deliveries top up before converting the surplus to credits. Food priority: the hub keeps enough food for 5 minutes and sells the rest. A pod that goes into the store still adds its terraform %.
 - **Habitats:** three plots near the hub, each housing 4. Habitat 1 is built free by the first lander; the others are BUILD pads (₵120, ₵240), each offered once the one before it stands. Colonists with no room wait by the landing pad and move in when a habitat is built.
 - Colonists are simple: Kenney Mini Characters, walk-to-target in straight lines that slide round buildings (the ground is flat and every obstacle is a circle, so there's no navmesh).
 
 ### 4.2 Hazards
-Common hazard framework: `HazardDef` (start %, end %, interval range and growth, duration, telegraph time, effects, look), run by `HazardDirector`. The HUD shows an incoming-hazard banner with an icon and countdown, then how long is left. All effects are temporary slow-downs or repairs, never loss of items or credits. The random gaps are seeded from the planet and the hazard count, so saves and the balance sim repeat exactly.
+Common hazard framework: `HazardDef` (kind, start %, end %, interval range and growth, duration, telegraph time, effects, sounds, look), run by `HazardDirector`. Three kinds: a storm slows the player and haulers (Tessera-4), a cold snap slows machines away from heat (Orrin b), and a meteor shower damages machines until repaired (Kessik). The HUD shows an incoming-hazard banner with an icon and countdown, then how long is left. All effects are temporary slow-downs or repairs, never loss of items or credits. The random gaps are seeded from the planet and the hazard count, so saves and the balance sim repeat exactly.
 
 ### 4.3 Planet bonuses
-When a planet reaches 100%, the player picks 1 of 3 random bonuses from a pool. Bonuses are permanent for the save.
+When a planet reaches 100%, the player picks 1 of 3 random bonuses from a pool (seeded, so a reload offers the same three; never one already taken). Bonuses are permanent for the save. They're `BonusDef`s in `data/bonuses/`.
 
 | Bonus | Effect |
 |---|---|
 | Swift Haulers | Drones +25% speed |
 | Deep Pockets | Pack +4 |
-| Head Start | Next planet starts with the Drone Bay and 1 drone built |
+| Head Start | Every new planet starts with the Drone Bay and 1 drone built |
 | Overclock | All machines +15% speed |
 | Trade Charter | Hub pays +25% credits |
 | Weather Shield | Hazard durations −30% |
-| Big Lander | +2 colonists per lander |
+| Big Lander | +2 colonists per lander (habitats grow to fit) |
 | Rich Veins | Resource nodes hold +50% and respawn 30% faster |
 
 ### 4.4 Upgrades (carried over, extended)
-- **Outfitter:** pack +4 (10 levels), boots +12% speed (6 levels), dig speed +15% (5 levels).
-- **Drone Bay:** buy haulers (cost ×1.55 each, max 8 on P1 and 16 on P2–3). Once the whole chain is built, a HAULERS pad upgrades every hauler, alternating +1 cargo and +15% speed (6 levels, ₵250 ×1.7 each). Built.
-- **Machines:** each machine gets an UPGRADE pad beside it once the whole chain is built: +50% speed and +10 output cap per mark, up to Mk IV (P1: Smelter and Electrolyser ₵120/300/700, Greenhouse ₵200/500/1100). Built.
+- **Outfitter:** pack +4 (10 levels), boots +12% speed (6 levels), dig speed +15% (5 levels). All three carry over between planets.
+- **Drone Bay:** buy haulers (cost ×1.55 each, max 8 on P1 and 16 on P2–3). Once the whole chain is built, a HAULERS pad upgrades every hauler, alternating +1 cargo and +15% speed (6 levels, ₵250 ×1.7 each). Both are per planet.
+- **Machines:** each machine gets an UPGRADE pad beside it once the whole chain is built (Heat Towers aside): +50% speed and +10 output cap per mark, up to Mk IV, and room for 2 more colonists once upgraded (P1: Smelter and Electrolyser ₵120/300/700, Greenhouse ₵200/500/1100).
 
 ### 4.5 Drone routing
 Replace the prototype's fixed modulo assignment with a small dispatcher:
@@ -135,7 +135,7 @@ Replace the prototype's fixed modulo assignment with a small dispatcher:
 ---
 
 ## 6. Controls & UI
-- **HUD, top-left:** planet name, terraform % bar, stage name ("Barren regolith" … "Terraformed"), air pressure (kPa) and mean temperature (°C). These are live and derived from terraform %, as in the prototype.
+- **HUD, top-left:** planet name, terraform % bar, stage name ("Barren regolith" … "Terraformed"), air pressure (kPa) and mean temperature (°C). These are live and derived from terraform %, as in the prototype. On Kessik, a toxicity bar, with the part of the terraform bar it holds back shaded.
 - **HUD, top-right:** credits, pack count, food store (once colonists arrive), menu button.
 - **Bottom:** a one-line objective with a guide arrow on the ground and a bobbing marker over the target, as in the prototype, driven by data (`TutorialStep` resources).
 - **Pads:** each pad shows an icon (the item's own shape and colour) plus a short label. The icon alone should be enough to play.
@@ -156,18 +156,18 @@ Replace the prototype's fixed modulo assignment with a small dispatcher:
 ```
 res://
   data/            # .tres resources; data/game.tres links everything
-    items/ machines/ planets/ upgrades/   # plus game_tuning.tres, terraform.tres, *_tuning.tres
+    items/ machines/ planets/ upgrades/ hazards/ bonuses/   # plus game_tuning.tres, terraform.tres, *_tuning.tres
   scenes/
-    world/         # planet root, terrain, terraform controller
+    world/         # planet root, terrain, terraform controller, planet effects, label layer
     actors/        # player, drone swarm, colony (colonists and lander)
     buildings/     # machine (generic), hub, drone bay, outfitter, habitat, heat tower
     pads/          # pad view, pad batch (slabs and icons)
-    ui/            # hud, title, settings, debug overlay (later: star map, bonus picker)
+    ui/            # hud (with the bonus picker), title, settings, debug overlay, star map
   scripts/
     autoload/      # GameState, SaveManager, EventBus, DisplayScale, Audio
     data/          # Resource class definitions (ItemDef, PlanetDef, ...)
     systems/       # pure rules: GameSim, Economy, DroneBrain, Tutorial, BotPlayer, WorldState, ...
-  shaders/         # pad, label panel, dust, ground_terraform, water (later: sky_haze, frost)
+  shaders/         # pad, dust, ground_terraform (with frost), water, ground_ring, steam, frost_overlay
   assets/          # fonts, models (source GLBs), meshes (baked), materials, audio (with LICENSES.md)
   addons/gut/      # GUT 9.7.1 test framework (excluded from export)
 tests/             # GUT tests: unit/ and smoke/
@@ -180,22 +180,22 @@ reference/greening-tessera-prototype.html
 Scene-specific scripts sit next to their scene (for example `scenes/actors/player.gd`). Everything in `scripts/systems/` is free of scene access, so tests and the balance sim can run it headless.
 
 ### 7.3 Data model (custom Resources)
-- `GameDefs` (`data/game.tres`): the root. Holds the items, planets, upgrades (pack, boots, hauler count, hauler upgrades), `GameTuning`, `TerraformDef`, `PlayerTuning`, `JuiceTuning` and `ColonyTuning`.
-- `ItemDef`: id, display name, short pad label, colour, emissive, shape, stack height, sell value (0 = raw, can't be sold), terraform value, food value.
-- `RecipeDef`: inputs {item: count}, output item, time.
-- `MachineDef`: id, name, recipe, build cost, starts built, position, scene, footprint, collision radius, label height, pad offsets, IN pad colour and label, queue cap (20), output cap (40), upgrade costs (one per mark), speed and output cap per mark, UPGRADE pad offset.
+- `GameDefs` (`data/game.tres`): the root. Holds the items, planets, upgrades (pack, boots, hauler count, hauler upgrades, dig), bonuses, `GameTuning`, `TerraformDef`, `PlayerTuning`, `JuiceTuning` and `ColonyTuning`.
+- `ItemDef`: id, display name, short pad label, colour, emissive, shape, stack height, sell value (0 = raw, can't be sold), terraform value, food value, detox value (toxicity cleared on delivery).
+- `RecipeDef`: inputs {item: count}, output item (none for a Heat Tower), time, and terraform per cycle when there's no output.
+- `MachineDef`: id, name, recipe, build cost, starts built, position, scene, footprint, collision radius, label height, pad offsets (IN, OUT, BUILD, UPGRADE, REPAIR), IN pad colour and label, queue cap (20), output cap (40), upgrade costs (one per mark), speed and output cap per mark, heat radius (Heat Towers), whether colonists work it.
 - `ResourceNodeDef`: item, max stock, positions, drone idle point, look (colour and a baked mesh it tints).
-- `PlanetDef`: name, seed, palette (sky start/mid/end, ground start/end, moss, water deep/shallow), pay multiplier, terraform divisor, hub/depot/bay/outfitter layout, machines, resource nodes, lakes, clear zones, habitat plots and costs, landing pad, lander milestones and colonists per lander, hazard, tutorial, win text, balance target minutes and `balance_enforced`. *(Vegetation set to come in M5.)*
+- `PlanetDef`: name, seed, palette (sky start/mid/end, ground start/end, moss, water deep/shallow), pay multiplier, terraform divisor, hub/depot/bay/outfitter layout, machines, resource nodes, lakes, clear zones, habitat plots and costs, landing pad, lander milestones and colonists per lander, hazard, surface (vents and their boost, starting toxicity, frost and its colour, steam colour), vegetation (when grass, flowers and trees come, their hue and saturation, share of pines), tutorial, win text, balance target minutes and `balance_enforced`.
 - `UpgradeDef`: cost = round((base + step × level) × growth^level), max level, amount per level. Used for pack, boots and haulers.
 - `TutorialDef` → `TutorialStep` (text, marker target, `TutorialCondition`s that complete it, "keep saving" text for a pay pad).
 - `GameTuning`: transfer, dig and pay intervals, radii, respawn time, drone speed, capacity and waits, what each hauler upgrade adds, dispatcher weights, fly time, autosave interval.
 - `ColonyTuning` (`data/colony_tuning.tres`): lander descent and stay, machine boost, colonists per machine, walking speed and work spots, meal interval, food reserve, habitat capacity.
-- `HazardDef` (`data/hazards/dust_storm.tres`): see 4.2, plus the look (sky darkening, fog, dust).
+- `HazardDef` (`data/hazards/`: dust storm, cold snap, meteor shower): see 4.2, plus the look (sky darkening, fog, dust or snow colour and fall, frost).
 - `TerraformDef`: stage names and limits, pressure and temperature formulas, and how % maps to sky, fog, light, lakes, dust, the ground-moss front, moss patches, grass, flowers and trees.
 - `PlayerTuning`, `CameraTuning` (including the build-complete nudge), `JoystickTuning`.
 - `JuiceTuning` (`data/juice.tres`): stack pop, pick-up pitch climb, building pop and dust puff, pad icon size and motion, colonist waddle and work nod, hungry icon, lander drop and lift-off, confetti.
 - `AudioDef` (`data/audio.tres`) → `SoundDef`s (variations, volume, pitch jitter, minimum repeat interval), plus the wind (and its storm boost) and birdsong levels.
-- *(To come: `BonusDef`.)*
+- `BonusDef` (`data/bonuses/`): id, name, one-line description, kind, amount (and a second amount for Rich Veins), card colour.
 
 Resource scripts declare the prototype's values as defaults. Godot leaves unchanged values out of `.tres` files, so edit them in the Inspector.
 
@@ -216,12 +216,12 @@ Planet layouts can be authored as scenes with marker nodes (plots, nodes, lakes)
 - drones and colonists running the real Economy and Dispatcher code;
 - accelerated time.
 
-It prints a table of time to each milestone (first build, drone bay, greenhouse, 25/50/75/100%) and fails if any enforced planet falls outside its target duration (`PlanetDef.target_minutes`) by more than 20%. It also reports colonists housed and waiting, habitats, pods stored as food, time spent hungry and hazards. Run it after any balance change. `--scale-tf` and `--scale-machine-time` try changes in memory without editing data; `--no-colony` and `--no-hazard` show what each M4 system does to the pace.
+It prints a table of time to each milestone (first build, drone bay, the food machine, 25/50/75/100%) and fails if any enforced planet falls outside its target duration (`PlanetDef.target_minutes`) by more than 20%. It also reports upgrades bought, bonuses, colonists housed and waiting, habitats, meals stored as food, time spent hungry, hazards, repairs and (Kessik) when the air cleared. Each planet starts with the kit and bonuses the bot ended the last one with. Run it after any balance change. `--scale-tf` and `--scale-machine-time` try changes in memory without editing data; `--no-colony`, `--no-hazard` and `--no-bonus` show what each system does to the pace; `--bonus=` starts with given bonuses; `--log` prints every purchase and toast.
 
 ### 7.6 Testing
 Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as failures.
-- Unit tests for Economy (costs, payouts, recipe consumption, food), SaveManager (round-trip and migration), Dispatcher (no double-reservation, no idle drone while a job exists), Colony (landers, habitats, work, food) and the dust storm.
-- A smoke test that loads each planet scene headless for 60 simulated seconds without errors.
+- Unit tests for Economy (costs, payouts, recipe consumption, food), SaveManager (round-trip and migration), Dispatcher (no double-reservation, no idle drone while a job exists), Colony (landers, habitats, work, food), the dust storm, and M5 (heat towers and cold snaps, toxicity, vents, meteors and repairs, every bonus, the upgrades, the version 3 save, the bot's repairs).
+- Smoke tests that load the planet scene headless and run it (every planet with its hazard), the win screen's bonus pick, the star map, and a draw-call count of every planet's worst case.
 
 ### 7.7 Build & deploy
 - `export_presets.cfg` committed with a "Web" preset.
@@ -235,7 +235,7 @@ Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as 
 - **Asset sources (CC0; check each pack's licence and record it in `assets/LICENSES.md`):**
   - Kenney: Space Kit, Mini Characters, Nature Kit, Interface/UI audio, Impact sounds.
   - Quaternius: Ultimate Space Kit, Stylized Nature MegaKit, Ultimate Modular Sci-Fi.
-- **Shaders to write:** terraform ground (tints the base colour, blends in a moss texture by a mask that grows from the hub), stylised water, frost overlay (P2), heat shimmer (P3 vents).
+- **Shaders:** terraform ground (tints the base colour, blends in a moss texture by a mask that grows from the hub, and P2's frost), stylised water, frost overlay on machines (P2), steam and haze from vents (P3; a screen-distortion shimmer would cost a screen copy per frame), glowing ground rings (heat radius, meteor targets), pads with a text atlas.
 - **Audio:** ambient wind loop per planet whose pitch and volume fall as the air thickens; later, soft birdsong on P1 above 70%. Short UI sounds for pick-up, drop, coin, build complete and lander.
 
 ---
@@ -249,7 +249,7 @@ Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as 
 | M2 | Data + saves + sim | All numbers in data resources; 3 profiles; autosave and export/import; balance sim reports P1 in 25–35 min. | Built. Balance sim: P1 in 29 min. |
 | M3 | Planet 1 art pass | Real models, terraform shaders, audio, juice. Looks like a finished game on one planet. | Built. 60 fps on iPhone not yet measured. |
 | M4 | Colonists + hazards + dispatcher | Landers, colonists and food; dust storm; dispatcher replaces modulo routing; debug overlay. | Built. Balance sim: P1 in 30 min. Worst-case late game 131 drawables before culling. New sounds not yet heard. |
-| M5 | Planets 2 & 3 + star map + bonuses | Full 3-planet campaign playable end to end; bonus picker; balance sim passes for all three. | Next. |
+| M5 | Planets 2 & 3 + star map + bonuses | Full 3-planet campaign playable end to end; bonus picker; balance sim passes for all three. | Built. Balance sim: 29, 39 and 52 min. Worst-case drawables 67 / 85 / 85. New sounds not yet heard. |
 | M6 | Polish | Settings, reduced-effects mode, onboarding tuned so a young child can get to the first build unaided, performance pass, and a final family playtest. | Settings panel (volumes, vibration, fewer effects) already exists. |
 
 ---
@@ -258,9 +258,9 @@ Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as 
 Ads, in-app purchases, analytics, accounts, cloud saves, leaderboards, multiplayer, offline earnings, procedural planets, native store builds.
 
 ## 11. Open questions (decide during build)
-- Late-game credit sink: machine upgrades (DECISIONS #59) and hauler upgrades (#63) keep Planet 1 buying until about 28 minutes. SPEC 4.4's dig-speed upgrade is still to come; re-run the balance sim when they land.
+- Late-game credit sink: SPEC 4.4's upgrades are in, but the greedy bot still ends with ₵4k, ₵6k and ₵14k unspent (from ₵15–32k). Something to spend on in the last third (cosmetics for the colony?) is still open.
 - Should drones need recharging at the bay, as a light extra loop?
-- On P3, does toxicity capping terraform feel good, or should toxicity just slow terraform gains?
+- On P3, toxicity caps terraform but banks what's delivered (DECISIONS #70). Does it feel good to see 0% while delivering, until the first filters land?
 - Free-play revisit of completed planets: keep or drop?
-- Idle colonists: on Planet 1 only six of the twelve colonists have a machine to work (two per machine). More work spots on upgraded machines, or a job at the habitats, would give the rest something to do.
-- Storm frequency for a child: the greedy bot sees one or two storms per planet. A slower player sees more (they're timed in minutes, not %). Check that it doesn't feel nagging.
+- Idle colonists: an upgraded machine takes four colonists, so all twelve can work once Planet 1's machines are upgraded. Heat Towers take none.
+- Hazard frequency for a child: the greedy bot sees one storm, five cold snaps and six meteor showers. A slower player sees more (they're timed in minutes, not %). Check that it doesn't feel nagging, especially repairs.
