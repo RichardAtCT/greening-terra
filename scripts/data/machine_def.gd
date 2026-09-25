@@ -28,7 +28,8 @@ extends Resource
 
 @export_group("Upgrades")
 ## Cost of each upgrade after Mk I (SPEC 4.4): one entry per level. Empty means no UPGRADE pad.
-@export var upgrade_costs: PackedInt32Array = []
+## No "= []": Godot 4.7 drops a packed array declared with an empty initializer from exported builds.
+@export var upgrade_costs: PackedInt32Array
 ## Each upgrade makes the machine this much faster (0.5 = +50% per level, added up).
 @export var upgrade_speed: float = 0.5
 ## Each upgrade holds this many more finished items on the OUT pad.
