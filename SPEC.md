@@ -3,9 +3,10 @@
 An ad-free arcade idle game about terraforming planets. You walk a small astronaut around, dig raw resources, feed machines, carry products to the Colony Hub and slowly turn a dead world green. Drones take over the hauling as you expand. Three planets make up version 1.
 
 - **Audience:** Richard and family. Private itch.io link, no monetisation, no ads, no analytics, no network calls.
-- **Engine:** Godot 4 (latest stable 4.x at project start, pinned), GDScript only.
+- **Engine:** Godot 4.7.2 (latest stable at project start, pinned in `tools/setup_godot.sh`), GDScript only.
 - **Primary platform:** Web (HTML5), played mainly in Safari on iPhone and added to the Home Screen. Desktop browsers second. Native iOS/Android export is out of scope but must not be blocked.
 - **Reference:** `reference/greening-tessera-prototype.html` is the working Three.js prototype. Open it in a browser to feel the loop. The v1 build must at least match its feel before adding anything new.
+- **Decisions log:** `DECISIONS.md` records every choice made where this spec was open or ambiguous. Where they differ, this spec has been updated to match.
 
 ---
 
@@ -47,7 +48,7 @@ Each planet adds one new resource, one or two new machines, one hazard, and a di
 ### Planet 1: Tessera-4 (rust desert)
 - **Resources:** Regolith (rust rock), Ice (blue crystal).
 - **Machines:** Smelter (regolith → plate), Electrolyser (ice → O₂), Greenhouse (plate + O₂ → seedpod).
-- **Terraform values:** plate 0.15%, O₂ 0.4%, seedpod 1.6% (prototype values, to be tuned by the balance sim).
+- **Terraform values:** plate 0.018%, O₂ 0.045%, seedpod 0.08%. The prototype's values (0.15 / 0.4 / 1.6) finished the planet in about 5 minutes; these were tuned with the balance sim for a ~29-minute greedy run. Credits are unchanged: plate ₵2, O₂ ₵3, seedpod ₵9.
 - **Hazard: dust storm.** Every 4–6 minutes after 15% terraform. Lasts 30 s, with thick orange fog and a wind sound. Player speed −30%, drones −40%. Telegraphed 10 s ahead by a HUD warning and darkening sky. Frequency falls as terraform rises and storms stop at 60%.
 - **Look:** maroon haze → pink dusk → blue sky; rust ground → ochre; lakes from 25%; lichen spreading out from the hub from ~15%; forests from 55%.
 - **Target duration:** 25–35 minutes.
@@ -71,6 +72,9 @@ Each planet adds one new resource, one or two new machines, one hazard, and a di
 - **Two meters:** terraform % and toxicity. Toxicity starts at 100% and caps terraform % at (100 − toxicity). Scrubbers are the way through.
 - **Look:** mustard haze → green-grey → blue; basalt ground; steam from vents; algae-green lakes.
 - **Target duration:** 45–60 minutes.
+
+### Until M5: placeholder planets
+Planets 2 and 3 exist as re-skins of Planet 1: the prototype's palettes and its pay (×1.5, ×2) and terraform-divisor (×1.35, ×1.7) multipliers, on Planet 1's layout. This keeps the prototype's "launch to the next world" flow working. They are marked `balance_enforced = false` until M5 replaces them.
 
 ### Between planets: star map
 - A simple screen: three planet nodes on a line with a rocket animation between them. Completed planets show as green.
@@ -119,11 +123,11 @@ Replace the prototype's fixed modulo assignment with a small dispatcher:
 ---
 
 ## 5. Profiles & saves
-- **Three save profiles** chosen on the title screen so each family member has their own game. Each has a name and a colour.
+- **Three save profiles** chosen on the title screen so each family member has their own game. Each has a name and a colour. Erasing a profile needs two taps. Names and colours are stored in `user://profiles.json`.
 - Saves go to `user://profile_N.json`. On web this maps to IndexedDB. Each save has a `version` field and a migration function.
 - Autosave every 10 s, on every purchase, and when the page is hidden (use `JavaScriptBridge` to listen for `visibilitychange` on web).
 - Settings stored separately: music volume, SFX volume, haptics on/off where supported, and a reduced-effects toggle (fewer particles, no screen shake).
-- **Export/import save:** a settings button copies the save as text, and pasting it back restores it. This is the backup against Safari clearing site data.
+- **Export/import save:** the in-game menu has **Back up save** (shows the save as one line of text, `GT1:` + base64 JSON, to copy) and **Restore save** (paste it back). This is the backup against Safari clearing site data. On web, text entry uses the browser's `prompt()`, because Godot's text fields don't open the iPhone keyboard.
 
 ---
 
@@ -148,7 +152,8 @@ Replace the prototype's fixed modulo assignment with a small dispatcher:
 ### 7.2 Folder layout
 ```
 res://
-  data/            # .tres resources: items, recipes, machines, planets, upgrades, bonuses, hazards, tutorial
+  data/            # .tres resources; data/game.tres links everything
+    items/ machines/ planets/ upgrades/   # plus game_tuning.tres, terraform.tres, *_tuning.tres
   scenes/
     world/         # planet root, terrain, terraform controller
     actors/        # player, drone, colonist
@@ -156,47 +161,64 @@ res://
     pads/          # in, out, pay, deliver
     ui/            # hud, title, star map, bonus picker, settings
   scripts/
-    autoload/      # GameState, SaveManager, EventBus, Balance, Audio
-    systems/       # economy, dispatcher, hazards, colonists, tutorial
-  shaders/         # ground_terraform.gdshader, water.gdshader, sky_haze.gdshader, frost.gdshader
-  assets/          # models, textures, audio (with LICENSES.md)
-tests/             # gdUnit4 or GUT tests
-tools/balance_sim.gd
+    autoload/      # GameState, SaveManager, EventBus, DisplayScale (later: Audio)
+    data/          # Resource class definitions (ItemDef, PlanetDef, ...)
+    systems/       # pure rules: GameSim, Economy, DroneBrain, Tutorial, BotPlayer, WorldState, ...
+  shaders/         # pad, label panel, dust (later: ground_terraform, water, sky_haze, frost)
+  assets/          # fonts, models, textures, audio (with LICENSES.md)
+  addons/gut/      # GUT 9.7.1 test framework (excluded from export)
+tests/             # GUT tests: unit/ and smoke/
+tools/
+  setup_godot.sh export_web.sh test.sh deploy.sh
+  balance_sim.gd
+  dev/             # screenshot.gd, gen_placeholder_models.gd
 reference/greening-tessera-prototype.html
 ```
+Scene-specific scripts sit next to their scene (for example `scenes/actors/player.gd`). Everything in `scripts/systems/` is free of scene access, so tests and the balance sim can run it headless.
 
 ### 7.3 Data model (custom Resources)
-- `ItemDef`: id, display name, icon mesh, colour, stack height, sell value, terraform value, food value.
+- `GameDefs` (`data/game.tres`): the root. Holds the items, planets, upgrades, `GameTuning`, `TerraformDef` and `PlayerTuning`.
+- `ItemDef`: id, display name, short pad label, colour, emissive, shape, stack height, sell value (0 = raw, can't be sold), terraform value, food value.
 - `RecipeDef`: inputs {item: count}, output item, time.
-- `MachineDef`: id, name, recipe, build cost, level-2 cost, scene, footprint, pad offsets.
-- `PlanetDef`: name, palette (sky stops, ground start/end, fog), resource node layout, machine plots, lake positions, vegetation set, hazard, milestones, tutorial steps, terraform divisor.
-- `UpgradeDef`, `BonusDef`, `HazardDef`, `TutorialStep`.
+- `MachineDef`: id, name, recipe, build cost, starts built, position, scene, footprint, collision radius, label height, pad offsets, IN pad colour and label, queue cap (20), output cap (40). *(Level-2 cost to come with SPEC 4.4.)*
+- `ResourceNodeDef`: item, max stock, positions, drone idle point, look.
+- `PlanetDef`: name, seed, palette (sky start/mid/end, ground start/end), pay multiplier, terraform divisor, hub/depot/bay/outfitter layout, machines, resource nodes, lakes, clear zones, tutorial, win text, balance target minutes and `balance_enforced`. *(Hazard, milestones and vegetation set to come in M4/M5.)*
+- `UpgradeDef`: cost = round((base + step × level) × growth^level), max level, amount per level. Used for pack, boots and haulers.
+- `TutorialDef` → `TutorialStep` (text, marker target, `TutorialCondition`s that complete it, "keep saving" text for a pay pad).
+- `GameTuning`: transfer, dig and pay intervals, radii, respawn time, drone speed, capacity and waits, fly time, autosave interval.
+- `TerraformDef`: stage names and limits, pressure and temperature formulas, and how % maps to sky, fog, light, lakes, dust, moss and trees.
+- `PlayerTuning`, `CameraTuning`, `JoystickTuning`.
+- *(To come: `BonusDef`, `HazardDef`.)*
+
+Resource scripts declare the prototype's values as defaults. Godot leaves unchanged values out of `.tres` files, so edit them in the Inspector.
 
 Planet layouts can be authored as scenes with marker nodes (plots, nodes, lakes) that the `PlanetDef` references, which is easier to edit visually in Godot.
 
 ### 7.4 Key systems
-- **GameState** (autoload): the single source of truth for credits, terraform %, toxicity, stack, queues, built flags, paid amounts, drones, colonists, upgrades and bonuses. Emits signals through EventBus. Everything else reads from it.
-- **Economy:** pure functions for costs, payouts and machine throughput, so the balance sim and tests can call them without scenes.
+- **GameState** (autoload): holds the loaded `GameDefs` and the running `GameSim` for the active profile. Forwards the sim's signals through EventBus.
+- **GameSim** (`scripts/systems/game_sim.gd`): all the rules for one planet: mining, pads, paying, machines, drones, tutorial, win. Its state is a serialisable `WorldState` (credits, terraform %, stack, queues, built flags, paid amounts, drones, upgrades, stats, nodes). The planet scene feeds it the player's position each frame and draws what it reports.
+- **Economy:** pure functions for costs, payouts, feeding, machine cycles and pay chunks, so the balance sim and tests can call them without scenes.
 - **TerraformController:** maps terraform % to shader uniforms (ground tint, frost amount, water level, haze density and colour) and to vegetation MultiMesh instance thresholds. The spread pattern radiates out from the hub, with a threshold per instance, as in the prototype.
-- **Dispatcher:** drone job scoring (see 4.5).
+- **Dispatcher:** drone job scoring (see 4.5). Until M4, `DroneBrain` uses the prototype's fixed routing (`index % routes`).
 - **HazardDirector:** schedules, telegraphs and applies hazard effects.
 
 ### 7.5 Balance simulator (important)
 `tools/balance_sim.gd` runs headless (`godot --headless --script tools/balance_sim.gd`). It simulates each planet with:
-- a scripted player who follows a greedy strategy: always do the most valuable affordable action, with walk time derived from distances;
+- a scripted player (`BotPlayer`) who follows a greedy strategy: always do the most valuable affordable action, with walk time derived from distances;
 - drones and colonists running the real Economy and Dispatcher code;
 - accelerated time.
 
-It prints a table of time to each milestone (first build, drone bay, greenhouse, 25/50/75/100%) and fails if any planet falls outside its target duration by more than 20%. Run it after any balance change.
+It prints a table of time to each milestone (first build, drone bay, greenhouse, 25/50/75/100%) and fails if any enforced planet falls outside its target duration (`PlanetDef.target_minutes`) by more than 20%. Run it after any balance change. `--scale-tf` and `--scale-machine-time` try changes in memory without editing data.
 
 ### 7.6 Testing
+Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as failures.
 - Unit tests for Economy (costs, payouts, recipe consumption), SaveManager (round-trip and migration), and Dispatcher (no double-reservation, no idle drone while a job exists).
 - A smoke test that loads each planet scene headless for 60 simulated seconds without errors.
 
 ### 7.7 Build & deploy
 - `export_presets.cfg` committed with a "Web" preset.
 - A script (`tools/deploy.sh`) that exports headless and pushes to itch.io with **butler** (`butler push build/web richard/greening-tessera:web`). The itch.io page is set to private or restricted with a download key.
-- Optional: a GitHub Action that runs tests, runs the balance sim and exports the web build on every push to `main`.
+- A GitHub Action (`.github/workflows/ci.yml`) runs the tests and the balance sim, and exports the web build, on every push to `main` and on every PR. The build is uploaded as an artifact.
 
 ---
 
@@ -212,15 +234,15 @@ It prints a table of time to each milestone (first build, drone bay, greenhouse,
 
 ## 9. Milestones & acceptance criteria
 
-| # | Milestone | Done when |
-|---|---|---|
-| M0 | Pipeline | Empty Godot project exports to web, deploys to itch.io with butler, and opens full-screen from the iPhone Home Screen with touch input working. **Do this first.** |
-| M1 | Prototype parity | Planet 1 with the full prototype loop: dig, stack, 3 machines, hub, pay pads, drone bay, outfitter, basic drones, terraform visuals, tutorial steps. Holds 60 fps on iPhone. |
-| M2 | Data + saves + sim | All numbers in data resources; 3 profiles; autosave and export/import; balance sim reports P1 in 25–35 min. |
-| M3 | Planet 1 art pass | Real models, terraform shaders, audio, juice. Looks like a finished game on one planet. |
-| M4 | Colonists + hazards + dispatcher | Landers, colonists and food; dust storm; dispatcher replaces modulo routing; debug overlay. |
-| M5 | Planets 2 & 3 + star map + bonuses | Full 3-planet campaign playable end to end; bonus picker; balance sim passes for all three. |
-| M6 | Polish | Settings, reduced-effects mode, onboarding tuned so a young child can get to the first build unaided, performance pass, and a final family playtest. |
+| # | Milestone | Done when | Status |
+|---|---|---|---|
+| M0 | Pipeline | Empty Godot project exports to web, deploys to itch.io with butler, and opens full-screen from the iPhone Home Screen with touch input working. **Do this first.** | Built and merged. itch.io push and iPhone check still to do by hand. |
+| M1 | Prototype parity | Planet 1 with the full prototype loop: dig, stack, 3 machines, hub, pay pads, drone bay, outfitter, basic drones, terraform visuals, tutorial steps. Holds 60 fps on iPhone. | Built. 60 fps on iPhone not yet measured. |
+| M2 | Data + saves + sim | All numbers in data resources; 3 profiles; autosave and export/import; balance sim reports P1 in 25–35 min. | Built. Balance sim: P1 in 29 min. |
+| M3 | Planet 1 art pass | Real models, terraform shaders, audio, juice. Looks like a finished game on one planet. | Next. |
+| M4 | Colonists + hazards + dispatcher | Landers, colonists and food; dust storm; dispatcher replaces modulo routing; debug overlay. | |
+| M5 | Planets 2 & 3 + star map + bonuses | Full 3-planet campaign playable end to end; bonus picker; balance sim passes for all three. | |
+| M6 | Polish | Settings, reduced-effects mode, onboarding tuned so a young child can get to the first build unaided, performance pass, and a final family playtest. | Settings panel (volumes, vibration, fewer effects) already exists. |
 
 ---
 
@@ -228,6 +250,7 @@ It prints a table of time to each milestone (first build, drone bay, greenhouse,
 Ads, in-app purchases, analytics, accounts, cloud saves, leaderboards, multiplayer, offline earnings, procedural planets, native store builds.
 
 ## 11. Open questions (decide during build)
+- Late-game credit sink: once pack, boots and 12 haulers are maxed, credits pile up (thousands by the end of Planet 1). SPEC 4.4's dig-speed, hauler-capacity and machine level-2 upgrades should absorb this; re-run the balance sim when they land.
 - Should drones need recharging at the bay, as a light extra loop?
 - On P3, does toxicity capping terraform feel good, or should toxicity just slow terraform gains?
 - Free-play revisit of completed planets: keep or drop?
