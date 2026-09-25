@@ -3,7 +3,8 @@ extends Node3D
 ## Draws every pad in shared MultiMeshes: one for the dark base slabs, one for the bordered tops
 ## with their titles and subtitles, one per item type for the floating icons and one for the pay
 ## pads' coins. That's a few draw calls for every pad (M3 used three per pad plus one per icon).
-## The pads' text is written once into an atlas texture that the top shader reads. Icons float above each pad's far edge, turning and bobbing (JuiceTuning), and everything
+## The pads' text is written into an atlas texture that the top shader reads (a pad's cell is
+## redrawn when its subtitle changes). Icons float above each pad's far edge, turning and bobbing (JuiceTuning), and everything
 ## follows each PadView (hidden with it, lifted with it).
 
 const COIN := &"coin"
@@ -26,6 +27,12 @@ var _juice: JuiceTuning
 var _bases: MultiMesh
 var _tops: MultiMesh
 var _top_mat: ShaderMaterial
+## The text atlas without mipmaps (so cells can be redrawn), the texture made from it, and the
+## plain-coverage fonts it's written with.
+var _atlas: Image
+var _atlas_tex: ImageTexture
+var _title_font: Font
+var _sub_font: Font
 var _icons: Dictionary = {}
 var _time := 0.0
 
@@ -67,6 +74,7 @@ func _process(delta: float) -> void:
 
 
 func _update() -> void:
+	_redraw_changed()
 	var n := 0
 	var counts := {}
 	for pv in pads:
@@ -102,25 +110,51 @@ func _update() -> void:
 ## reads red as coverage and tints it). Then mipmapped, so it stays crisp at an angle. Drawing
 ## Labels into a SubViewport and reading that back came out garbled on WebGL; this can't.
 func _build_atlas() -> Texture2D:
-	var k := ATLAS_SCALE
-	var title_font := _plain(TITLE_FONT)
-	var sub_font := _plain(SUB_FONT)
+	_title_font = _plain(TITLE_FONT)
+	_sub_font = _plain(SUB_FONT)
 	var rows := maxi(1, ceili(float(pads.size()) / ATLAS_COLS))
-	var img := Image.create_empty(CELL.x * ATLAS_COLS * k, CELL.y * rows * k, false, Image.FORMAT_RGBA8)
-	img.fill(Color.BLACK)
+	_atlas = Image.create_empty(CELL.x * ATLAS_COLS * ATLAS_SCALE, CELL.y * rows * ATLAS_SCALE, false, Image.FORMAT_R8)
 	for i in pads.size():
-		var pv := pads[i]
-		pv.atlas_cell = i
-		var cell := Vector2((i % ATLAS_COLS) * CELL.x, (i / ATLAS_COLS) * CELL.y) * k
-		# Centres match the old Label3Ds: title 22 px towards the far edge, subtitle 40 px nearer.
-		var has_sub := pv.info.label != ""
-		var fit := CELL.x * k * 0.9
-		_write(img, pv.info.title, title_font, 62 * k, cell + Vector2(CELL.x * k * 0.5, ((128.0 - 22.0 if has_sub else 128.0) - CELL_TOP) * k), fit)
-		if has_sub:
-			_write(img, pv.info.label, sub_font, 25 * k, cell + Vector2(CELL.x * k * 0.5, (128.0 + 40.0 - CELL_TOP) * k), fit)
-	img.convert(Image.FORMAT_R8)
+		pads[i].atlas_cell = i
+		_draw_cell(i)
+	_atlas_tex = ImageTexture.create_from_image(_mipmapped())
+	return _atlas_tex
+
+
+## Redraws the pads whose subtitle changed (an UPGRADE pad's next mark and cost), then re-uploads.
+func _redraw_changed() -> void:
+	var any := false
+	for i in pads.size():
+		if pads[i].label_dirty:
+			pads[i].label_dirty = false
+			_draw_cell(i)
+			any = true
+	if any:
+		_atlas_tex.update(_mipmapped())
+
+
+## One pad's cell: its title, and its subtitle below. Centres match the old Label3Ds: title
+## 22 px towards the far edge, subtitle 40 px nearer.
+func _draw_cell(i: int) -> void:
+	var k := ATLAS_SCALE
+	var info := pads[i].info
+	var cell := Image.create_empty(CELL.x * k, CELL.y * k, false, Image.FORMAT_RGBA8)
+	cell.fill(Color.BLACK)
+	var has_sub := info.label != ""
+	var fit := CELL.x * k * 0.9
+	var mid := CELL.x * k * 0.5
+	_write(cell, info.title, _title_font, 62 * k, Vector2(mid, ((128.0 - 22.0 if has_sub else 128.0) - CELL_TOP) * k), fit)
+	if has_sub:
+		_write(cell, info.label, _sub_font, 25 * k, Vector2(mid, (128.0 + 40.0 - CELL_TOP) * k), fit)
+	cell.convert(Image.FORMAT_R8)
+	var at := Vector2i((i % ATLAS_COLS) * CELL.x, (i / ATLAS_COLS) * CELL.y) * k
+	_atlas.blit_rect(cell, Rect2i(Vector2i.ZERO, cell.get_size()), at)
+
+
+func _mipmapped() -> Image:
+	var img := _atlas.duplicate() as Image
 	img.generate_mipmaps()
-	return ImageTexture.create_from_image(img)
+	return img
 
 
 ## A copy of a font that rasterises plain coverage glyphs (the game's fonts are MSDF, whose glyph

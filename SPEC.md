@@ -61,7 +61,7 @@ Each planet adds one new resource, one or two new machines, one hazard, and a di
 - **Hazard: cold snap.** Every 3–4.5 minutes between 8% and 85% (the gap grows to 1.3×). Warned 10 s ahead, lasts 45 s. Machines outside any burning Heat Tower's radius run at 50% speed, with frost visible on the machine. Snow falls and a pale fog rolls in.
 - **Chain:** the Planet 1 chain still exists, plus polymer. Seedpods here need plate + O₂ + polymer.
 - **Look:** violet night → teal → blue; frost that melts off the ground via shader, back from the hub and round burning towers, gone by 55%; meltwater lakes; tundra grass rather than forest early (grass sooner, trees later, mostly pines).
-- **Economy:** pay ×1.5, terraform divisor 2.15, up to 16 haulers.
+- **Economy:** pay ×1.5, terraform divisor 2.05, up to 16 haulers.
 - **Target duration:** 35–45 minutes.
 
 ### Planet 3: Kessik (sulphur volcanic world)
@@ -249,7 +249,7 @@ Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as 
 | M2 | Data + saves + sim | All numbers in data resources; 3 profiles; autosave and export/import; balance sim reports P1 in 25–35 min. | Built. Balance sim: P1 in 29 min. |
 | M3 | Planet 1 art pass | Real models, terraform shaders, audio, juice. Looks like a finished game on one planet. | Built. 60 fps on iPhone not yet measured. |
 | M4 | Colonists + hazards + dispatcher | Landers, colonists and food; dust storm; dispatcher replaces modulo routing; debug overlay. | Built. Balance sim: P1 in 30 min. Worst-case late game 131 drawables before culling. New sounds not yet heard. |
-| M5 | Planets 2 & 3 + star map + bonuses | Full 3-planet campaign playable end to end; bonus picker; balance sim passes for all three. | Built. Balance sim: 29, 39 and 52 min. Worst-case drawables 67 / 85 / 85. New sounds not yet heard. |
+| M5 | Planets 2 & 3 + star map + bonuses | Full 3-planet campaign playable end to end; bonus picker; balance sim passes for all three. | Built. Balance sim: 30, 41 and 51 min. Worst-case drawables 67 / 85 / 85. New sounds not yet heard. |
 | M6 | Polish | Settings, reduced-effects mode, onboarding tuned so a young child can get to the first build unaided, performance pass, and a final family playtest. | Settings panel (volumes, vibration, fewer effects) already exists. |
 
 ---
@@ -258,7 +258,7 @@ Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as 
 Ads, in-app purchases, analytics, accounts, cloud saves, leaderboards, multiplayer, offline earnings, procedural planets, native store builds.
 
 ## 11. Open questions (decide during build)
-- Late-game credit sink: SPEC 4.4's upgrades are in, but the greedy bot still ends with ₵4k, ₵6k and ₵14k unspent (from ₵15–32k). Something to spend on in the last third (cosmetics for the colony?) is still open.
+- Late-game credit sink: machine, hauler and dig-speed upgrades keep the greedy bot buying until late; it ends with ₵0.8k, ₵6.7k and ₵7.7k unspent (from ₵15–32k). Something to spend on in the last third of Planets 2 and 3 (cosmetics for the colony?) is still open.
 - Should drones need recharging at the bay, as a light extra loop?
 - On P3, toxicity caps terraform but banks what's delivered (DECISIONS #70). Does it feel good to see 0% while delivering, until the first filters land?
 - Free-play revisit of completed planets: keep or drop?

@@ -326,10 +326,10 @@ func _apply_safe_area() -> void:
 	_root.add_theme_constant_override("margin_right", int(_safe.y) + 16)
 	_root.add_theme_constant_override("margin_left", int(_safe.w) + 16)
 	_hint_panel.offset_bottom = -(_safe.z + 16.0)
-	_toast.offset_top = _safe.x + 184.0
-	_banner.offset_top = _safe.x + 136.0
+	_toast.offset_top = _safe.x + 240.0
+	_banner.offset_top = _safe.x + 192.0
 	var w := get_viewport_rect().size.x
-	(_planet.get_parent().get_parent() as Control).custom_minimum_size.x = minf(270.0, w * 0.6)
+	(_planet.get_parent().get_parent() as Control).custom_minimum_size.x = minf(270.0, w * 0.52)
 	_hint_panel.offset_left = maxf(16.0, (w - 440.0) * 0.5)
 	_hint_panel.offset_right = -maxf(16.0, (w - 440.0) * 0.5)
 

@@ -62,7 +62,7 @@ static func outlook(sim: GameSim) -> String:
 	var next := next_lander_at(sim.planet, s.terraform)
 	if next < 0.0:
 		return ""
-	return "At %d%% a lander brings %d colonists." % [roundi(next), sim.planet.colonists_per_lander]
+	return "At %d%% a lander brings %d colonists." % [roundi(next), colonists_per_lander(sim)]
 
 
 static func habitat_key(index: int) -> StringName:
