@@ -14,3 +14,16 @@ Choices made where the spec was open or ambiguous. The rule is: pick what's clos
 8. **PWA display is `standalone`.** iOS Safari doesn't support `fullscreen` in the manifest; standalone is what Home Screen apps get there. Status bar style is `black` (not `black-translucent`) until the HUD handles safe-area insets, so nothing sits under the notch.
 9. **Download size.** The stock single-threaded web template's `index.wasm` is 39.5 MB raw, about 10 MB gzipped. The 40 MB budget (section 7.1) is treated as transfer size. If itch.io doesn't compress it, a custom template with unused modules stripped is an M6 performance task.
 10. **Environment values in the test scene.** Sky colour, fog (near 14, far 48), sun and ground colour are set in `test_world.tscn` for now. They move into the `PlanetDef` palette in M1, when terraform % starts driving them.
+
+## M1: Prototype parity
+
+11. **Sim and view are separate.** `GameSim` (`scripts/systems/`) owns every rule and has no scene access; `scenes/world/planet.gd` only feeds it the player's position and draws its state. The balance sim and tests drive the same `GameSim`.
+12. **Drone routing is still the prototype's**: each hauler takes route `index % routes`. SPEC 4.5's dispatcher replaces it in M4, as planned.
+13. **Planets 2 and 3 already exist, but only as re-skins**: the prototype's palettes and its pay/terraform multipliers, on Planet 1's layout. That keeps the prototype's "launch to the next world" flow working until M5 adds the real content. As in the prototype, after the third planet the list repeats with a numeral ("Tessera-4 II").
+14. **Planet data files.** Machines, nodes and the tutorial are separate `.tres` files shared by all three planets, so a tweak lands everywhere at once.
+15. **Pads show text, like the prototype.** SPEC 6's item icons on pads are an art task for M3.
+16. **World labels always draw on top** (no depth test), and the panel behind them is a rounded-rectangle shader. The prototype's canvas sprites could be hidden behind buildings; these can't, which reads better on a small screen.
+17. **Frame time is capped at 0.05 s** for the sim, as in the prototype, so a stall never skips a whole transfer chain.
+18. **Recipe input order** comes from Godot's dictionary sort, so the greenhouse label reads "O₂ · Plate" rather than the prototype's "plate · O₂". This is cosmetic.
+19. **Draw calls.** Each resource node, drone and the greenhouse seedlings are merged into single meshes, and item stacks use one MultiMesh per item type. A late-game Planet 1 has about 150 drawables before frustum culling. The real iPhone frame rate still needs checking on a device.
+20. **Seedpods have a food value of 1** already, so M4's colonists have data to read.
