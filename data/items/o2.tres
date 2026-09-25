@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_def.gd" id="1_wtae8"]
+
+[resource]
+script = ExtResource("1_wtae8")
+id = &"o2"
+display_name = "O₂"
+color = Color(0.93333334, 0.9647059, 1, 1)
+shape = 3
+stack_height = 0.36
+sell_value = 3.0
+terraform_value = 0.045

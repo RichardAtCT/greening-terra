@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="PlanetDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/machine_def.gd" id="1_hgxrx"]
+[ext_resource type="Resource" path="res://data/machines/smelter.tres" id="2_rp666"]
+[ext_resource type="Resource" path="res://data/machines/electrolyser.tres" id="3_eysv2"]
+[ext_resource type="Resource" path="res://data/machines/greenhouse.tres" id="4_folt0"]
+[ext_resource type="Script" path="res://scripts/data/resource_node_def.gd" id="5_nlltl"]
+[ext_resource type="Resource" path="res://data/planets/nodes_regolith.tres" id="6_v7kbs"]
+[ext_resource type="Resource" path="res://data/planets/nodes_ice.tres" id="7_fbro0"]
+[ext_resource type="Script" path="res://scripts/data/planet_def.gd" id="8_osn0b"]
+[ext_resource type="Resource" path="res://data/planets/tutorial_standard.tres" id="9_ladk1"]
+
+[resource]
+script = ExtResource("8_osn0b")
+id = &"orrin_b"
+display_name = "Orrin b"
+seed = 12
+sky_start = Color(0.10980392, 0.08627451, 0.1882353, 1)
+sky_mid = Color(0.43137255, 0.3529412, 0.5568628, 1)
+sky_end = Color(0.6039216, 0.78431374, 0.8862745, 1)
+ground_start = Color(0.42745098, 0.3529412, 0.47843137, 1)
+ground_end = Color(0.3529412, 0.36862746, 0.27450982, 1)
+pay_multiplier = 1.5
+terraform_divisor = 1.35
+machines = Array[ExtResource("1_hgxrx")]([ExtResource("2_rp666"), ExtResource("3_eysv2"), ExtResource("4_folt0")])
+resource_nodes = Array[ExtResource("5_nlltl")]([ExtResource("6_v7kbs"), ExtResource("7_fbro0")])
+lakes = Array[Vector3]([Vector3(-26, -4, 5.5), Vector3(4, 21, 6.5), Vector3(27, -21, 4.5), Vector3(-22, 22, 4)])
+clear_zones = Array[Vector3]([Vector3(0, 0, 5), Vector3(-8, -2.5, 4.6), Vector3(8, -2.5, 4.6), Vector3(0, -9.5, 4.8), Vector3(-15, -7.5, 4.2), Vector3(15, -7.5, 4.2), Vector3(-15, 7, 5), Vector3(15, 7, 5), Vector3(0, 6.5, 3)])
+target_minutes = Vector2(35, 45)
+balance_enforced = false
+tutorial = ExtResource("9_ladk1")
+win_text = "Meltwater lakes and tundra now spread from the colony. The next world pays more but greens more slowly. Your pack and boots come with you."

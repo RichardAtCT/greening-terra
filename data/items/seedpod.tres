@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_def.gd" id="1_pp4xo"]
+
+[resource]
+script = ExtResource("1_pp4xo")
+id = &"seedpod"
+display_name = "Seedpod"
+short_name = "POD"
+color = Color(0.44705883, 0.83137256, 0.41568628, 1)
+emissive = Color(0.078431375, 0.20784314, 0.05882353, 1)
+shape = 4
+stack_height = 0.34
+sell_value = 9.0
+terraform_value = 0.08
+food_value = 1.0

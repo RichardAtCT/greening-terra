@@ -37,3 +37,10 @@ func _update_fov() -> void:
 	keep_aspect = Camera3D.KEEP_HEIGHT
 	fov = Movement.vertical_fov_for_aspect(size.x / size.y, tuning.horizontal_half_fov_deg,
 			tuning.fov_min_deg, tuning.fov_max_deg)
+
+
+## Jumps straight to the target (after spawning or loading), skipping the ease-in.
+func snap_to_target() -> void:
+	if target:
+		_focus = target.global_position
+	_place()

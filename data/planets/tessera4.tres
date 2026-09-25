@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="PlanetDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/machine_def.gd" id="1_u11pg"]
+[ext_resource type="Resource" path="res://data/machines/smelter.tres" id="2_lk4so"]
+[ext_resource type="Resource" path="res://data/machines/electrolyser.tres" id="3_3wn7q"]
+[ext_resource type="Resource" path="res://data/machines/greenhouse.tres" id="4_ccoi5"]
+[ext_resource type="Script" path="res://scripts/data/resource_node_def.gd" id="5_s7k2t"]
+[ext_resource type="Resource" path="res://data/planets/nodes_regolith.tres" id="6_u4thv"]
+[ext_resource type="Resource" path="res://data/planets/nodes_ice.tres" id="7_wsnkw"]
+[ext_resource type="Script" path="res://scripts/data/planet_def.gd" id="8_luayi"]
+[ext_resource type="Resource" path="res://data/planets/tutorial_standard.tres" id="9_yxwmf"]
+
+[resource]
+script = ExtResource("8_luayi")
+id = &"tessera4"
+display_name = "Tessera-4"
+sky_start = Color(0.22745098, 0.105882354, 0.13333334, 1)
+sky_mid = Color(0.6039216, 0.3647059, 0.38431373, 1)
+sky_end = Color(0.6117647, 0.76862746, 0.8862745, 1)
+ground_start = Color(0.5411765, 0.2901961, 0.17254902, 1)
+ground_end = Color(0.43137255, 0.3529412, 0.22745098, 1)
+machines = Array[ExtResource("1_u11pg")]([ExtResource("2_lk4so"), ExtResource("3_3wn7q"), ExtResource("4_ccoi5")])
+resource_nodes = Array[ExtResource("5_s7k2t")]([ExtResource("6_u4thv"), ExtResource("7_wsnkw")])
+lakes = Array[Vector3]([Vector3(-26, -4, 5.5), Vector3(4, 21, 6.5), Vector3(27, -21, 4.5), Vector3(-22, 22, 4)])
+clear_zones = Array[Vector3]([Vector3(0, 0, 5), Vector3(-8, -2.5, 4.6), Vector3(8, -2.5, 4.6), Vector3(0, -9.5, 4.8), Vector3(-15, -7.5, 4.2), Vector3(15, -7.5, 4.2), Vector3(-15, 7, 5), Vector3(15, 7, 5), Vector3(0, 6.5, 3)])
+tutorial = ExtResource("9_yxwmf")
+win_text = "Lakes, lichen and young forest now cover the landing zone. The next world pays more but greens more slowly. Your pack and boots come with you."

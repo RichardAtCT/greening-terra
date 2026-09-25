@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="PlanetDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/machine_def.gd" id="1_1rqdy"]
+[ext_resource type="Resource" path="res://data/machines/smelter.tres" id="2_icf7j"]
+[ext_resource type="Resource" path="res://data/machines/electrolyser.tres" id="3_dafeu"]
+[ext_resource type="Resource" path="res://data/machines/greenhouse.tres" id="4_v1xor"]
+[ext_resource type="Script" path="res://scripts/data/resource_node_def.gd" id="5_pfb8k"]
+[ext_resource type="Resource" path="res://data/planets/nodes_regolith.tres" id="6_oht86"]
+[ext_resource type="Resource" path="res://data/planets/nodes_ice.tres" id="7_d3f1o"]
+[ext_resource type="Script" path="res://scripts/data/planet_def.gd" id="8_p2fiy"]
+[ext_resource type="Resource" path="res://data/planets/tutorial_standard.tres" id="9_falo6"]
+
+[resource]
+script = ExtResource("8_p2fiy")
+id = &"kessik"
+display_name = "Kessik"
+seed = 13
+sky_start = Color(0.18039216, 0.14901961, 0.07058824, 1)
+sky_mid = Color(0.6039216, 0.5176471, 0.3529412, 1)
+sky_end = Color(0.5882353, 0.7529412, 0.8627451, 1)
+ground_start = Color(0.65882355, 0.5411765, 0.22745098, 1)
+ground_end = Color(0.41960785, 0.41568628, 0.23529412, 1)
+pay_multiplier = 2.0
+terraform_divisor = 1.7
+machines = Array[ExtResource("1_1rqdy")]([ExtResource("2_icf7j"), ExtResource("3_dafeu"), ExtResource("4_v1xor")])
+resource_nodes = Array[ExtResource("5_pfb8k")]([ExtResource("6_oht86"), ExtResource("7_d3f1o")])
+lakes = Array[Vector3]([Vector3(-26, -4, 5.5), Vector3(4, 21, 6.5), Vector3(27, -21, 4.5), Vector3(-22, 22, 4)])
+clear_zones = Array[Vector3]([Vector3(0, 0, 5), Vector3(-8, -2.5, 4.6), Vector3(8, -2.5, 4.6), Vector3(0, -9.5, 4.8), Vector3(-15, -7.5, 4.2), Vector3(15, -7.5, 4.2), Vector3(-15, 7, 5), Vector3(15, 7, 5), Vector3(0, 6.5, 3)])
+target_minutes = Vector2(45, 60)
+balance_enforced = false
+tutorial = ExtResource("9_falo6")
+win_text = "The sulphur haze has cleared to blue sky. The next world pays more but greens more slowly. Your pack and boots come with you."

@@ -1,0 +1,222 @@
+class_name TerraformView
+extends Node3D
+## Turns the displayed terraform % into the planet's look: sky, fog, light, ground tint,
+## lakes, dust, and moss and trees that spread outward from the hub.
+
+const DUST_COUNT := 260
+
+var defs: GameDefs
+var planet: PlanetDef
+var environment: Environment
+var sun: DirectionalLight3D
+
+var ground_mat: StandardMaterial3D
+var rock_mat: StandardMaterial3D
+var _lakes: Array[MeshInstance3D] = []
+var _dust_mat: ShaderMaterial
+var _moss: Dictionary
+var _trees: Dictionary
+
+
+func build(p_defs: GameDefs, p_planet: PlanetDef, rng: RandomNumberGenerator) -> void:
+	defs = p_defs
+	planet = p_planet
+	var tf := defs.terraform
+
+	ground_mat = ItemVisuals.lambert(planet.ground_start)
+	ground_mat.vertex_color_use_as_albedo = true
+	var ground := MeshInstance3D.new()
+	ground.name = "Ground"
+	ground.mesh = TerrainBuilder.ground_mesh(rng)
+	ground.material_override = ground_mat
+	_no_shadow(ground)
+	add_child(ground)
+
+	var craters := MeshInstance3D.new()
+	craters.name = "Craters"
+	craters.mesh = TerrainBuilder.craters_mesh(planet, rng)
+	var crater_mat := ItemVisuals.unshaded(Color(0, 0, 0, 0.14))
+	crater_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	craters.material_override = crater_mat
+	_no_shadow(craters)
+	add_child(craters)
+
+	rock_mat = ItemVisuals.lambert(planet.ground_start * tf.rock_darken)
+	var rocks := MultiMeshInstance3D.new()
+	rocks.name = "Rocks"
+	rocks.multimesh = TerrainBuilder.rocks_multimesh(planet, rng)
+	rocks.material_override = rock_mat
+	_no_shadow(rocks)
+	add_child(rocks)
+
+	var lake_mat := ItemVisuals.lambert(Color("2f6f8f"))
+	lake_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	lake_mat.albedo_color.a = 0.92
+	lake_mat.emission_enabled = true
+	lake_mat.emission = Color("0a2030")
+	for lake in planet.lakes:
+		var mi := MeshInstance3D.new()
+		mi.mesh = MeshUtil.disc(lake.z, 32)
+		mi.material_override = lake_mat
+		mi.position = Vector3(lake.x, 0.05, lake.y)
+		mi.scale = Vector3.ONE * 0.001
+		_no_shadow(mi)
+		add_child(mi)
+		_lakes.append(mi)
+
+	_moss = _build_layer("Moss", MeshUtil.disc(1.0, 7), tf.moss_count, rng, _place_moss)
+	_trees = _build_layer("Trees", MeshUtil.tree(), tf.tree_count, rng, _place_tree)
+	_build_dust(rng)
+
+
+## Applies the look for terraform % t. snap = jump straight there (on load) instead of growing.
+func apply(t: float, delta: float, snap: bool, player_pos: Vector3) -> void:
+	var tf := defs.terraform
+	var k := t / 100.0
+	var sky := TerraformMath.sky_color(tf, planet, t)
+	environment.background_color = sky
+	environment.fog_light_color = sky
+	environment.fog_depth_begin = tf.fog_near + tf.fog_near_gain * k
+	environment.fog_depth_end = tf.fog_far + tf.fog_far_gain * k
+	var hemi := sky.lerp(Color.WHITE, 0.5) * (tf.ambient_energy + tf.ambient_energy_gain * k)
+	environment.ambient_light_color = Color(hemi.r + 0.18, hemi.g + 0.18, hemi.b + 0.18)
+	sun.light_energy = tf.sun_energy + tf.sun_energy_gain * k
+	ground_mat.albedo_color = planet.ground_start.lerp(planet.ground_end, k)
+	rock_mat.albedo_color = planet.ground_start * tf.rock_darken
+	_dust_mat.set_shader_parameter("opacity", tf.dust_opacity * maxf(0.0, 1.0 - t / tf.dust_gone_at))
+	_dust_mat.set_shader_parameter("color", planet.ground_start.lerp(Color.WHITE, 0.45))
+	_dust_mat.set_shader_parameter("center", player_pos)
+	var ls := TerraformMath.lake_scale(tf, t)
+	for mi in _lakes:
+		var cur := ls if snap else mi.scale.x + (ls - mi.scale.x) * minf(1.0, delta * tf.lake_grow_rate)
+		mi.scale = Vector3.ONE * maxf(0.001, cur)
+	_step_layer(_moss, t, delta, snap)
+	_step_layer(_trees, t, delta, snap)
+
+
+func _build_layer(layer_name: String, mesh: Mesh, count: int, rng: RandomNumberGenerator, placer: Callable) -> Dictionary:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = mesh
+	mm.instance_count = count
+	var data: Array[Dictionary] = []
+	for i in count:
+		var d: Dictionary = placer.call(i, rng)
+		d.cur = 0.0
+		data.append(d)
+		mm.set_instance_color(i, d.color)
+		mm.set_instance_transform(i, _layer_xform(d, 0.0001))
+	var mat := ItemVisuals.lambert(Color.WHITE)
+	mat.vertex_color_use_as_albedo = true
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = layer_name
+	mmi.multimesh = mm
+	mmi.material_override = mat
+	_no_shadow(mmi)
+	add_child(mmi)
+	return {"mm": mm, "data": data}
+
+
+func _layer_xform(d: Dictionary, s: float) -> Transform3D:
+	return Transform3D(Basis(Vector3.UP, d.rot).scaled(Vector3.ONE * s), Vector3(d.x, d.y, d.z))
+
+
+func _step_layer(layer: Dictionary, t: float, delta: float, snap: bool) -> void:
+	var mm: MultiMesh = layer.mm
+	var rate := defs.terraform.plant_grow_rate
+	var data: Array[Dictionary] = layer.data
+	for i in data.size():
+		var d := data[i]
+		var target := 1.0 if t >= d.th else 0.0
+		if snap:
+			d.cur = target
+		elif absf(d.cur - target) > 0.002:
+			d.cur += (target - d.cur) * minf(1.0, delta * rate)
+		elif d.cur != target:
+			d.cur = target
+		else:
+			continue
+		mm.set_instance_transform(i, _layer_xform(d, maxf(0.0001, d.cur * d.s)))
+
+
+func _place_moss(i: int, rng: RandomNumberGenerator) -> Dictionary:
+	var tf := defs.terraform
+	var x := 0.0
+	var z := 0.0
+	for attempt in 200:
+		var a := rng.randf() * TAU
+		var r := sqrt(rng.randf()) * tf.moss_radius
+		x = cos(a) * r
+		z = sin(a) * r
+		if TerrainBuilder.is_clear(planet, x, z, -1.6) and TerrainBuilder.is_dry(planet, x, z, -0.5):
+			break
+	var dist := Vector2(x, z).length()
+	return {
+		"x": x, "z": z, "y": 0.03 + i * 0.00004, "rot": rng.randf() * TAU, "s": 0.8 + rng.randf() * 1.6,
+		"th": tf.moss_threshold_base + dist / tf.moss_radius * tf.moss_threshold_spread + rng.randf() * tf.moss_threshold_jitter,
+		"color": hsl(0.24 + rng.randf() * 0.08, 0.35 + rng.randf() * 0.2, 0.3 + rng.randf() * 0.14),
+	}
+
+
+func _place_tree(_i: int, rng: RandomNumberGenerator) -> Dictionary:
+	var tf := defs.terraform
+	var x := 0.0
+	var z := 0.0
+	for attempt in 200:
+		var a := rng.randf() * TAU
+		var r := tf.tree_min_radius + rng.randf() * (tf.tree_max_radius - tf.tree_min_radius)
+		x = cos(a) * r
+		z = sin(a) * r
+		if TerrainBuilder.is_clear(planet, x, z, 1.0) and TerrainBuilder.is_dry(planet, x, z, 1.0):
+			break
+	var dist := Vector2(x, z).length()
+	return {
+		"x": x, "z": z, "y": 0.0, "rot": rng.randf() * TAU, "s": 0.7 + rng.randf() * 0.8,
+		"th": tf.tree_threshold_base + dist / tf.tree_max_radius * tf.tree_threshold_spread + rng.randf() * tf.tree_threshold_jitter,
+		"color": hsl(0.28 + rng.randf() * 0.07, 0.45, 0.28 + rng.randf() * 0.1),
+	}
+
+
+func _build_dust(rng: RandomNumberGenerator) -> void:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_custom_data = true
+	var q := QuadMesh.new()
+	q.size = Vector2.ONE
+	mm.mesh = q
+	mm.instance_count = DUST_COUNT
+	for i in DUST_COUNT:
+		mm.set_instance_transform(i, Transform3D.IDENTITY)
+		mm.set_instance_custom_data(i, Color((rng.randf() - 0.5) * 40.0, rng.randf() * 6.0, (rng.randf() - 0.5) * 40.0, 0.0))
+	_dust_mat = ShaderMaterial.new()
+	_dust_mat.shader = preload("res://shaders/dust.gdshader")
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "Dust"
+	mmi.multimesh = mm
+	mmi.material_override = _dust_mat
+	mmi.custom_aabb = AABB(Vector3(-200, -10, -200), Vector3(400, 40, 400))
+	_no_shadow(mmi)
+	add_child(mmi)
+
+
+func _no_shadow(g: GeometryInstance3D) -> void:
+	g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## HSL to RGB, matching THREE.Color.setHSL.
+static func hsl(h: float, s: float, l: float) -> Color:
+	var q := l * (1.0 + s) if l < 0.5 else l + s - l * s
+	var p := 2.0 * l - q
+	return Color(_hue(p, q, h + 1.0 / 3.0), _hue(p, q, h), _hue(p, q, h - 1.0 / 3.0))
+
+
+static func _hue(p: float, q: float, t: float) -> float:
+	t = fposmod(t, 1.0)
+	if t < 1.0 / 6.0:
+		return p + (q - p) * 6.0 * t
+	if t < 0.5:
+		return q
+	if t < 2.0 / 3.0:
+		return p + (q - p) * 6.0 * (2.0 / 3.0 - t)
+	return p

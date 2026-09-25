@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-and-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot and web templates
+        uses: actions/cache@v4
+        with:
+          path: |
+            tools/godot
+          key: godot-${{ hashFiles('tools/setup_godot.sh') }}
+
+      - name: Set up Godot
+        run: tools/setup_godot.sh
+
+      - name: Import project
+        run: timeout 300 tools/godot/godot --headless --import || true
+
+      - name: Unit and smoke tests
+        run: timeout 600 tools/test.sh
+
+      - name: Balance sim
+        run: timeout 600 tools/godot/godot --headless --script tools/balance_sim.gd
+
+      - name: Web export
+        run: timeout 600 tools/export_web.sh
+
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+          retention-days: 14

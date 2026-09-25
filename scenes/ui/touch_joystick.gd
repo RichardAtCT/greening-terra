@@ -6,6 +6,9 @@ extends Control
 
 ## Current stick deflection, x right and y down, length 0..1.
 var value: Vector2 = Vector2.ZERO
+## Optional func(position: Vector2) -> bool; a touch starting where it returns true is ignored
+## (buttons, open menus).
+var blocker: Callable
 
 var _touch_index: int = -1
 var _origin: Vector2 = Vector2.ZERO
@@ -20,6 +23,8 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed and _touch_index == -1:
+			if blocker.is_valid() and blocker.call(event.position):
+				return
 			_touch_index = event.index
 			_origin = event.position
 			_set_drag(event.position)

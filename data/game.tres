@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="GameDefs" format=3]
+
+[ext_resource type="Resource" path="res://data/upgrades/boots.tres" id="1_ftb2l"]
+[ext_resource type="Resource" path="res://data/upgrades/drone.tres" id="2_7qjd5"]
+[ext_resource type="Script" path="res://scripts/data/item_def.gd" id="3_wropu"]
+[ext_resource type="Resource" path="res://data/items/regolith.tres" id="4_a5llc"]
+[ext_resource type="Resource" path="res://data/items/ice.tres" id="5_4qhju"]
+[ext_resource type="Resource" path="res://data/items/plate.tres" id="6_rn480"]
+[ext_resource type="Resource" path="res://data/items/o2.tres" id="7_en8we"]
+[ext_resource type="Resource" path="res://data/items/seedpod.tres" id="8_t2hgn"]
+[ext_resource type="Resource" path="res://data/upgrades/pack.tres" id="9_cnyv5"]
+[ext_resource type="Script" path="res://scripts/data/planet_def.gd" id="10_y3bck"]
+[ext_resource type="Resource" path="res://data/planets/tessera4.tres" id="11_pha8v"]
+[ext_resource type="Resource" path="res://data/planets/orrin_b.tres" id="12_cyxwl"]
+[ext_resource type="Resource" path="res://data/planets/kessik.tres" id="13_fquns"]
+[ext_resource type="Resource" path="res://data/player_tuning.tres" id="14_85007"]
+[ext_resource type="Script" path="res://scripts/data/game_defs.gd" id="15_aeqsm"]
+[ext_resource type="Resource" path="res://data/terraform.tres" id="16_soc6g"]
+[ext_resource type="Resource" path="res://data/game_tuning.tres" id="17_akfar"]
+
+[resource]
+script = ExtResource("15_aeqsm")
+items = Array[ExtResource("3_wropu")]([ExtResource("4_a5llc"), ExtResource("5_4qhju"), ExtResource("6_rn480"), ExtResource("7_en8we"), ExtResource("8_t2hgn")])
+planets = Array[ExtResource("10_y3bck")]([ExtResource("11_pha8v"), ExtResource("12_cyxwl"), ExtResource("13_fquns")])
+tuning = ExtResource("17_akfar")
+terraform = ExtResource("16_soc6g")
+player = ExtResource("14_85007")
+pack_upgrade = ExtResource("9_cnyv5")
+boots_upgrade = ExtResource("1_ftb2l")
+drone_upgrade = ExtResource("2_7qjd5")

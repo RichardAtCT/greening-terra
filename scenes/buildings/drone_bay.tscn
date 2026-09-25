@@ -1,0 +1,42 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_g0xmn"]
+specular_mode = 2
+albedo_color = Color(0.3529412, 0.32156864, 0.3372549, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_1nsp5"]
+material = SubResource("StandardMaterial3D_g0xmn")
+size = Vector3(3.2, 0.3, 3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_susvv"]
+specular_mode = 2
+albedo_color = Color(0.9490196, 0.7019608, 0.35686275, 1)
+
+[sub_resource type="TorusMesh" id="TorusMesh_j53li"]
+material = SubResource("StandardMaterial3D_susvv")
+inner_radius = 0.93
+outer_radius = 1.07
+rings = 28
+ring_segments = 6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kctr2"]
+specular_mode = 2
+albedo_color = Color(0.41960785, 0.39215687, 0.40784314, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_xpycv"]
+material = SubResource("StandardMaterial3D_kctr2")
+size = Vector3(0.5, 2.2, 0.5)
+
+[node name="DroneBay" type="Node3D" unique_id=1969055625]
+
+[node name="Platform" type="MeshInstance3D" parent="." unique_id=1912520154]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+mesh = SubResource("BoxMesh_1nsp5")
+
+[node name="Ring" type="MeshInstance3D" parent="." unique_id=1918398554]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.33, 0)
+mesh = SubResource("TorusMesh_j53li")
+
+[node name="Tower" type="MeshInstance3D" parent="." unique_id=1839623593]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.3, 1.1, -1.1)
+mesh = SubResource("BoxMesh_xpycv")

@@ -14,3 +14,28 @@ Choices made where the spec was open or ambiguous. The rule is: pick what's clos
 8. **PWA display is `standalone`.** iOS Safari doesn't support `fullscreen` in the manifest; standalone is what Home Screen apps get there. Status bar style is `black` (not `black-translucent`) until the HUD handles safe-area insets, so nothing sits under the notch.
 9. **Download size.** The stock single-threaded web template's `index.wasm` is 39.5 MB raw, about 10 MB gzipped. The 40 MB budget (section 7.1) is treated as transfer size. If itch.io doesn't compress it, a custom template with unused modules stripped is an M6 performance task.
 10. **Environment values in the test scene.** Sky colour, fog (near 14, far 48), sun and ground colour are set in `test_world.tscn` for now. They move into the `PlanetDef` palette in M1, when terraform % starts driving them.
+
+## M1: Prototype parity
+
+11. **Sim and view are separate.** `GameSim` (`scripts/systems/`) owns every rule and has no scene access; `scenes/world/planet.gd` only feeds it the player's position and draws its state. The balance sim and tests drive the same `GameSim`.
+12. **Drone routing is still the prototype's**: each hauler takes route `index % routes`. SPEC 4.5's dispatcher replaces it in M4, as planned.
+13. **Planets 2 and 3 already exist, but only as re-skins**: the prototype's palettes and its pay/terraform multipliers, on Planet 1's layout. That keeps the prototype's "launch to the next world" flow working until M5 adds the real content. As in the prototype, after the third planet the list repeats with a numeral ("Tessera-4 II").
+14. **Planet data files.** Machines, nodes and the tutorial are separate `.tres` files shared by all three planets, so a tweak lands everywhere at once.
+15. **Pads show text, like the prototype.** SPEC 6's item icons on pads are an art task for M3.
+16. **World labels always draw on top** (no depth test), and the panel behind them is a rounded-rectangle shader. The prototype's canvas sprites could be hidden behind buildings; these can't, which reads better on a small screen.
+17. **Frame time is capped at 0.05 s** for the sim, as in the prototype, so a stall never skips a whole transfer chain.
+18. **Recipe input order** comes from Godot's dictionary sort, so the greenhouse label reads "O₂ · Plate" rather than the prototype's "plate · O₂". This is cosmetic.
+19. **Draw calls.** Each resource node, drone and the greenhouse seedlings are merged into single meshes, and item stacks use one MultiMesh per item type. A late-game Planet 1 has about 150 drawables before frustum culling. The real iPhone frame rate still needs checking on a device.
+20. **Seedpods have a food value of 1** already, so M4's colonists have data to read.
+
+## M2: Data, saves and balance sim
+
+21. **Terraform values were cut to about a tenth of the prototype's**: plate 0.15 → 0.018, O₂ 0.4 → 0.045, seedpod 1.6 → 0.08. Played greedily, the prototype's economy finishes Planet 1 in 5 min 20 s. SPEC 3 says those values were "to be tuned by the balance sim". With the new values the bot finishes in about 29 min. A child will be slower than a greedy bot, so this errs short. Plates and O₂ were cut less than seedpods, so the planet visibly changes before the greenhouse is built.
+22. **Late-game credits pile up.** The bot ends Planet 1 with thousands of unspent credits once pack, boots and 12 haulers are maxed. SPEC 4.4's extra sinks (dig speed, hauler capacity, machine level-2 pads) will soak this up. Re-run the sim when they land.
+23. **Planets 2 and 3 are `balance_enforced = false`** until M5 gives them their real chains. The sim still reports them.
+24. **The bot's buying rule**: pick the affordable purchase with the best value per credit (buildings 3, haulers 2, pack 1.2, boots 1), but don't spend on kit once the next building is half-affordable. It then feeds before selling, collects piles of three or more, and digs whichever raw resource the chain is shortest of.
+25. **Defaults live in the resource scripts, values in `.tres`.** Godot leaves unchanged values out of `.tres` files, so `data/game_tuning.tres` looks empty but holds all the prototype's numbers. Edit them in the Inspector. Anything changed from the default is written into the file.
+26. **Text entry on web uses the browser's `prompt()`**, for names, backup and restore. Godot's own text fields don't open the iPhone keyboard. Backup text is `GT1:` plus base64-encoded JSON.
+27. **A new game is saved as soon as it starts**, so the title screen shows "Continue" straight away. Autosave counts real time, not the capped sim step, so slow devices still save every 10 s.
+28. **Erasing a profile needs a second tap**, the same pattern as "Restart planet". Nothing destructive happens on one tap.
+29. **Audio buses and volume settings exist before any audio does.** The Music and SFX buses and their sliders are wired up now; the sounds arrive in M3.

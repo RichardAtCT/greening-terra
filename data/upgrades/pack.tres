@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_def.gd" id="1_p2ts3"]
+
+[resource]
+script = ExtResource("1_p2ts3")
+id = &"pack"
+display_name = "Pack"
+pad_title = "PACK"
+pad_label = "+4 SLOTS"
+base_cost = 15.0
+cost_step = 15.0
+amount_per_level = 4.0

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="MachineDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/recipe_def.gd" id="1_2xrso"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/electrolyser.tscn" id="2_r0a0g"]
+[ext_resource type="Script" path="res://scripts/data/machine_def.gd" id="3_4ov86"]
+
+[sub_resource type="Resource" id="Resource_4tkv8"]
+script = ExtResource("1_2xrso")
+inputs = Dictionary[StringName, int]({
+&"ice": 1
+})
+output = &"o2"
+time = 1.1
+
+[resource]
+script = ExtResource("3_4ov86")
+id = &"electrolyser"
+display_name = "Electrolyser"
+recipe = SubResource("Resource_4tkv8")
+build_cost = 25
+position = Vector2(8, -4)
+scene = ExtResource("2_r0a0g")
+footprint = Vector3(2.4, 3, 2.2)
+label_height = 4.1
+in_pad_color = Color(0.56078434, 0.8901961, 1, 1)
+in_pad_label = "ICE"

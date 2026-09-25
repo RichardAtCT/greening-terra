@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="MachineDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/recipe_def.gd" id="1_mhy46"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/smelter.tscn" id="2_dr436"]
+[ext_resource type="Script" path="res://scripts/data/machine_def.gd" id="3_icxf6"]
+
+[sub_resource type="Resource" id="Resource_f306y"]
+script = ExtResource("1_mhy46")
+inputs = Dictionary[StringName, int]({
+&"regolith": 1
+})
+output = &"plate"
+time = 1.1
+
+[resource]
+script = ExtResource("3_icxf6")
+id = &"smelter"
+display_name = "Smelter"
+recipe = SubResource("Resource_f306y")
+starts_built = true
+position = Vector2(-8, -4)
+scene = ExtResource("2_dr436")
+footprint = Vector3(2.8, 2, 2.4)
+in_pad_color = Color(0.8509804, 0.4745098, 0.2901961, 1)
+in_pad_label = "REGOLITH"

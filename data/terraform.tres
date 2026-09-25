@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="TerraformDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/terraform_def.gd" id="1_ct3da"]
+
+[resource]
+script = ExtResource("1_ct3da")
+stage_limits = PackedFloat32Array(8, 25, 45, 65, 90, 100)
+stage_names = PackedStringArray("Barren regolith", "Thin atmosphere", "First rain", "Lichen bloom", "Grasslands", "Young forests")
