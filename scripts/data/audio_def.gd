@@ -21,6 +21,10 @@ extends Resource
 ## Low-pass smoothing of the noise (0..1, lower is darker).
 @export var wind_smoothing: float = 0.045
 
+## A dust storm at full strength adds this much volume and pitch to the wind.
+@export var wind_storm_db: float = 9.0
+@export var wind_storm_pitch: float = 0.25
+
 @export_group("Birdsong")
 ## Birds start singing at this terraform %, and are at full volume by birds_full_at.
 @export var birds_from: float = 70.0

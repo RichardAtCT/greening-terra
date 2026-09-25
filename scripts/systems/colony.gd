@@ -124,6 +124,10 @@ static func _step_landers(sim: GameSim, dt: float) -> void:
 		s.built[habitat_key(0)] = true
 	house(sim)
 	sim.lander_landed.emit(n)
+	if s.colonists_waiting > 0:
+		sim.toast.emit("Lander arrived · %d waiting for a habitat" % s.colonists_waiting)
+	else:
+		sim.toast.emit("Lander arrived: %d colonists" % n)
 
 
 static func _step_food(sim: GameSim, dt: float) -> void:

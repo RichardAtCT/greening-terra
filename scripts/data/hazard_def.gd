@@ -33,13 +33,10 @@ extends Resource
 ## How far the sky darkens towards dark_color during the warning (0..1).
 @export var warning_darken: float = 0.35
 @export var dark_color: Color = Color("3a1c14")
-## Fog colour and distances at full strength.
+## Fog colour and distances (from the camera, which sits about 17 m from the player) at full strength.
 @export var fog_color: Color = Color("c0673a")
-@export var fog_near: float = 4.0
-@export var fog_far: float = 22.0
+@export var fog_near: float = 13.0
+@export var fog_far: float = 32.0
 ## Dust motes: opacity and wind (x, z metres per second) at full strength.
 @export var dust_opacity: float = 0.85
 @export var dust_wind: Vector2 = Vector2(9.0, 2.5)
-## Wind loop boost at full strength.
-@export var wind_boost_db: float = 9.0
-@export var wind_pitch_boost: float = 0.25

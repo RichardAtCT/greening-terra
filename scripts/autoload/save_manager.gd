@@ -12,7 +12,7 @@ const PROFILES_PATH := "user://profiles.json"
 const SETTINGS_PATH := "user://settings.json"
 const DEFAULT_NAMES := ["Explorer 1", "Explorer 2", "Explorer 3"]
 const COLORS := ["f2b35b", "86e07c", "8fe3ff", "d9794a", "c9a0ff", "ff8fb1"]
-const DEFAULT_SETTINGS := {"music_volume": 0.8, "sfx_volume": 0.9, "haptics": true, "reduced_effects": false}
+const DEFAULT_SETTINGS := {"music_volume": 0.8, "sfx_volume": 0.9, "haptics": true, "reduced_effects": false, "debug_overlay": false}
 
 var active_profile: int = 1
 ## Profile index (1-based) -> {"name": String, "color": String hex}.

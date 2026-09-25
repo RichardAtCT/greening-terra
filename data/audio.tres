@@ -16,6 +16,9 @@
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/spaceEngineLow_001.ogg" id="s11"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/tick_001.ogg" id="s12"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/tick_002.ogg" id="s13"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/bong_001.ogg" id="s14"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/glass_002.ogg" id="s15"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/impactMetal_002.ogg" id="s16"]
 
 [sub_resource type="Resource" id="snd_pickup"]
 script = ExtResource("2_sound")
@@ -89,6 +92,30 @@ volume_db = -10.0
 pitch_jitter = 0.04
 min_interval = 0.05
 
+[sub_resource type="Resource" id="snd_warning"]
+script = ExtResource("2_sound")
+id = &"warning"
+streams = Array[AudioStream]([ExtResource("s14")])
+volume_db = -6.0
+pitch_jitter = 0.0
+min_interval = 2.0
+
+[sub_resource type="Resource" id="snd_food"]
+script = ExtResource("2_sound")
+id = &"food"
+streams = Array[AudioStream]([ExtResource("s15")])
+volume_db = -12.0
+pitch_jitter = 0.06
+min_interval = 0.1
+
+[sub_resource type="Resource" id="snd_land"]
+script = ExtResource("2_sound")
+id = &"land"
+streams = Array[AudioStream]([ExtResource("s16")])
+volume_db = -10.0
+pitch_jitter = 0.0
+min_interval = 1.0
+
 [resource]
 script = ExtResource("1_audio")
-sounds = Array[ExtResource("2_sound")]([SubResource("snd_pickup"), SubResource("snd_drop"), SubResource("snd_coin"), SubResource("snd_dig"), SubResource("snd_build"), SubResource("snd_upgrade"), SubResource("snd_win"), SubResource("snd_lander"), SubResource("snd_click")])
+sounds = Array[ExtResource("2_sound")]([SubResource("snd_pickup"), SubResource("snd_drop"), SubResource("snd_coin"), SubResource("snd_dig"), SubResource("snd_build"), SubResource("snd_upgrade"), SubResource("snd_win"), SubResource("snd_lander"), SubResource("snd_click"), SubResource("snd_warning"), SubResource("snd_food"), SubResource("snd_land")])
