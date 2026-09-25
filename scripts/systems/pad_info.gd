@@ -2,7 +2,7 @@ class_name PadInfo
 extends RefCounted
 ## A standing pad in the world. Built by GameSim from the planet layout.
 
-enum Kind { IN, OUT, DEPOT, PAY, REPAIR }
+enum Kind { IN, OUT, DEPOT, PAY, REPAIR, SWAP }
 enum Pay { NONE, BUILD_MACHINE, BUILD_BAY, BUY_DRONE, PACK, BOOTS, BUILD_HABITAT, UPGRADE_MACHINE, UPGRADE_HAULERS, DIG }
 
 var key: StringName

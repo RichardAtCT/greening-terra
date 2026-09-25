@@ -305,3 +305,10 @@ func test_bot_repairs_a_damaged_machine() -> void:
 		if not sim.state.is_damaged(&"scrubber"):
 			break
 	assert_false(sim.state.is_damaged(&"scrubber"))
+
+
+func test_swap_pad_is_planet_one_only() -> void:
+	for planet in [ORRIN, KESSIK]:
+		_start(planet)
+		for p in sim.pads:
+			assert_ne(p.kind, PadInfo.Kind.SWAP, "%s has no SWAP pad" % sim.planet.display_name)

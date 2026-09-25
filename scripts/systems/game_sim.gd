@@ -247,6 +247,9 @@ func pad_visible(p: PadInfo) -> bool:
 			return state.is_built(p.machine.id)
 		PadInfo.Kind.REPAIR:
 			return state.is_damaged(p.machine.id)
+		PadInfo.Kind.SWAP:
+			return state.is_built(p.machine.id) and state.machine_level(p.machine.id) < p.machine.swap_until_level \
+				and not state.is_damaged(p.machine.id)
 		PadInfo.Kind.PAY:
 			match p.pay:
 				PadInfo.Pay.BUILD_MACHINE:
@@ -399,6 +402,10 @@ func _step_pads(dt: float, player_pos: Vector2) -> void:
 			PadInfo.Kind.REPAIR:
 				if _tick(p.key, dt, interval):
 					_step_repair(p, player_pos)
+			PadInfo.Kind.SWAP:
+				# Each trade moves swap_ratio items off the back, so it takes that many transfer ticks.
+				if _tick(p.key, dt, interval * p.machine.swap_ratio):
+					_step_swap(p, player_pos)
 
 
 ## Is this pay pad resting after a purchase?
@@ -442,6 +449,43 @@ func _step_repair(p: PadInfo, player_pos: Vector2) -> void:
 		state.add_stat(&"repaired")
 		toast.emit(p.machine.display_name + " repaired")
 		machine_repaired.emit(id)
+
+
+## One SWAP trade: the surplus input flies off the player's back onto the pad, and the input the
+## machine is short of flies back.
+func _step_swap(p: PadInfo, player_pos: Vector2) -> void:
+	var trade := Economy.swap_trade(state, p.machine)
+	if trade.is_empty():
+		return
+	Economy.swap_one(state, p.machine, trade[0], trade[1])
+	var at := Vector3(p.position.x, PAD_DROP_HEIGHT, p.position.y)
+	for n in p.machine.swap_ratio:
+		item_flew.emit(trade[0], _player_top(player_pos), at)
+	item_flew.emit(trade[1], at, _player_top(player_pos))
+	stack_changed.emit()
+
+
+## The objective bar's nudge towards a SWAP pad, while its machine sits idle for want of an input
+## the player could swap for. Empty otherwise.
+func swap_hint() -> String:
+	for p in pads:
+		if p.kind != PadInfo.Kind.SWAP or not pad_visible(p):
+			continue
+		var m := p.machine
+		var trade := Economy.swap_trade(state, m)
+		if trade.is_empty() or state.queued(m.id, trade[1]) > 0 or state.busy.get(m.id, 0.0) > 0.0:
+			continue
+		return m.swap_hint.format({"need": defs.item(trade[1]).display_name,
+			"give": _plural(defs.item(trade[0]).display_name), "ratio": m.swap_ratio})
+	return ""
+
+
+## "Plate" → "plates"; a symbol like "O₂" stays as it is.
+static func _plural(name: String) -> String:
+	var last := name.right(1)
+	if last != last.to_lower() or last == last.to_upper():
+		return name
+	return name.to_lower() + "s"
 
 
 func _buy(p: PadInfo) -> void:
@@ -552,6 +596,16 @@ func _build_pads() -> void:
 			p_fix.color = Color("ff6a4a")
 			p_fix.icons.append(h.repair_item)
 			pads.append(p_fix)
+		# The early-game SWAP pad: surplus of one input traded for the one the machine is short of.
+		if m.swap_ratio > 0 and m.recipe.inputs.size() > 1:
+			var p_swap := PadInfo.new(StringName("swap_" + m.id), PadInfo.Kind.SWAP, m.position + m.swap_pad_offset)
+			p_swap.machine = m
+			p_swap.title = "SWAP"
+			p_swap.color = Color("b58cff")
+			p_swap.icons.assign(m.recipe.inputs.keys())
+			# Fixed text (a changed subtitle re-uploads the pad atlas); the objective bar says which way.
+			p_swap.label = "%d FOR 1" % m.swap_ratio
+			pads.append(p_swap)
 	var depot := PadInfo.new(&"depot", PadInfo.Kind.DEPOT, planet.depot_position)
 	depot.title = "DELIVER"
 	depot.label = " ".join(_sellable_names())

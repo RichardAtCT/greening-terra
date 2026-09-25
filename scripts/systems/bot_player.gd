@@ -3,7 +3,7 @@ extends RefCounted
 ## A scripted player for the balance sim: walks at the real walk speed and greedily does the most
 ## valuable thing it can (buy, feed, collect, deliver, dig). Pure logic on top of GameSim.
 
-enum Plan { NONE, BUY, FEED, DELIVER, COLLECT, DIG, WAIT, REPAIR }
+enum Plan { NONE, BUY, FEED, DELIVER, COLLECT, DIG, WAIT, REPAIR, SWAP }
 
 ## Relative value per credit of each purchase, used to pick between affordable options.
 const BUY_VALUE := {
@@ -25,6 +25,9 @@ const BONUS_PREFERENCE: Array[StringName] = [&"overclock", &"swift_haulers", &"t
 
 ## Digging moves on to another rock this close once one is empty.
 const NEXT_NODE_RANGE := 7.0
+## Use a SWAP pad only when the machine's short input has fewer than this many queued (about to
+## stall); otherwise the surplus is worth more sold or fed.
+const SWAP_BELOW := 3
 
 var sim: GameSim
 var position: Vector2
@@ -86,6 +89,8 @@ func _plan_finished() -> bool:
 			return _plan_time > 1.0
 		Plan.REPAIR:
 			return not sim.pad_visible(pad) or (_arrived() and s.count_carried(sim.planet.hazard.repair_item) == 0)
+		Plan.SWAP:
+			return not sim.pad_visible(pad) or (_arrived() and Economy.swap_trade(s, pad.machine).is_empty())
 	return true
 
 
@@ -139,6 +144,15 @@ func _decide() -> void:
 			if m.recipe.output == need and s.outputs.get(m.id, 0) > 0 and not sim.pack_full():
 				machine = m
 				_start_plan(Plan.COLLECT, m.position + m.out_pad_offset)
+				return
+
+	# 1c. Swap surplus for an input a machine is about to run out of.
+	for p in sim.pads:
+		if p.kind == PadInfo.Kind.SWAP and sim.pad_visible(p):
+			var trade := Economy.swap_trade(s, p.machine)
+			if not trade.is_empty() and s.queued(p.machine.id, trade[1]) < SWAP_BELOW:
+				pad = p
+				_start_plan(Plan.SWAP, p.position)
 				return
 
 	# 2. Feed carried items into a machine that takes them (intermediates to multi-input machines).
