@@ -55,7 +55,7 @@ func test_full_manual_loop_earns_credits() -> void:
 	assert_eq(sim.state.count_carried(&"plate"), 6)
 	_stand(sim.pad(&"depot").position, 1.0)
 	assert_eq(sim.state.credits, 12.0)
-	assert_almost_eq(sim.state.terraform, 0.9, 0.0001)
+	assert_almost_eq(sim.state.terraform, 6 * defs.item(&"plate").terraform_value, 0.0001)
 	assert_eq(sim.state.tutorial_step, 4, "tutorial reached the Electrolyser step")
 
 
@@ -86,8 +86,9 @@ func test_haulers_run_the_whole_chain_and_terraform() -> void:
 	sim.state.drones = 6
 	sim = GameSim.new(defs, sim.state)
 	_stand(Vector2(0, 30), 240.0)
-	assert_gt(sim.state.stat(&"produced_seedpod"), 0)
-	assert_gt(sim.state.terraform, 5.0)
+	assert_gt(sim.state.stat(&"produced_seedpod"), 20)
+	assert_gt(sim.state.stat(&"delivered"), 100)
+	assert_gt(sim.state.terraform, 0.0)
 
 
 func test_win_fires_once_at_100() -> void:
@@ -109,7 +110,17 @@ func test_hint_switches_to_saving_text() -> void:
 func test_world_state_round_trips_through_dict() -> void:
 	_stand(Vector2(-15, 5), 1.0)
 	sim.state.queues[&"smelter"] = {&"regolith": 3}
-	var copy := WorldState.from_dict(JSON.parse_string(JSON.stringify(sim.state.to_dict())))
+	var copy := WorldState.from_dict(JSON.parse_string(JSON.stringify(sim.state.to_dict(), "", true, true)))
 	assert_eq(copy.to_dict(), sim.state.to_dict())
 	assert_eq(copy.stack[0], &"regolith")
 	assert_eq(copy.queued(&"smelter", &"regolith"), 3)
+
+
+func test_bot_player_progresses_through_the_build_order() -> void:
+	var bot := BotPlayer.new(sim)
+	for i in roundi(360.0 / DT):
+		bot.step(DT)
+	assert_true(sim.state.is_built(&"electrolyser"))
+	assert_true(sim.state.is_built(&"bay"))
+	assert_true(sim.state.is_built(&"greenhouse"))
+	assert_gt(sim.state.drones, 1)

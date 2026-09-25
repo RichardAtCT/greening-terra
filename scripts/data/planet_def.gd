@@ -39,6 +39,12 @@ extends Resource
 ## Areas kept clear of decoration, as (x, z, radius).
 @export var clear_zones: Array[Vector3] = []
 
+@export_group("Balance")
+## Target minutes to reach 100% (min, max), checked by tools/balance_sim.gd.
+@export var target_minutes: Vector2 = Vector2(25, 35)
+## False while the planet is a placeholder; the balance sim reports it but doesn't fail on it.
+@export var balance_enforced: bool = true
+
 @export_group("Guide")
 @export var tutorial: TutorialDef
 @export_multiline var win_text: String

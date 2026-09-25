@@ -26,5 +26,7 @@ machines = Array[ExtResource("1_1rqdy")]([ExtResource("2_icf7j"), ExtResource("3
 resource_nodes = Array[ExtResource("5_pfb8k")]([ExtResource("6_oht86"), ExtResource("7_d3f1o")])
 lakes = Array[Vector3]([Vector3(-26, -4, 5.5), Vector3(4, 21, 6.5), Vector3(27, -21, 4.5), Vector3(-22, 22, 4)])
 clear_zones = Array[Vector3]([Vector3(0, 0, 5), Vector3(-8, -2.5, 4.6), Vector3(8, -2.5, 4.6), Vector3(0, -9.5, 4.8), Vector3(-15, -7.5, 4.2), Vector3(15, -7.5, 4.2), Vector3(-15, 7, 5), Vector3(15, 7, 5), Vector3(0, 6.5, 3)])
+target_minutes = Vector2(45, 60)
+balance_enforced = false
 tutorial = ExtResource("9_falo6")
 win_text = "The sulphur haze has cleared to blue sky. The next world pays more but greens more slowly. Your pack and boots come with you."

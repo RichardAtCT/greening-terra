@@ -45,19 +45,20 @@ func test_raw_resources_cannot_be_sold() -> void:
 
 
 func test_delivery_pays_and_terraforms_per_planet() -> void:
+	var pod := defs.item(&"seedpod")
 	var s := WorldState.new()
-	assert_true(Economy.deliver(s, defs.item(&"seedpod"), planet))
+	assert_true(Economy.deliver(s, pod, planet))
 	assert_eq(s.credits, 9.0)
-	assert_almost_eq(s.terraform, 1.6, 0.0001)
+	assert_almost_eq(s.terraform, pod.terraform_value, 0.0001)
 	var s2 := WorldState.new()
-	Economy.deliver(s2, defs.item(&"seedpod"), defs.planet(1))
+	Economy.deliver(s2, pod, defs.planet(1))
 	assert_almost_eq(s2.credits, 13.5, 0.0001)
-	assert_almost_eq(s2.terraform, 1.6 / 1.35, 0.0001)
+	assert_almost_eq(s2.terraform, pod.terraform_value / 1.35, 0.0001)
 
 
 func test_terraform_caps_at_100() -> void:
 	var s := WorldState.new()
-	s.terraform = 99.9
+	s.terraform = 99.99
 	Economy.deliver(s, defs.item(&"seedpod"), planet)
 	assert_eq(s.terraform, 100.0)
 
