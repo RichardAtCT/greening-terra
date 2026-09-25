@@ -1,0 +1,14 @@
+# Godot 4
+.godot/
+*.translation
+export_credentials.cfg
+
+# Local Godot editor + export templates (fetched by tools/setup_godot.sh)
+tools/godot/
+
+# Build output
+build/
+
+# OS / editor
+.DS_Store
+*.swp

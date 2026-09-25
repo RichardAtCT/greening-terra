@@ -1,0 +1,77 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/actors/player.gd" id="1"]
+[ext_resource type="Resource" path="res://data/player_tuning.tres" id="2"]
+
+[sub_resource type="CapsuleShape3D" id="shape"]
+radius = 0.4
+height = 1.6
+
+[sub_resource type="StandardMaterial3D" id="suit"]
+albedo_color = Color(0.94, 0.92, 0.88, 1)
+roughness = 0.9
+
+[sub_resource type="CapsuleMesh" id="body"]
+material = SubResource("suit")
+radius = 0.35
+height = 1.5
+radial_segments = 16
+rings = 6
+
+[sub_resource type="StandardMaterial3D" id="visor_mat"]
+albedo_color = Color(1, 0.69, 0.29, 1)
+emission_enabled = true
+emission = Color(0.48, 0.23, 0, 1)
+
+[sub_resource type="BoxMesh" id="visor"]
+material = SubResource("visor_mat")
+size = Vector3(0.42, 0.2, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="pack_mat"]
+albedo_color = Color(0.85, 0.47, 0.29, 1)
+
+[sub_resource type="BoxMesh" id="pack"]
+material = SubResource("pack_mat")
+size = Vector3(0.5, 0.6, 0.25)
+
+[sub_resource type="StandardMaterial3D" id="shadow_mat"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0, 0, 0.3)
+
+[sub_resource type="CylinderMesh" id="shadow"]
+top_radius = 0.5
+bottom_radius = 0.5
+height = 0.01
+radial_segments = 20
+rings = 1
+
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("model")]
+motion_mode = 1
+script = ExtResource("1")
+tuning = ExtResource("2")
+model = NodePath("Model")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+shape = SubResource("shape")
+
+[node name="Model" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+mesh = SubResource("body")
+
+[node name="Visor" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0.3)
+mesh = SubResource("visor")
+
+[node name="Pack" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, -0.42)
+mesh = SubResource("pack")
+
+[node name="Shadow" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
+cast_shadow = 0
+mesh = SubResource("shadow")
+material_override = SubResource("shadow_mat")
