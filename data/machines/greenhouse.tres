@@ -27,3 +27,5 @@ in_pad_color = Color(0.76862746, 0.8, 0.83137256, 1)
 in_pad_label = "PLATE+O₂"
 upgrade_costs = PackedInt32Array(200, 500, 1100)
 upgrade_pad_offset = Vector2(4.6, 0.9)
+swap_ratio = 2
+swap_pad_offset = Vector2(-4.6, 0.9)

@@ -138,6 +138,42 @@ static func add_to_queue(state: WorldState, machine: MachineDef, item: StringNam
 	state.queues[machine.id][item] = state.queued(machine.id, item) + 1
 
 
+## The SWAP pad's trade right now: [item given, item received], or [] if none would help. The
+## machine is short of the input it has least of, counting what's queued and what's on the player's
+## back. The player gives swap_ratio of the carried input it has most of, but only while that
+## leaves the two closer to level (so standing on the pad never swings them the other way).
+static func swap_trade(state: WorldState, machine: MachineDef) -> Array[StringName]:
+	var ratio := machine.swap_ratio
+	if ratio <= 0 or machine.recipe.inputs.size() < 2:
+		return []
+	var need := &""
+	var give := &""
+	for item in machine.recipe.inputs:
+		var have := _swap_have(state, machine, item)
+		if need == &"" or have < _swap_have(state, machine, need):
+			need = item
+	for item in machine.recipe.inputs:
+		if item == need or state.count_carried(item) < ratio:
+			continue
+		if give == &"" or _swap_have(state, machine, item) > _swap_have(state, machine, give):
+			give = item
+	if give == &"" or _swap_have(state, machine, give) - _swap_have(state, machine, need) < ratio:
+		return []
+	return [give, need]
+
+
+static func _swap_have(state: WorldState, machine: MachineDef, item: StringName) -> int:
+	return state.queued(machine.id, item) + state.count_carried(item)
+
+
+## Makes one SWAP trade on the player's back: swap_ratio of `give` off, one `need` on.
+static func swap_one(state: WorldState, machine: MachineDef, give: StringName, need: StringName) -> void:
+	for n in machine.swap_ratio:
+		state.stack.remove_at(state.stack.rfind(give))
+	state.stack.append(need)
+	state.add_stat(&"swapped")
+
+
 ## Index of the top-most sellable carried item, or -1.
 static func sellable_index(defs: GameDefs, stack: Array[StringName]) -> int:
 	for i in range(stack.size() - 1, -1, -1):

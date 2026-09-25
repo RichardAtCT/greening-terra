@@ -36,6 +36,19 @@ extends Resource
 ## Where the UPGRADE pad sits, relative to the machine (beside it, clear of the IN and OUT pads).
 @export var upgrade_pad_offset: Vector2 = Vector2(4.0, 0.9)
 
+@export_group("Swap")
+## Above zero, an early-game SWAP pad beside a multi-input machine: standing on it trades this many
+## of the carried input the machine has most of (queued plus carried) for 1 of the input it's short
+## of, onto the player's back. 0 means no SWAP pad.
+@export var swap_ratio: int = 0
+## The SWAP pad goes once the machine has this many upgrades (1 = at Mk II).
+@export var swap_until_level: int = 1
+## Where the SWAP pad sits, relative to the machine (the side opposite the UPGRADE pad).
+@export var swap_pad_offset: Vector2 = Vector2(-4.0, 0.9)
+## Objective bar line while the machine sits idle for want of an input the player could swap for.
+## {need}, {give} and {ratio} are filled in.
+@export var swap_hint: String = "Out of {need}? Swap {ratio} {give} for 1 {need} on the SWAP pad."
+
 @export_group("M5")
 ## Above zero, this is a Heat Tower: while it burns its input it keeps machines within this many
 ## metres at full speed through a cold snap. It has no OUT pad and takes no colonists.

@@ -213,3 +213,53 @@ func test_pay_pad_rests_after_a_purchase() -> void:
 	assert_eq(sim.state.paid.get(&"pack", 0), 0, "no credits drained while resting")
 	_stand(p.position, 3.0)
 	assert_eq(sim.state.pack_level, 2, "buys again once the rest is over")
+
+
+func _carry(item: StringName, n: int) -> void:
+	for i in n:
+		sim.state.stack.append(item)
+
+
+func test_swap_pad_shows_with_the_greenhouse_until_mk_ii() -> void:
+	var p := sim.pad(&"swap_greenhouse")
+	assert_not_null(p)
+	assert_eq(p.label, "2 FOR 1")
+	assert_false(sim.pad_visible(p), "not before the Greenhouse")
+	sim.state.built[&"greenhouse"] = true
+	assert_true(sim.pad_visible(p))
+	sim.state.machine_levels[&"greenhouse"] = 1
+	assert_false(sim.pad_visible(p), "gone at Mk II")
+	assert_null(sim.pad(&"swap_smelter"), "single-input machines have none")
+
+
+func test_swap_pad_levels_what_you_carry() -> void:
+	sim.state.built[&"greenhouse"] = true
+	_carry(&"plate", 8)
+	_stand(sim.pad(&"swap_greenhouse").position, 2.0)
+	# 8/0 -> 6/1 -> 4/2 -> 2/3: it stops before swinging the other way.
+	assert_eq(sim.state.count_carried(&"plate"), 2)
+	assert_eq(sim.state.count_carried(&"o2"), 3)
+	assert_eq(sim.state.stat(&"swapped"), 3)
+
+
+func test_swap_pad_counts_the_greenhouse_queue() -> void:
+	sim.state.built[&"greenhouse"] = true
+	sim.state.queues[&"greenhouse"] = {&"o2": 10, &"plate": 0}
+	_carry(&"plate", 4)
+	assert_true(Economy.swap_trade(sim.state, sim.machine_def(&"greenhouse")).is_empty(),
+		"the Greenhouse is short of plates, and plates are all we carry")
+	sim.state.stack.clear()
+	sim.state.queues[&"greenhouse"] = {&"o2": 0, &"plate": 10}
+	_carry(&"plate", 4)
+	_stand(sim.pad(&"swap_greenhouse").position, 2.0)
+	assert_eq(sim.state.count_carried(&"o2"), 2, "plates swapped while it helped")
+	assert_eq(sim.state.count_carried(&"plate"), 0)
+
+
+func test_hint_points_at_the_swap_pad_while_the_greenhouse_is_short() -> void:
+	sim.state.built[&"greenhouse"] = true
+	sim.state.tutorial_step = 8
+	_carry(&"plate", 4)
+	assert_eq(Tutorial.hint_text(sim), "Out of O₂? Swap 2 plates for 1 O₂ on the SWAP pad.")
+	sim.state.queues[&"greenhouse"] = {&"o2": 3, &"plate": 0}
+	assert_false(Tutorial.hint_text(sim).contains("SWAP"), "not while it has O₂ queued")

@@ -50,6 +50,10 @@ static func hint_text(sim: GameSim) -> String:
 			text = colony + " " + text
 	if sim.pack_full() and not last and sim.state.tutorial_step != 0:
 		text = "Pack full. " + text
+	# A machine idle for want of an input the player could swap for says so instead.
+	var swap := sim.swap_hint()
+	if swap != "":
+		text = swap
 	return text
 
 
