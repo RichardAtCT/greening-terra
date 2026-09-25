@@ -23,6 +23,7 @@ DisplayScale="*res://scripts/autoload/display_scale.gd"
 EventBus="*res://scripts/autoload/event_bus.gd"
 SaveManager="*res://scripts/autoload/save_manager.gd"
 GameState="*res://scripts/autoload/game_state.gd"
+Audio="*res://scripts/autoload/audio.gd"
 
 [display]
 

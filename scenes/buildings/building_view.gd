@@ -9,6 +9,11 @@ var glow_mat: StandardMaterial3D
 var in_stack: ItemStackView
 var out_stack: ItemStackView
 
+var _built_known := false
+var _was_built := false
+var _pop_t := -1.0
+var _puff: CPUParticles3D
+
 
 func setup(scene: PackedScene, pos: Vector2, collide_radius: float, label_height: float, label_scale: float) -> void:
 	position = Vector3(pos.x, 0, pos.y)
@@ -53,12 +58,80 @@ func add_pad_stacks(defs: GameDefs, in_offset: Vector2, out_offset: Vector2) -> 
 
 
 func set_built(built: bool) -> void:
+	if built and _built_known and not _was_built:
+		_celebrate()
+	_built_known = true
+	_was_built = built
 	model.visible = built
 	if ghost:
 		ghost.visible = not built
 	if in_stack:
 		in_stack.visible = built
 		out_stack.visible = built
+
+
+## A building finished: it springs up and throws a puff of dust.
+func _celebrate() -> void:
+	if SaveManager.settings.get("reduced_effects", false):
+		return
+	_pop_t = 0.0
+	if _puff == null:
+		_puff = _make_puff()
+		add_child(_puff)
+	_puff.restart()
+
+
+func _process(delta: float) -> void:
+	if _pop_t < 0.0:
+		return
+	var j := GameState.defs.juice
+	_pop_t += delta
+	if _pop_t >= j.building_pop_time:
+		_pop_t = -1.0
+		model.scale = Vector3.ONE
+		return
+	# Springs up with a little squash: wider while short, narrower while tall.
+	var s := 1.0 - (1.0 - j.building_pop_from) * cos(_pop_t * j.building_pop_frequency) * exp(-_pop_t * j.building_pop_decay)
+	var w := (1.0 + 1.0 / sqrt(s)) * 0.5 * s
+	model.scale = Vector3(w, s, w)
+
+
+func _make_puff() -> CPUParticles3D:
+	var p := CPUParticles3D.new()
+	p.emitting = false
+	p.one_shot = true
+	p.amount = GameState.defs.juice.puff_amount
+	p.lifetime = 0.9
+	p.explosiveness = 0.95
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
+	p.emission_ring_axis = Vector3.UP
+	p.emission_ring_radius = 1.8
+	p.emission_ring_inner_radius = 1.2
+	p.emission_ring_height = 0.1
+	p.direction = Vector3(0, 1, 0)
+	p.spread = 70.0
+	p.initial_velocity_min = 1.5
+	p.initial_velocity_max = 3.0
+	p.gravity = Vector3(0, -3.0, 0)
+	p.damping_min = 1.5
+	p.damping_max = 2.5
+	p.scale_amount_min = 0.6
+	p.scale_amount_max = 1.2
+	var curve := Curve.new()
+	curve.add_point(Vector2(0, 0.4))
+	curve.add_point(Vector2(0.3, 1.0))
+	curve.add_point(Vector2(1, 0))
+	p.scale_amount_curve = curve
+	var q := QuadMesh.new()
+	q.size = Vector2(0.35, 0.35)
+	var mat := ItemVisuals.unshaded(Color(Color("e8d7c4"), 0.8))
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mat.vertex_color_use_as_albedo = true
+	q.material = mat
+	p.mesh = q
+	p.position.y = 0.2
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return p
 
 
 func set_glow(alpha: float) -> void:

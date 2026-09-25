@@ -161,33 +161,35 @@ res://
     pads/          # in, out, pay, deliver
     ui/            # hud, title, star map, bonus picker, settings
   scripts/
-    autoload/      # GameState, SaveManager, EventBus, DisplayScale (later: Audio)
+    autoload/      # GameState, SaveManager, EventBus, DisplayScale, Audio
     data/          # Resource class definitions (ItemDef, PlanetDef, ...)
     systems/       # pure rules: GameSim, Economy, DroneBrain, Tutorial, BotPlayer, WorldState, ...
-  shaders/         # pad, label panel, dust (later: ground_terraform, water, sky_haze, frost)
-  assets/          # fonts, models, textures, audio (with LICENSES.md)
+  shaders/         # pad, label panel, dust, ground_terraform, water (later: sky_haze, frost)
+  assets/          # fonts, models (source GLBs), meshes (baked), materials, audio (with LICENSES.md)
   addons/gut/      # GUT 9.7.1 test framework (excluded from export)
 tests/             # GUT tests: unit/ and smoke/
 tools/
   setup_godot.sh export_web.sh test.sh deploy.sh
   balance_sim.gd
-  dev/             # screenshot.gd, gen_placeholder_models.gd
+  dev/             # screenshot.gd, bake_models.gd
 reference/greening-tessera-prototype.html
 ```
 Scene-specific scripts sit next to their scene (for example `scenes/actors/player.gd`). Everything in `scripts/systems/` is free of scene access, so tests and the balance sim can run it headless.
 
 ### 7.3 Data model (custom Resources)
-- `GameDefs` (`data/game.tres`): the root. Holds the items, planets, upgrades, `GameTuning`, `TerraformDef` and `PlayerTuning`.
+- `GameDefs` (`data/game.tres`): the root. Holds the items, planets, upgrades, `GameTuning`, `TerraformDef`, `PlayerTuning` and `JuiceTuning`.
 - `ItemDef`: id, display name, short pad label, colour, emissive, shape, stack height, sell value (0 = raw, can't be sold), terraform value, food value.
 - `RecipeDef`: inputs {item: count}, output item, time.
 - `MachineDef`: id, name, recipe, build cost, starts built, position, scene, footprint, collision radius, label height, pad offsets, IN pad colour and label, queue cap (20), output cap (40). *(Level-2 cost to come with SPEC 4.4.)*
-- `ResourceNodeDef`: item, max stock, positions, drone idle point, look.
-- `PlanetDef`: name, seed, palette (sky start/mid/end, ground start/end), pay multiplier, terraform divisor, hub/depot/bay/outfitter layout, machines, resource nodes, lakes, clear zones, tutorial, win text, balance target minutes and `balance_enforced`. *(Hazard, milestones and vegetation set to come in M4/M5.)*
+- `ResourceNodeDef`: item, max stock, positions, drone idle point, look (colour and a baked mesh it tints).
+- `PlanetDef`: name, seed, palette (sky start/mid/end, ground start/end, moss, water deep/shallow), pay multiplier, terraform divisor, hub/depot/bay/outfitter layout, machines, resource nodes, lakes, clear zones, tutorial, win text, balance target minutes and `balance_enforced`. *(Hazard, milestones and vegetation set to come in M4/M5.)*
 - `UpgradeDef`: cost = round((base + step × level) × growth^level), max level, amount per level. Used for pack, boots and haulers.
 - `TutorialDef` → `TutorialStep` (text, marker target, `TutorialCondition`s that complete it, "keep saving" text for a pay pad).
 - `GameTuning`: transfer, dig and pay intervals, radii, respawn time, drone speed, capacity and waits, fly time, autosave interval.
-- `TerraformDef`: stage names and limits, pressure and temperature formulas, and how % maps to sky, fog, light, lakes, dust, moss and trees.
-- `PlayerTuning`, `CameraTuning`, `JoystickTuning`.
+- `TerraformDef`: stage names and limits, pressure and temperature formulas, and how % maps to sky, fog, light, lakes, dust, the ground-moss front, moss patches, grass, flowers and trees.
+- `PlayerTuning`, `CameraTuning` (including the build-complete nudge), `JoystickTuning`.
+- `JuiceTuning` (`data/juice.tres`): stack pop, pick-up pitch climb, building pop and dust puff, pad icon size and motion, confetti.
+- `AudioDef` (`data/audio.tres`) → `SoundDef`s (variations, volume, pitch jitter, minimum repeat interval), plus the wind and birdsong levels.
 - *(To come: `BonusDef`, `HazardDef`.)*
 
 Resource scripts declare the prototype's values as defaults. Godot leaves unchanged values out of `.tres` files, so edit them in the Inspector.
@@ -239,8 +241,8 @@ Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as 
 | M0 | Pipeline | Empty Godot project exports to web, deploys to itch.io with butler, and opens full-screen from the iPhone Home Screen with touch input working. **Do this first.** | Built and merged. itch.io push and iPhone check still to do by hand. |
 | M1 | Prototype parity | Planet 1 with the full prototype loop: dig, stack, 3 machines, hub, pay pads, drone bay, outfitter, basic drones, terraform visuals, tutorial steps. Holds 60 fps on iPhone. | Built. 60 fps on iPhone not yet measured. |
 | M2 | Data + saves + sim | All numbers in data resources; 3 profiles; autosave and export/import; balance sim reports P1 in 25–35 min. | Built. Balance sim: P1 in 29 min. |
-| M3 | Planet 1 art pass | Real models, terraform shaders, audio, juice. Looks like a finished game on one planet. | Next. |
-| M4 | Colonists + hazards + dispatcher | Landers, colonists and food; dust storm; dispatcher replaces modulo routing; debug overlay. | |
+| M3 | Planet 1 art pass | Real models, terraform shaders, audio, juice. Looks like a finished game on one planet. | Built. Late game about 143 drawables before culling; 60 fps on iPhone not yet measured. |
+| M4 | Colonists + hazards + dispatcher | Landers, colonists and food; dust storm; dispatcher replaces modulo routing; debug overlay. | Next. |
 | M5 | Planets 2 & 3 + star map + bonuses | Full 3-planet campaign playable end to end; bonus picker; balance sim passes for all three. | |
 | M6 | Polish | Settings, reduced-effects mode, onboarding tuned so a young child can get to the first build unaided, performance pass, and a final family playtest. | Settings panel (volumes, vibration, fewer effects) already exists. |
 
@@ -254,3 +256,4 @@ Ads, in-app purchases, analytics, accounts, cloud saves, leaderboards, multiplay
 - Should drones need recharging at the bay, as a light extra loop?
 - On P3, does toxicity capping terraform feel good, or should toxicity just slow terraform gains?
 - Free-play revisit of completed planets: keep or drop?
+- Draw-call headroom: late-game Planet 1 counts 143 of the 150 budget before frustum culling. M4's colonists and landers need either culling-aware measurement on a device or more merging (e.g. one MultiMesh per item type for all pad icons, or one merged mesh for all drones).

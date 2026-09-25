@@ -18,6 +18,10 @@ var max_shown: int = 18
 
 var _multis: Dictionary = {}
 var _signature: String = ""
+## The top item [MultiMesh, instance index, rest transform], and the pop animation on it.
+var _top: Array = []
+var _pop: Array = []
+var _pop_t := -1.0
 
 
 func show_items(items: Array[StringName]) -> void:
@@ -27,6 +31,8 @@ func show_items(items: Array[StringName]) -> void:
 		return
 	_signature = sig
 	var per_type: Dictionary = {}
+	var top_id: StringName = &""
+	var top_xf := Transform3D()
 	var col_heights := [0.0, 0.0]
 	for i in shown.size():
 		var id: StringName = shown[i]
@@ -46,6 +52,8 @@ func show_items(items: Array[StringName]) -> void:
 		if not per_type.has(id):
 			per_type[id] = []
 		per_type[id].append(xf)
+		top_id = id
+		top_xf = xf
 	for id in _multis:
 		if not per_type.has(id):
 			_multis[id].multimesh.visible_instance_count = 0
@@ -57,6 +65,34 @@ func show_items(items: Array[StringName]) -> void:
 		mmi.multimesh.visible_instance_count = list.size()
 		for j in list.size():
 			mmi.multimesh.set_instance_transform(j, list[j])
+	_top = []
+	if top_id != &"":
+		_top = [_multis[top_id].multimesh, per_type[top_id].size() - 1, top_xf]
+	_pop_t = -1.0
+
+
+## Bounces the top item (it just landed). Skipped with "Fewer effects" on.
+func pop() -> void:
+	if _top.is_empty() or SaveManager.settings.get("reduced_effects", false):
+		return
+	_pop = _top
+	_pop_t = 0.0
+
+
+func _process(delta: float) -> void:
+	if _pop_t < 0.0:
+		return
+	_pop_t += delta
+	var mm: MultiMesh = _pop[0]
+	var xf: Transform3D = _pop[2]
+	var j := defs.juice
+	var k := _pop_t / j.stack_pop_time
+	if k >= 1.0:
+		_pop_t = -1.0
+		mm.set_instance_transform(_pop[1], xf)
+		return
+	var s := 1.0 + j.stack_pop_scale * sin(PI * k) * (1.0 - k)
+	mm.set_instance_transform(_pop[1], Transform3D(xf.basis.scaled(Vector3.ONE * s), xf.origin))
 
 
 func _make(id: StringName, count: int, old: MultiMeshInstance3D) -> MultiMeshInstance3D:

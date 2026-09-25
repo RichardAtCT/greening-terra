@@ -44,6 +44,7 @@ static func label(text: String, font: Font, size: int, color: Color) -> Label:
 static func button(text: String, primary := false, danger := false) -> Button:
 	var b := Button.new()
 	b.text = text
+	b.pressed.connect(func(): Audio.play(&"click"))
 	b.focus_mode = Control.FOCUS_ALL
 	b.add_theme_font_override("font", DISPLAY)
 	b.add_theme_font_size_override("font_size", 14)

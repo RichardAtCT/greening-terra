@@ -49,9 +49,12 @@ static func is_dry(planet: PlanetDef, x: float, z: float, margin := 0.0) -> bool
 	return true
 
 
-## All craters merged into one mesh (one draw call).
-static func craters_mesh(planet: PlanetDef, rng: RandomNumberGenerator, count := 14) -> ArrayMesh:
-	var pts := PackedVector3Array()
+## Raised-rim craters as one MultiMesh (one draw call).
+static func craters_multimesh(planet: PlanetDef, rng: RandomNumberGenerator, mesh: Mesh, count := 14) -> MultiMesh:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	mm.instance_count = count
 	for i in count:
 		var x := 0.0
 		var z := 0.0
@@ -60,17 +63,16 @@ static func craters_mesh(planet: PlanetDef, rng: RandomNumberGenerator, count :=
 			z = (rng.randf() - 0.5) * 60.0
 			if is_clear(planet, x, z, 1.0) and is_dry(planet, x, z, 2.0):
 				break
-		var inner := 0.6 + rng.randf() * 1.8
-		var outer := maxf(inner + 0.3, 1.2 + rng.randf() * 2.4)
-		for p in MeshUtil.ring(inner, outer, 18):
-			pts.append(p + Vector3(x, 0.03, z))
-	return MeshUtil.flat_mesh(pts)
+		var s := 0.5 + rng.randf() * 0.9
+		var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, 0.6 + rng.randf() * 0.5, s))
+		mm.set_instance_transform(i, Transform3D(basis, Vector3(x, -0.02, z)))
+	return mm
 
 
-static func rocks_multimesh(planet: PlanetDef, rng: RandomNumberGenerator, count := 90) -> MultiMesh:
+static func rocks_multimesh(planet: PlanetDef, rng: RandomNumberGenerator, mesh: Mesh, count := 90) -> MultiMesh:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = MeshUtil.icosahedron(0.5)
+	mm.mesh = mesh
 	mm.instance_count = count
 	for i in count:
 		var x := 0.0
@@ -82,7 +84,7 @@ static func rocks_multimesh(planet: PlanetDef, rng: RandomNumberGenerator, count
 			z = sin(a) * r
 			if is_clear(planet, x, z, 0.5) and is_dry(planet, x, z, 1.0):
 				break
-		var s := 0.3 + rng.randf() * 1.1
-		var basis := Basis.from_euler(Vector3(rng.randf() * 3, rng.randf() * 3, rng.randf() * 3)).scaled(Vector3(s, s * 0.7, s))
-		mm.set_instance_transform(i, Transform3D(basis, Vector3(x, s * 0.2, z)))
+		var s := 0.35 + rng.randf() * 1.2
+		var tilt := Basis.from_euler(Vector3((rng.randf() - 0.5) * 0.4, rng.randf() * TAU, (rng.randf() - 0.5) * 0.4))
+		mm.set_instance_transform(i, Transform3D(tilt.scaled(Vector3(s, s * (0.6 + rng.randf() * 0.5), s)), Vector3(x, -0.05 * s, z)))
 	return mm

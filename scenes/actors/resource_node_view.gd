@@ -1,6 +1,6 @@
 class_name ResourceNodeView
 extends Node3D
-## A diggable cluster of three rocks or crystals that shrinks as it empties and shakes when dug.
+## A diggable cluster of rocks or crystals that shrinks as it empties and shakes when dug.
 
 var _shake := 0.0
 var _time := 0.0
@@ -8,6 +8,9 @@ var _time := 0.0
 
 func setup(def: ResourceNodeDef, pos: Vector2, rng: RandomNumberGenerator) -> void:
 	position = Vector3(pos.x, 0, pos.y)
+	if def.mesh:
+		_add_model(def, rng)
+		return
 	var crystal := def.translucent
 	var mesh := MeshUtil.octahedron(0.55) if crystal else MeshUtil.icosahedron(0.55)
 	var mat := ItemVisuals.lambert(def.color)
@@ -27,6 +30,22 @@ func setup(def: ResourceNodeDef, pos: Vector2, rng: RandomNumberGenerator) -> vo
 	var mi := MeshInstance3D.new()
 	mi.mesh = MeshUtil.merge(parts)
 	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+
+
+## The baked model, tinted by the node's colour and turned at random so neighbours differ.
+func _add_model(def: ResourceNodeDef, rng: RandomNumberGenerator) -> void:
+	var mat := ItemVisuals.lambert(def.color)
+	mat.vertex_color_use_as_albedo = true
+	mat.vertex_color_is_srgb = true
+	if def.emissive != Color.BLACK:
+		mat.emission_enabled = true
+		mat.emission = def.emissive
+	var mi := MeshInstance3D.new()
+	mi.mesh = def.mesh
+	mi.material_override = mat
+	mi.rotation.y = rng.randf() * TAU
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
 

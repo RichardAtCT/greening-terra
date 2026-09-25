@@ -27,6 +27,7 @@ var _shown_tf := 0.0
 var _paused := false
 var _time := 0.0
 var _save_t := 0.0
+var _stack_count := 0
 var _visibility_cb: JavaScriptObject
 
 
@@ -50,7 +51,7 @@ func _ready() -> void:
 	for p in sim.pads:
 		var pv := PadView.new()
 		add_child(pv)
-		pv.setup(p)
+		pv.setup(p, defs)
 		_pads.append(pv)
 
 	_flyers = FlyerLayer.new()
@@ -69,23 +70,29 @@ func _ready() -> void:
 	_player_stack.defs = defs
 	_player_stack.column_size = defs.tuning.stack_column_size
 	_player_stack.show_items(sim.state.stack)
+	_stack_count = sim.state.stack.size()
 
 	for d in sim.drones:
 		_add_drone_view(d)
 
 	sim.item_flew.connect(_on_item_flew)
-	sim.stack_changed.connect(func(): _player_stack.show_items(sim.state.stack))
-	sim.node_dug.connect(func(i): _nodes[i].dug())
+	sim.stack_changed.connect(_on_stack_changed)
+	sim.node_dug.connect(_on_node_dug)
 	sim.drone_added.connect(_add_drone_view)
 	EventBus.planet_won.connect(_on_won)
+	EventBus.credits_earned.connect(_on_credits)
+	EventBus.purchased.connect(_on_purchased)
 
 	_joystick.blocker = _hud.blocks_touch
 	_hud.menu_opened.connect(func(): _set_paused(true))
 	_hud.menu_closed.connect(func(): _set_paused(false))
 	_hud.restart_requested.connect(func(): _travel(GameState.restart_planet))
-	_hud.launch_requested.connect(func(): _travel(GameState.next_planet))
+	_hud.launch_requested.connect(func():
+		Audio.play(&"lander")
+		_travel(GameState.next_planet))
 	_hud.stay_requested.connect(func(): _set_paused(false))
 	_hud.title_requested.connect(func():
+		Audio.stop_ambience()
 		GameState.save()
 		GameState.sim = null
 		get_tree().change_scene_to_file("res://scenes/ui/title.tscn"))
@@ -97,6 +104,9 @@ func _ready() -> void:
 	_shown_tf = sim.state.terraform
 	_terraform.apply(_shown_tf, 0.0, true, _player.global_position)
 	_setup_web_visibility_save()
+	# Scenes load after the title's Start tap, so iOS already allows audio here.
+	Audio.set_terraform(_shown_tf)
+	Audio.start_ambience()
 
 
 func _process(delta: float) -> void:
@@ -119,6 +129,7 @@ func _process(delta: float) -> void:
 
 	_shown_tf += (sim.state.terraform - _shown_tf) * minf(1.0, dt * defs.terraform.display_rate)
 	_terraform.apply(_shown_tf, dt, false, p)
+	Audio.set_terraform(_shown_tf)
 
 	var step := Tutorial.current(sim.tutorial_steps(), sim.state)
 	_guide.update_guide(step != null and step.has_target, step.target if step else Vector2.ZERO, Vector2(p.x, p.z), dt)
@@ -152,8 +163,40 @@ func _travel(action: Callable) -> void:
 
 func _on_won() -> void:
 	_set_paused(true)
+	Audio.play(&"win")
 	var next_name := GameSim.planet_display_name(defs, sim.state.planet_index + 1)
 	_hud.show_win(sim.planet_name(), next_name, sim.planet.win_text)
+
+
+func _on_stack_changed() -> void:
+	var n := sim.state.stack.size()
+	_player_stack.show_items(sim.state.stack)
+	if n > _stack_count:
+		_player_stack.pop()
+		# The pick-up climbs in pitch as the stack grows.
+		var j := defs.juice
+		Audio.play(&"pickup", minf(1.0 + j.pickup_pitch_step * n, j.pickup_pitch_max))
+	elif n < _stack_count:
+		Audio.play(&"drop")
+	_stack_count = n
+
+
+func _on_node_dug(i: int) -> void:
+	_nodes[i].dug()
+	if _nodes[i].global_position.distance_to(_player.global_position) < defs.juice.dig_hearing_radius:
+		Audio.play(&"dig")
+
+
+func _on_credits(_amount: float) -> void:
+	Audio.play(&"coin")
+
+
+func _on_purchased(key: StringName) -> void:
+	if String(key).begins_with("build_"):
+		Audio.play(&"build")
+		_camera.nudge()
+	else:
+		Audio.play(&"upgrade")
 
 
 func _on_item_flew(item: StringName, from: Vector3, to: Vector3) -> void:

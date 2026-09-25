@@ -4,6 +4,8 @@ extends SceneTree
 ##   xvfb-run -a -s "-screen 0 1280x1024x24" tools/godot/godot --resolution 390x844 \
 ##     -s tools/dev/screenshot.gd -- --tf=60 --drones=6 --built=all --out=/tmp/shot.png
 ## --scene=res://scenes/ui/title.tscn renders another scene instead of the planet.
+## --zoom=0.4 moves the camera closer; --face=90 turns the astronaut.
+## --win=25 opens the win screen 25 frames before the shot (confetti in the air).
 ## Uses throwaway profile 97, so real saves are untouched.
 
 func _init() -> void:
@@ -31,8 +33,19 @@ func _init() -> void:
 	gs.start(s)
 	var planet: Node = load(args.get("scene", "res://scenes/world/planet.tscn")).instantiate()
 	root.add_child(planet)
+	if args.has("zoom") and planet.has_node("Camera"):
+		# Closer (or further) look: scales the follow camera's offset.
+		var cam = planet.get_node("Camera")
+		cam.tuning = cam.tuning.duplicate()
+		cam.tuning.offset *= float(args.zoom)
+		cam.snap_to_target()
+	if args.has("face"):
+		# Turn the astronaut to face this yaw (degrees; 0 faces the camera).
+		planet.get_node("Player/Model").rotation.y = deg_to_rad(float(args.face))
 	for i in int(args.get("frames", "90")):
 		await process_frame
+		if args.has("win") and i == int(args.get("frames", "90")) - int(args.win) - 1:
+			planet._on_won()
 	var img := root.get_viewport().get_texture().get_image()
 	img.save_png(args.get("out", "user://shot.png"))
 	print("saved ", args.get("out", "user://shot.png"))

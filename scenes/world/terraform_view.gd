@@ -1,21 +1,31 @@
 class_name TerraformView
 extends Node3D
-## Turns the displayed terraform % into the planet's look: sky, fog, light, ground tint,
-## lakes, dust, and moss and trees that spread outward from the hub.
+## Turns the displayed terraform % into the planet's look: sky, fog, light, ground tint and moss
+## (ground_terraform shader), lakes (water shader), dust, and moss, grass, flowers and trees
+## that spread outward from the hub.
 
 const DUST_COUNT := 260
+const GROUND_SHADER := preload("res://shaders/ground_terraform.gdshader")
+const WATER_SHADER := preload("res://shaders/water.gdshader")
+const ROCK_MESH := preload("res://assets/meshes/decor_rock.res")
+const CRATER_MESH := preload("res://assets/meshes/decor_crater.res")
+const PINE_MESH := preload("res://assets/meshes/tree_pine.res")
+const ROUND_TREE_MESH := preload("res://assets/meshes/tree_round.res")
+const GRASS_MESH := preload("res://assets/meshes/grass_tuft.res")
+const FLOWER_MESH := preload("res://assets/meshes/flowers.res")
 
 var defs: GameDefs
 var planet: PlanetDef
 var environment: Environment
 var sun: DirectionalLight3D
 
-var ground_mat: StandardMaterial3D
+var ground_mat: ShaderMaterial
 var rock_mat: StandardMaterial3D
+var crater_mat: StandardMaterial3D
 var _lakes: Array[MeshInstance3D] = []
+var _lake_radius: Array[float] = []
 var _dust_mat: ShaderMaterial
-var _moss: Dictionary
-var _trees: Dictionary
+var _layers: Array[Dictionary] = []
 
 
 func build(p_defs: GameDefs, p_planet: PlanetDef, rng: RandomNumberGenerator) -> void:
@@ -23,8 +33,12 @@ func build(p_defs: GameDefs, p_planet: PlanetDef, rng: RandomNumberGenerator) ->
 	planet = p_planet
 	var tf := defs.terraform
 
-	ground_mat = ItemVisuals.lambert(planet.ground_start)
-	ground_mat.vertex_color_use_as_albedo = true
+	ground_mat = ShaderMaterial.new()
+	ground_mat.shader = GROUND_SHADER
+	ground_mat.set_shader_parameter("moss_color", planet.moss_color)
+	ground_mat.set_shader_parameter("hub", planet.hub_position)
+	ground_mat.set_shader_parameter("moss_edge", tf.ground_moss_edge)
+	ground_mat.set_shader_parameter("moss_strength", tf.ground_moss_strength)
 	var ground := MeshInstance3D.new()
 	ground.name = "Ground"
 	ground.mesh = TerrainBuilder.ground_mesh(rng)
@@ -32,40 +46,44 @@ func build(p_defs: GameDefs, p_planet: PlanetDef, rng: RandomNumberGenerator) ->
 	_no_shadow(ground)
 	add_child(ground)
 
-	var craters := MeshInstance3D.new()
+	crater_mat = _tinted(planet.ground_start * tf.rock_darken)
+	var craters := MultiMeshInstance3D.new()
 	craters.name = "Craters"
-	craters.mesh = TerrainBuilder.craters_mesh(planet, rng)
-	var crater_mat := ItemVisuals.unshaded(Color(0, 0, 0, 0.14))
-	crater_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	craters.multimesh = TerrainBuilder.craters_multimesh(planet, rng, CRATER_MESH)
 	craters.material_override = crater_mat
 	_no_shadow(craters)
 	add_child(craters)
 
-	rock_mat = ItemVisuals.lambert(planet.ground_start * tf.rock_darken)
+	rock_mat = _tinted(planet.ground_start * tf.rock_darken)
 	var rocks := MultiMeshInstance3D.new()
 	rocks.name = "Rocks"
-	rocks.multimesh = TerrainBuilder.rocks_multimesh(planet, rng)
+	rocks.multimesh = TerrainBuilder.rocks_multimesh(planet, rng, ROCK_MESH)
 	rocks.material_override = rock_mat
 	_no_shadow(rocks)
 	add_child(rocks)
 
-	var lake_mat := ItemVisuals.lambert(Color("2f6f8f"))
-	lake_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	lake_mat.albedo_color.a = 0.92
-	lake_mat.emission_enabled = true
-	lake_mat.emission = Color("0a2030")
+	var lake_mat := ShaderMaterial.new()
+	lake_mat.shader = WATER_SHADER
+	lake_mat.set_shader_parameter("deep_color", planet.water_deep)
+	lake_mat.set_shader_parameter("shallow_color", planet.water_shallow)
+	var lake_mesh := MeshUtil.water_disc(4, 28)
 	for lake in planet.lakes:
 		var mi := MeshInstance3D.new()
-		mi.mesh = MeshUtil.disc(lake.z, 32)
+		mi.mesh = lake_mesh
 		mi.material_override = lake_mat
 		mi.position = Vector3(lake.x, 0.05, lake.y)
 		mi.scale = Vector3.ONE * 0.001
 		_no_shadow(mi)
 		add_child(mi)
 		_lakes.append(mi)
+		_lake_radius.append(lake.z)
 
-	_moss = _build_layer("Moss", MeshUtil.disc(1.0, 7), tf.moss_count, rng, _place_moss)
-	_trees = _build_layer("Trees", MeshUtil.tree(), tf.tree_count, rng, _place_tree)
+	var pines := int(round(tf.tree_count * tf.tree_pine_share))
+	_layers.append(_build_layer("Moss", MeshUtil.disc(1.0, 7), tf.moss_count, rng, _place_moss))
+	_layers.append(_build_layer("Grass", GRASS_MESH, tf.grass_count, rng, _place_grass))
+	_layers.append(_build_layer("Flowers", FLOWER_MESH, tf.flower_count, rng, _place_flower))
+	_layers.append(_build_layer("Pines", PINE_MESH, pines, rng, _place_tree))
+	_layers.append(_build_layer("Trees", ROUND_TREE_MESH, tf.tree_count - pines, rng, _place_tree))
 	_build_dust(rng)
 
 
@@ -81,17 +99,31 @@ func apply(t: float, delta: float, snap: bool, player_pos: Vector3) -> void:
 	var hemi := sky.lerp(Color.WHITE, 0.5) * (tf.ambient_energy + tf.ambient_energy_gain * k)
 	environment.ambient_light_color = Color(hemi.r + 0.18, hemi.g + 0.18, hemi.b + 0.18)
 	sun.light_energy = tf.sun_energy + tf.sun_energy_gain * k
-	ground_mat.albedo_color = planet.ground_start.lerp(planet.ground_end, k)
+	var ground := planet.ground_start.lerp(planet.ground_end, k)
+	ground_mat.set_shader_parameter("ground_tint", ground)
+	ground_mat.set_shader_parameter("moss_reach", moss_reach(tf, t))
+	var cover := clampf((t - tf.ground_moss_cover_start) / (tf.ground_moss_cover_full - tf.ground_moss_cover_start), 0.0, 1.0)
+	ground_mat.set_shader_parameter("moss_cover", lerpf(tf.ground_moss_cover_min, tf.ground_moss_cover_max, cover))
 	rock_mat.albedo_color = planet.ground_start * tf.rock_darken
+	crater_mat.albedo_color = ground * tf.rock_darken
 	_dust_mat.set_shader_parameter("opacity", tf.dust_opacity * maxf(0.0, 1.0 - t / tf.dust_gone_at))
 	_dust_mat.set_shader_parameter("color", planet.ground_start.lerp(Color.WHITE, 0.45))
 	_dust_mat.set_shader_parameter("center", player_pos)
 	var ls := TerraformMath.lake_scale(tf, t)
-	for mi in _lakes:
-		var cur := ls if snap else mi.scale.x + (ls - mi.scale.x) * minf(1.0, delta * tf.lake_grow_rate)
+	for i in _lakes.size():
+		var mi := _lakes[i]
+		var goal := ls * _lake_radius[i]
+		var cur := goal if snap else mi.scale.x + (goal - mi.scale.x) * minf(1.0, delta * tf.lake_grow_rate)
 		mi.scale = Vector3.ONE * maxf(0.001, cur)
-	_step_layer(_moss, t, delta, snap)
-	_step_layer(_trees, t, delta, snap)
+	for layer in _layers:
+		_step_layer(layer, t, delta, snap)
+
+
+## How far (metres from the hub) the ground moss has spread at terraform % t. It tracks the middle
+## of the moss patches' thresholds, so the patches and the ground turn green together.
+static func moss_reach(tf: TerraformDef, t: float) -> float:
+	var k := (t - tf.moss_threshold_base - tf.moss_threshold_jitter * 0.5) / tf.moss_threshold_spread
+	return maxf(0.0, k * tf.moss_radius)
 
 
 func _build_layer(layer_name: String, mesh: Mesh, count: int, rng: RandomNumberGenerator, placer: Callable) -> Dictionary:
@@ -107,8 +139,7 @@ func _build_layer(layer_name: String, mesh: Mesh, count: int, rng: RandomNumberG
 		data.append(d)
 		mm.set_instance_color(i, d.color)
 		mm.set_instance_transform(i, _layer_xform(d, 0.0001))
-	var mat := ItemVisuals.lambert(Color.WHITE)
-	mat.vertex_color_use_as_albedo = true
+	var mat := _tinted(Color.WHITE)
 	var mmi := MultiMeshInstance3D.new()
 	mmi.name = layer_name
 	mmi.multimesh = mm
@@ -153,10 +184,44 @@ func _place_moss(i: int, rng: RandomNumberGenerator) -> Dictionary:
 			break
 	var dist := Vector2(x, z).length()
 	return {
-		"x": x, "z": z, "y": 0.03 + i * 0.00004, "rot": rng.randf() * TAU, "s": 0.8 + rng.randf() * 1.6,
+		"x": x, "z": z, "y": 0.03 + i * 0.00004, "rot": rng.randf() * TAU, "s": 0.55 + rng.randf() * 1.1,
 		"th": tf.moss_threshold_base + dist / tf.moss_radius * tf.moss_threshold_spread + rng.randf() * tf.moss_threshold_jitter,
-		"color": hsl(0.24 + rng.randf() * 0.08, 0.35 + rng.randf() * 0.2, 0.3 + rng.randf() * 0.14),
+		"color": hsl(0.24 + rng.randf() * 0.08, 0.3 + rng.randf() * 0.18, 0.26 + rng.randf() * 0.12),
 	}
+
+
+func _place_grass(_i: int, rng: RandomNumberGenerator) -> Dictionary:
+	var tf := defs.terraform
+	var p := _open_spot(rng, 2.0, tf.grass_radius, -1.0, -0.2)
+	return {
+		"x": p.x, "z": p.y, "y": 0.0, "rot": rng.randf() * TAU, "s": 0.7 + rng.randf() * 0.7,
+		"th": tf.grass_threshold_base + p.length() / tf.grass_radius * tf.grass_threshold_spread + rng.randf() * tf.grass_threshold_jitter,
+		"color": hsl(0.25 + rng.randf() * 0.08, 0.4 + rng.randf() * 0.2, 0.42 + rng.randf() * 0.14),
+	}
+
+
+func _place_flower(_i: int, rng: RandomNumberGenerator) -> Dictionary:
+	var tf := defs.terraform
+	var p := _open_spot(rng, 3.0, tf.flower_radius, -0.8, 0.0)
+	return {
+		"x": p.x, "z": p.y, "y": 0.0, "rot": rng.randf() * TAU, "s": 0.8 + rng.randf() * 0.5,
+		"th": tf.flower_threshold_base + p.length() / tf.flower_radius * tf.flower_threshold_spread + rng.randf() * tf.flower_threshold_jitter,
+		"color": Color.WHITE.lerp(hsl(rng.randf(), 0.7, 0.75), 0.35),
+	}
+
+
+## A random spot between the radii that avoids clear zones and lakes (margins as in is_clear/is_dry).
+func _open_spot(rng: RandomNumberGenerator, min_r: float, max_r: float, clear_margin: float, dry_margin: float) -> Vector2:
+	var x := 0.0
+	var z := 0.0
+	for attempt in 200:
+		var a := rng.randf() * TAU
+		var r := min_r + sqrt(rng.randf()) * (max_r - min_r)
+		x = cos(a) * r
+		z = sin(a) * r
+		if TerrainBuilder.is_clear(planet, x, z, clear_margin) and TerrainBuilder.is_dry(planet, x, z, dry_margin):
+			break
+	return Vector2(x, z)
 
 
 func _place_tree(_i: int, rng: RandomNumberGenerator) -> Dictionary:
@@ -198,6 +263,14 @@ func _build_dust(rng: RandomNumberGenerator) -> void:
 	mmi.custom_aabb = AABB(Vector3(-200, -10, -200), Vector3(400, 40, 400))
 	_no_shadow(mmi)
 	add_child(mmi)
+
+
+## Material for a baked mesh tinted by one colour (vertex colour × albedo).
+func _tinted(color: Color) -> StandardMaterial3D:
+	var m := ItemVisuals.lambert(color)
+	m.vertex_color_use_as_albedo = true
+	m.vertex_color_is_srgb = true
+	return m
 
 
 func _no_shadow(g: GeometryInstance3D) -> void:

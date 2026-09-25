@@ -49,6 +49,16 @@ xvfb-run -a -s "-screen 0 1280x1024x24" tools/godot/godot --resolution 390x844 \
   -s tools/dev/screenshot.gd -- --tf=60 --drones=6 --built=all --out=/tmp/shot.png
 ```
 
+## Models
+
+The Kenney GLBs in `assets/models/` are sources only. `tools/dev/bake_models.gd` merges each one into a single vertex-coloured mesh (`assets/meshes/*.res`) and writes the building scenes in `scenes/buildings/`. That keeps each building, drone and rock to one draw call. After changing a model or its placement in that script, run:
+
+```sh
+tools/godot/godot --headless --import && tools/godot/godot --headless --script tools/dev/bake_models.gd
+```
+
+`tools/dev/screenshot.gd` also takes `--zoom=0.4` for a closer look, `--face=90` to turn the astronaut, and `--win=25` to show the win screen.
+
 ## Exporting for web
 
 ```sh
@@ -88,7 +98,10 @@ Open the game's own URL in Safari. For a full-screen PWA, use the direct HTML5 f
 See `SPEC.md` section 7.2. Every tunable number lives in a `.tres` file under `data/`, and scripts only read those resources. The starting point is `data/game.tres`, which links items, planets, upgrades and tuning. Open any of these in the Godot Inspector to change the numbers.
 
 - `scripts/systems/`: pure game rules with no scene access (`GameSim`, `Economy`, `DroneBrain`, `Tutorial`, `BotPlayer`, ...).
-- `scripts/autoload/`: `GameState` (the running sim), `SaveManager` (profiles, saves, settings), `EventBus`, `DisplayScale`.
+- `scripts/autoload/`: `GameState` (the running sim), `SaveManager` (profiles, saves, settings), `EventBus`, `DisplayScale`, `Audio` (sound effects, wind and birdsong).
+- `assets/`: fonts, source models (`models/`, not exported), baked meshes (`meshes/`), shared materials and sound effects. Every pack is listed in `assets/LICENSES.md`.
+- `shaders/`: pads, label panels, dust, the terraform ground and the lakes.
+- `data/juice.tres` and `data/audio.tres`: feedback animation numbers and sound levels.
 - `scenes/world/planet.tscn`: the playable planet. It builds everything from data and draws the sim's state.
 - `scenes/ui/title.tscn`: the main scene, with three explorer profiles and settings.
 

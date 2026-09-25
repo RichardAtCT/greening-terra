@@ -8,6 +8,9 @@ const SUB_FONT := preload("res://assets/fonts/IBMPlexMono-SemiBold.ttf")
 ## Metres per pixel of the prototype's 256 px pad canvas drawn over 2.1 m.
 const PX := 2.1 / 256.0
 const LIFT := 0.03
+## Item icons float above the far edge of the pad (turn and bob numbers are in JuiceTuning).
+const ICON_Z := -0.55
+const ICON_SPACING := 0.72
 
 static var _base_mesh: BoxMesh
 static var _base_mat: StandardMaterial3D
@@ -17,9 +20,12 @@ var _top_mat: ShaderMaterial
 var _title: Label3D
 var _sub: Label3D
 var _near := false
+var _icons: Array[Node3D] = []
+var _time := 0.0
+var _juice: JuiceTuning
 
 
-func setup(p_info: PadInfo) -> void:
+func setup(p_info: PadInfo, defs: GameDefs = null) -> void:
 	info = p_info
 	name = "Pad_" + info.key
 	position = Vector3(info.position.x, 0, info.position.y)
@@ -51,6 +57,35 @@ func setup(p_info: PadInfo) -> void:
 	_title = _flat_label(TITLE_FONT, 62, info.title, 0.0 if not has_sub else 22.0)
 	if has_sub:
 		_sub = _flat_label(SUB_FONT, 25, info.label, -40.0)
+	_add_icons(defs)
+
+
+func _add_icons(defs: GameDefs) -> void:
+	_juice = defs.juice if defs else GameState.defs.juice
+	var nodes: Array[Node3D] = []
+	if info.kind == PadInfo.Kind.PAY:
+		nodes.append(ItemVisuals.coin())
+	elif defs:
+		for id in info.icons:
+			nodes.append(ItemVisuals.instance(defs.item(id)))
+	for i in nodes.size():
+		var pivot := Node3D.new()
+		pivot.position = Vector3((i - (nodes.size() - 1) * 0.5) * ICON_SPACING, _juice.icon_height, ICON_Z)
+		pivot.scale = Vector3.ONE * _juice.icon_scale
+		pivot.rotation.y = i * 0.9
+		pivot.add_child(nodes[i])
+		add_child(pivot)
+		_icons.append(pivot)
+
+
+func _process(delta: float) -> void:
+	if _icons.is_empty() or not is_visible_in_tree():
+		return
+	_time += delta
+	for i in _icons.size():
+		var ic := _icons[i]
+		ic.rotation.y += delta * _juice.icon_spin
+		ic.position.y = _juice.icon_height + sin(_time * 2.0 + i * 1.3) * _juice.icon_bob
 
 
 func _flat_label(font: Font, size: int, text: String, offset_px: float) -> Label3D:

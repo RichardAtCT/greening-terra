@@ -13,6 +13,8 @@ var machine: MachineDef
 var title: String
 var label: String
 var color: Color
+## Items drawn above the pad so it can be read without reading (SPEC 6). Pay pads show a coin instead.
+var icons: Array[StringName] = []
 
 
 func _init(p_key: StringName, p_kind: Kind, p_position: Vector2) -> void:
