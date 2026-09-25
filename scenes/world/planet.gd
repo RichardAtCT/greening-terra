@@ -170,7 +170,7 @@ func _process(delta: float) -> void:
 	for pv in _pads:
 		var vis := sim.pad_visible(pv.info)
 		pv.visible = vis
-		if vis and (pv.info.pay == PadInfo.Pay.UPGRADE_MACHINE or pv.info.pay == PadInfo.Pay.UPGRADE_HAULERS):
+		if vis and sim.shows_cost(pv.info):
 			pv.set_label(sim.upgrade_pad_label(pv.info))
 		# A pay pad dims while it rests after a purchase, so the player sees it's done.
 		pv.set_near(vis and not sim.pad_resting(pv.info) and Vector2(p.x, p.z).distance_to(pv.info.position) < defs.tuning.pad_radius)
@@ -389,7 +389,13 @@ func _update_buildings() -> void:
 	if not bay_built:
 		_bay.label.set_text("Drone Bay", "₵ %d / %d" % [s.paid.get(&"build_bay", 0), sim.planet.bay_cost])
 	elif s.drones >= sim.planet.max_drones:
-		_bay.label.set_text("Drone Bay", "%d haulers · carry %d" % [s.drones, sim.drone_capacity()])
+		# At the cap, the next hauler upgrade is what's left to buy here.
+		var up := sim.pad(&"upgrade_haulers")
+		var up_cost := sim.pad_cost(up) if up else -1
+		if up_cost > 0 and sim.pad_visible(up):
+			_bay.label.set_text("Drone Bay", "%d haulers · upgrade ₵%d" % [s.drones, up_cost])
+		else:
+			_bay.label.set_text("Drone Bay", "%d haulers · carry %d" % [s.drones, sim.drone_capacity()])
 	else:
 		var paid: int = s.paid.get(&"buy_drone", 0)
 		var next_cost := Economy.drone_cost(defs, s.drones, sim.planet.max_drones)
@@ -397,10 +403,8 @@ func _update_buildings() -> void:
 		if paid > 0:
 			txt += " (%d paid)" % paid
 		_bay.label.set_text("Drone Bay", txt)
-	var pack_cost := Economy.upgrade_cost(defs.pack_upgrade, s.pack_level)
-	var boots_cost := Economy.upgrade_cost(defs.boots_upgrade, s.boots_level)
-	_outfitter.label.set_text("Outfitter", "Pack %s · Boots %s" % [
-		"max" if pack_cost < 0 else "₵%d" % pack_cost, "max" if boots_cost < 0 else "₵%d" % boots_cost])
+	# Each pad shows its own next cost; the label just says the kit comes with you.
+	_outfitter.label.set_text("Outfitter", "kit that travels with you")
 	_update_habitats()
 	# Burning towers melt the frost round them; frozen machines frost over with the snap.
 	var warm := []
