@@ -31,6 +31,20 @@ extends Resource
 ## Send goods to the greenhouse only while its queue has this much room.
 @export var drone_queue_margin: int = 3
 @export var drone_hover_height: float = 2.4
+## Haulers with nothing to do hover in a ring this wide beside the Drone Bay.
+@export var drone_idle_radius: float = 1.6
+
+@export_group("Dispatcher")
+## Job score (SPEC 4.5): how empty the target's queue is (0..1) times need_weight, plus how full the
+## source's OUT pad is (0..1) times full_weight, plus the load's share of a full hold times
+## load_weight, plus a bonus by kind, minus metres flown (hauler → source → target) times distance_weight.
+@export var dispatch_need_weight: float = 10.0
+@export var dispatch_full_weight: float = 12.0
+@export var dispatch_load_weight: float = 4.0
+## Carrying goods on to another machine beats selling them.
+@export var dispatch_feed_bonus: float = 3.0
+@export var dispatch_sell_bonus: float = 0.0
+@export var dispatch_distance_weight: float = 0.12
 
 @export_group("Presentation")
 @export var fly_time: float = 0.3

@@ -12,6 +12,7 @@ const BUY_VALUE := {
 	PadInfo.Pay.BUY_DRONE: 2.0,
 	PadInfo.Pay.PACK: 1.2,
 	PadInfo.Pay.BOOTS: 1.0,
+	PadInfo.Pay.BUILD_HABITAT: 1.5,
 }
 
 var sim: GameSim

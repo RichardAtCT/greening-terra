@@ -9,6 +9,7 @@
 [ext_resource type="Resource" path="res://data/planets/nodes_ice.tres" id="7_wsnkw"]
 [ext_resource type="Script" path="res://scripts/data/planet_def.gd" id="8_luayi"]
 [ext_resource type="Resource" path="res://data/planets/tutorial_standard.tres" id="9_yxwmf"]
+[ext_resource type="Resource" path="res://data/hazards/dust_storm.tres" id="10_storm"]
 
 [resource]
 script = ExtResource("8_luayi")
@@ -22,6 +23,7 @@ ground_end = Color(0.43137255, 0.3529412, 0.22745098, 1)
 machines = Array[ExtResource("1_u11pg")]([ExtResource("2_lk4so"), ExtResource("3_3wn7q"), ExtResource("4_ccoi5")])
 resource_nodes = Array[ExtResource("5_s7k2t")]([ExtResource("6_u4thv"), ExtResource("7_wsnkw")])
 lakes = Array[Vector3]([Vector3(-26, -4, 5.5), Vector3(4, 21, 6.5), Vector3(27, -21, 4.5), Vector3(-22, 22, 4)])
-clear_zones = Array[Vector3]([Vector3(0, 0, 5), Vector3(-8, -2.5, 4.6), Vector3(8, -2.5, 4.6), Vector3(0, -9.5, 4.8), Vector3(-15, -7.5, 4.2), Vector3(15, -7.5, 4.2), Vector3(-15, 7, 5), Vector3(15, 7, 5), Vector3(0, 6.5, 3)])
+clear_zones = Array[Vector3]([Vector3(0, 0, 5), Vector3(-8, -2.5, 4.6), Vector3(8, -2.5, 4.6), Vector3(0, -9.5, 4.8), Vector3(-15, -7.5, 4.2), Vector3(15, -7.5, 4.2), Vector3(-15, 7, 5), Vector3(15, 7, 5), Vector3(0, 6.5, 3), Vector3(-6, 11.5, 3.2), Vector3(6, 11.5, 3.2), Vector3(-3, 16, 3.2), Vector3(6.5, 4.5, 2.4)])
+hazard = ExtResource("10_storm")
 tutorial = ExtResource("9_yxwmf")
 win_text = "Lakes, lichen and young forest now cover the landing zone. The next world pays more but greens more slowly. Your pack and boots come with you."

@@ -18,6 +18,7 @@
 [ext_resource type="Resource" path="res://data/terraform.tres" id="16_soc6g"]
 [ext_resource type="Resource" path="res://data/game_tuning.tres" id="17_akfar"]
 [ext_resource type="Resource" path="res://data/juice.tres" id="18_juice"]
+[ext_resource type="Resource" path="res://data/colony_tuning.tres" id="19_colony"]
 
 [resource]
 script = ExtResource("15_aeqsm")
@@ -30,3 +31,4 @@ pack_upgrade = ExtResource("9_cnyv5")
 boots_upgrade = ExtResource("1_ftb2l")
 drone_upgrade = ExtResource("2_7qjd5")
 juice = ExtResource("18_juice")
+colony = ExtResource("19_colony")

@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="ColonyTuning" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/colony_tuning.gd" id="1_colony"]
+
+[resource]
+script = ExtResource("1_colony")

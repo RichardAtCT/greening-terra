@@ -14,6 +14,13 @@ signal purchased(key: StringName)
 signal toast(text: String)
 signal drone_added(drone: DroneBrain.Drone)
 signal planet_won
+## A lander has appeared in the sky; it touches down lander_descent_time later.
+signal lander_coming
+signal lander_landed(colonists: int)
+signal colonist_added(colonist: Colony.Colonist)
+## A delivery went into the hub's food store instead of being sold.
+signal food_stored(item: StringName)
+signal hazard_changed(phase: HazardDirector.Phase)
 
 const PLAYER_STACK_HEIGHT := 1.6
 const PAD_DROP_HEIGHT := 0.4
@@ -26,6 +33,7 @@ var pads: Array[PadInfo] = []
 ## Flattened resource nodes: { "item", "position", "max_stock" }.
 var nodes: Array[Dictionary] = []
 var drones: Array[DroneBrain.Drone] = []
+var colonists: Array[Colony.Colonist] = []
 
 var _timers: Dictionary = {}
 var _machines: Dictionary = {}
@@ -43,6 +51,7 @@ func _init(p_defs: GameDefs, p_state: WorldState) -> void:
 	_build_pads()
 	for i in state.drones:
 		_spawn_drone()
+	_restore_colonists()
 
 
 ## Fresh state for a planet, carrying over the player's kit.
@@ -81,7 +90,11 @@ func pack_full() -> bool:
 
 
 func move_speed() -> float:
-	return Economy.move_speed(defs, state)
+	return Economy.move_speed(defs, state) * HazardDirector.player_factor(self)
+
+
+func drone_speed() -> float:
+	return defs.tuning.drone_speed * HazardDirector.drone_factor(self)
 
 
 func planet_name() -> String:
@@ -128,10 +141,15 @@ func dig_node(index: int) -> void:
 
 func deliver_item(item: StringName, from: Vector3) -> void:
 	var def := defs.item(item)
-	if Economy.deliver(state, def, planet):
-		var hub := planet.hub_position
-		item_flew.emit(item, from, Vector3(hub.x, HUB_DROP_HEIGHT, hub.y))
-		delivered.emit(item, Economy.payout(def, planet))
+	var credits := Economy.deliver(state, def, planet, Colony.food_target(self))
+	if credits < 0.0:
+		return
+	var hub := planet.hub_position
+	item_flew.emit(item, from, Vector3(hub.x, HUB_DROP_HEIGHT, hub.y))
+	if credits > 0.0:
+		delivered.emit(item, credits)
+	else:
+		food_stored.emit(item)
 
 
 ## Is the pad in play right now (e.g. BUILD pads vanish once built)?
@@ -147,6 +165,9 @@ func pad_visible(p: PadInfo) -> bool:
 					return not state.is_built(&"bay")
 				PadInfo.Pay.BUY_DRONE:
 					return state.is_built(&"bay")
+				PadInfo.Pay.BUILD_HABITAT:
+					# Offered one at a time, once colonists have a first home.
+					return not state.is_built(Colony.habitat_key(p.index)) and state.is_built(Colony.habitat_key(p.index - 1))
 	return true
 
 
@@ -163,6 +184,8 @@ func pad_cost(p: PadInfo) -> int:
 			return Economy.upgrade_cost(defs.pack_upgrade, state.pack_level)
 		PadInfo.Pay.BOOTS:
 			return Economy.upgrade_cost(defs.boots_upgrade, state.boots_level)
+		PadInfo.Pay.BUILD_HABITAT:
+			return planet.habitat_costs[p.index]
 	return -1
 
 
@@ -172,9 +195,11 @@ func step(dt: float, player_pos: Vector2) -> void:
 	_step_mining(dt, player_pos)
 	_step_nodes(dt)
 	_step_pads(dt, player_pos)
+	HazardDirector.step(self, dt)
+	Colony.step(self, dt)
 	for m in planet.machines:
 		if state.is_built(m.id):
-			Economy.step_machine(state, m, dt)
+			Economy.step_machine(state, m, dt, Colony.machine_speed(self, m.id))
 	for d in drones:
 		DroneBrain.step(self, d, dt)
 	Tutorial.advance(tutorial_steps(), state)
@@ -283,6 +308,10 @@ func _buy(p: PadInfo) -> void:
 		PadInfo.Pay.BOOTS:
 			state.boots_level += 1
 			toast.emit("Boots +%d%%" % roundi(state.boots_level * defs.boots_upgrade.amount_per_level * 100.0))
+		PadInfo.Pay.BUILD_HABITAT:
+			state.built[Colony.habitat_key(p.index)] = true
+			toast.emit("Habitat %d built · room for %d more" % [p.index + 1, defs.colony.habitat_capacity])
+			Colony.house(self)
 	purchased.emit(p.key)
 
 
@@ -292,6 +321,18 @@ func _spawn_drone() -> void:
 	d.position = planet.bay_position
 	drones.append(d)
 	drone_added.emit(d)
+
+
+## Colonists loaded from a save start at their posts (or at home when off duty).
+func _restore_colonists() -> void:
+	for i in state.meals.size():
+		Colony.spawn(self, i, Colony.home(self, i))
+	Colony._assign(self)
+	for c in colonists:
+		if c.machine:
+			c.position = Colony.work_spot(self, c.machine, c.slot)
+			c.target = c.position
+	Colony._step_food(self, 0.0)
 
 
 func _build_nodes() -> void:
@@ -336,6 +377,11 @@ func _build_pads() -> void:
 	_pay_pad(&"buy_drone", PadInfo.Pay.BUY_DRONE, bay_pad, defs.drone_upgrade.pad_title, defs.drone_upgrade.pad_label)
 	_pay_pad(&"pack", PadInfo.Pay.PACK, planet.outfitter_position + planet.pack_pad_offset, defs.pack_upgrade.pad_title, defs.pack_upgrade.pad_label)
 	_pay_pad(&"boots", PadInfo.Pay.BOOTS, planet.outfitter_position + planet.boots_pad_offset, defs.boots_upgrade.pad_title, defs.boots_upgrade.pad_label)
+	for i in planet.habitat_positions.size():
+		if i < planet.habitat_costs.size() and planet.habitat_costs[i] > 0:
+			var h := _pay_pad(StringName("build_" + Colony.habitat_key(i)), PadInfo.Pay.BUILD_HABITAT,
+				planet.habitat_positions[i] + planet.habitat_pad_offset, "BUILD", "₵%d" % planet.habitat_costs[i])
+			h.index = i
 
 
 func _pay_pad(key: StringName, pay: PadInfo.Pay, pos: Vector2, title: String, label: String) -> PadInfo:

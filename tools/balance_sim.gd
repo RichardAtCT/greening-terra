@@ -4,7 +4,8 @@ extends SceneTree
 ## planet finishes outside its target minutes by more than 20%.
 ##   godot --headless --script tools/balance_sim.gd [-- --planets=0,1,2 --dt=0.0333 --max-minutes=150]
 ## For quick experiments, --scale-tf=0.5 and --scale-machine-time=1.2 scale the loaded data in
-## memory (nothing is saved); put the numbers you settle on into data/.
+## memory (nothing is saved); put the numbers you settle on into data/. --no-colony (no landers)
+## and --no-hazard (no storms) show what each M4 system does to the pace.
 
 const TOLERANCE := 0.2
 
@@ -18,6 +19,12 @@ func _init() -> void:
 	if args.has("scale-tf"):
 		for item in defs.items:
 			item.terraform_value *= float(args["scale-tf"])
+	if args.has("no-colony") or args.has("no-hazard"):
+		for p in defs.planets:
+			if args.has("no-colony"):
+				p.lander_milestones = PackedFloat32Array()
+			if args.has("no-hazard"):
+				p.hazard = null
 	if args.has("scale-machine-time"):
 		for m in defs.planet(0).machines:
 			m.recipe.time *= float(args["scale-machine-time"])
@@ -50,6 +57,8 @@ func _init() -> void:
 			"%d-%d min" % [planet.target_minutes.x, planet.target_minutes.y], verdict])
 		print("    end: %d drones, pack lvl %d, boots lvl %d, %d delivered, ₵%d left" % [
 			res.drones, res.pack_level, res.boots_level, res.delivered, res.credits])
+		print("    colony: %d colonists housed (%d waiting), %d habitats, %d pods stored as food, %d%% of colonist time hungry; %d hazards" % [
+			res.housed, res.waiting, res.habitats, res.food_stored, res.hungry_pct, res.hazards])
 	print("")
 	quit(1 if failures > 0 else 0)
 
@@ -60,9 +69,13 @@ static func run_planet(defs: GameDefs, index: int, pack: int, boots: int, dt: fl
 	var bot := BotPlayer.new(sim)
 	var times := {}
 	var t := 0.0
+	var colonist_time := 0.0
+	var hungry_time := 0.0
 	while t < max_minutes * 60.0 and state.terraform < 100.0:
 		bot.step(dt)
 		t += dt
+		colonist_time += state.meals.size() * dt
+		hungry_time += Colony.hungry_count(sim) * dt
 		for id in [&"bay", &"greenhouse"]:
 			if state.is_built(id) and not times.has(String(id)):
 				times[String(id)] = t
@@ -76,6 +89,9 @@ static func run_planet(defs: GameDefs, index: int, pack: int, boots: int, dt: fl
 	return {
 		"times": times, "pack_level": state.pack_level, "boots_level": state.boots_level,
 		"drones": state.drones, "delivered": state.stat(&"delivered"), "credits": int(state.credits),
+		"housed": state.meals.size(), "waiting": state.colonists_waiting, "habitats": Colony.habitats_built(sim),
+		"food_stored": state.stat(&"food_stored"), "hazards": state.hazard_count,
+		"hungry_pct": roundi(100.0 * hungry_time / maxf(colonist_time, 0.001)),
 	}
 
 
