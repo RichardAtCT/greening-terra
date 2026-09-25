@@ -29,6 +29,26 @@ tools/test.sh -gselect=test_movement   # a single script
 
 Settings are in `.gutconfig.json`. In the editor, you can also run tests from the GUT panel at the bottom.
 
+## Balance simulator
+
+```sh
+tools/godot/godot --headless --script tools/balance_sim.gd                  # all planets
+tools/godot/godot --headless --script tools/balance_sim.gd -- --planets=0   # Planet 1 only
+```
+
+A greedy scripted player (`scripts/systems/bot_player.gd`) plays each planet on the real `GameSim` in accelerated time. It prints the time to each milestone (first build, drone bay, greenhouse, 25/50/75/100%). It exits with code 1 if an enforced planet misses its `target_minutes` (set in its `PlanetDef`) by more than 20%. Run it after every balance change.
+
+To try a change without editing data, pass `--scale-tf=0.8` (terraform value per item) or `--scale-machine-time=1.2`. These change the loaded data in memory only.
+
+## Screenshots without a phone
+
+`tools/dev/screenshot.gd` renders any game state to a PNG (it needs a display; `xvfb-run` works on a server):
+
+```sh
+xvfb-run -a -s "-screen 0 1280x1024x24" tools/godot/godot --resolution 390x844 \
+  -s tools/dev/screenshot.gd -- --tf=60 --drones=6 --built=all --out=/tmp/shot.png
+```
+
 ## Exporting for web
 
 ```sh
@@ -65,4 +85,13 @@ Open the game's own URL in Safari. For a full-screen PWA, use the direct HTML5 f
 
 ## Project layout
 
-See `SPEC.md` section 7.2. Every tunable number lives in a `.tres` file under `data/`, and scripts only read those resources.
+See `SPEC.md` section 7.2. Every tunable number lives in a `.tres` file under `data/`, and scripts only read those resources. The starting point is `data/game.tres`, which links items, planets, upgrades and tuning. Open any of these in the Godot Inspector to change the numbers.
+
+- `scripts/systems/`: pure game rules with no scene access (`GameSim`, `Economy`, `DroneBrain`, `Tutorial`, `BotPlayer`, ...).
+- `scripts/autoload/`: `GameState` (the running sim), `SaveManager` (profiles, saves, settings), `EventBus`, `DisplayScale`.
+- `scenes/world/planet.tscn`: the playable planet. It builds everything from data and draws the sim's state.
+- `scenes/ui/title.tscn`: the main scene, with three explorer profiles and settings.
+
+## Saves
+
+Each explorer's game is saved to `user://profile_N.json`, which is IndexedDB on web. The game saves every 10 s, after every purchase, on winning, and when the page is hidden. In the in-game menu, **Back up save** shows the save as one line of text to copy somewhere safe, and **Restore save** takes that text back. That's the fix for when Safari clears website data. Names, colours and settings are stored separately in `user://profiles.json` and `user://settings.json`.

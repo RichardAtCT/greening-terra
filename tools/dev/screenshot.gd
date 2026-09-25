@@ -3,6 +3,7 @@ extends SceneTree
 ## Needs a display (e.g. xvfb-run). Example:
 ##   xvfb-run -a -s "-screen 0 1280x1024x24" tools/godot/godot --resolution 390x844 \
 ##     -s tools/dev/screenshot.gd -- --tf=60 --drones=6 --built=all --out=/tmp/shot.png
+## --scene=res://scenes/ui/title.tscn renders another scene instead of the planet.
 ## Uses throwaway profile 97, so real saves are untouched.
 
 func _init() -> void:
@@ -28,7 +29,7 @@ func _init() -> void:
 		s.stack.append([&"regolith", &"plate", &"o2", &"seedpod"][i % 4] if args.get("mixed", "") != "" else &"regolith")
 	s.tutorial_step = int(args.get("step", "0"))
 	gs.start(s)
-	var planet: Node = load("res://scenes/world/planet.tscn").instantiate()
+	var planet: Node = load(args.get("scene", "res://scenes/world/planet.tscn")).instantiate()
 	root.add_child(planet)
 	for i in int(args.get("frames", "90")):
 		await process_frame

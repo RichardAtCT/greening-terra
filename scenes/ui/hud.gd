@@ -8,6 +8,8 @@ signal menu_closed
 signal restart_requested
 signal launch_requested
 signal stay_requested
+signal title_requested
+signal restore_requested(state: WorldState)
 
 var _safe := Vector4.ZERO
 var _root: MarginContainer
@@ -37,6 +39,7 @@ var _win: Control
 var _win_title: Label
 var _win_body: Label
 var _launch_button: Button
+var _settings: SettingsPanel
 
 
 func _ready() -> void:
@@ -55,13 +58,13 @@ func _ready() -> void:
 
 ## True while a touch at pos should not move the player (buttons, open overlays).
 func blocks_touch(pos: Vector2) -> bool:
-	if _menu.visible or _win.visible:
+	if _menu.visible or _win.visible or _settings.visible:
 		return true
 	return _menu_button.get_global_rect().grow(6).has_point(pos)
 
 
 func is_overlay_open() -> bool:
-	return _menu.visible or _win.visible
+	return _menu.visible or _win.visible or _settings.visible
 
 
 func update_hud(sim: GameSim, shown_tf: float, delta: float) -> void:
@@ -355,7 +358,43 @@ func _build_menu() -> Control:
 	_reset_button = UiStyle.button("Restart planet", false, true)
 	_reset_button.pressed.connect(_on_reset)
 	btns.add_child(_reset_button)
+	var more := HFlowContainer.new()
+	more.add_theme_constant_override("h_separation", 8)
+	more.add_theme_constant_override("v_separation", 8)
+	col.add_child(more)
+	var settings := UiStyle.button("Settings")
+	settings.pressed.connect(func(): _settings.visible = true)
+	more.add_child(settings)
+	var backup := UiStyle.button("Back up save")
+	backup.pressed.connect(_on_backup)
+	more.add_child(backup)
+	var restore := UiStyle.button("Restore save")
+	restore.pressed.connect(_on_restore)
+	more.add_child(restore)
+	var switch := UiStyle.button("Switch explorer")
+	switch.pressed.connect(func(): title_requested.emit())
+	more.add_child(switch)
+	_settings = SettingsPanel.new()
+	add_child(_settings)
+	_settings.visible = false
 	return parts[0]
+
+
+func _on_backup() -> void:
+	GameState.save()
+	TextPrompt.show_copyable(self, "Copy this text and keep it somewhere safe:", SaveManager.export_text(GameState.sim.state))
+
+
+func _on_restore() -> void:
+	TextPrompt.ask(self, "Paste a backed-up save (this replaces the current game):", "", func(text):
+		if text == null or String(text).strip_edges() == "":
+			return
+		var state := SaveManager.import_text(text)
+		if state == null:
+			show_toast("That doesn't look like a save")
+			return
+		_menu.visible = false
+		restore_requested.emit(state))
 
 
 func _on_reset() -> void:

@@ -39,3 +39,14 @@ func test_planet_with_haulers_runs_60_seconds() -> void:
 		world._process(0.1)
 	assert_gt(GameState.sim.state.stat(&"produced_plate"), 0)
 	assert_eq(world.get_node("Player").get_class(), "CharacterBody3D")
+
+
+func test_title_screen_loads_and_lists_three_profiles() -> void:
+	var title: Control = load("res://scenes/ui/title.tscn").instantiate()
+	add_child_autofree(title)
+	await wait_frames(2)
+	var names := 0
+	for l in title.find_children("*", "Label", true, false):
+		if (l as Label).text.begins_with("Explorer") or (l as Label).text == SaveManager.profile_name(1):
+			names += 1
+	assert_gte(names, 3)

@@ -13,7 +13,7 @@ config_version=5
 config/name="Greening Tessera"
 config/description="An ad-free arcade idle terraforming game."
 config/version="0.0.1"
-run/main_scene="res://scenes/world/planet.tscn"
+run/main_scene="res://scenes/ui/title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 

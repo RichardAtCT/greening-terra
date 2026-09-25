@@ -85,6 +85,14 @@ func _ready() -> void:
 	_hud.restart_requested.connect(func(): _travel(GameState.restart_planet))
 	_hud.launch_requested.connect(func(): _travel(GameState.next_planet))
 	_hud.stay_requested.connect(func(): _set_paused(false))
+	_hud.title_requested.connect(func():
+		GameState.save()
+		GameState.sim = null
+		get_tree().change_scene_to_file("res://scenes/ui/title.tscn"))
+	_hud.restore_requested.connect(func(state: WorldState):
+		_travel(func():
+			GameState.start(state)
+			GameState.save()))
 
 	_shown_tf = sim.state.terraform
 	_terraform.apply(_shown_tf, 0.0, true, _player.global_position)
@@ -116,7 +124,8 @@ func _process(delta: float) -> void:
 	_guide.update_guide(step != null and step.has_target, step.target if step else Vector2.ZERO, Vector2(p.x, p.z), dt)
 	_hud.update_hud(sim, _shown_tf, dt)
 
-	_save_t += dt
+	# Real time, not the capped sim step, so slow devices still autosave on schedule.
+	_save_t += delta
 	if _save_t >= defs.tuning.autosave_interval:
 		_save_t = 0.0
 		GameState.save()

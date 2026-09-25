@@ -16,7 +16,11 @@ func ensure_started() -> void:
 	if sim:
 		return
 	var state := SaveManager.load_state(SaveManager.active_profile)
-	start(state if state else GameSim.new_planet_state(defs, 0))
+	if state:
+		start(state)
+	else:
+		start(GameSim.new_planet_state(defs, 0))
+		save()
 
 
 func start(state: WorldState) -> void:
