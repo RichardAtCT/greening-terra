@@ -40,3 +40,36 @@ jobs:
           name: web-build
           path: build/web
           retention-days: 14
+
+  deploy-itch:
+    # Publishes each green main build to itch.io. Skips until the BUTLER_API_KEY secret exists.
+    needs: test-and-export
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency: itch-deploy
+    env:
+      BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.BUTLER_API_KEY != ''
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        if: env.BUTLER_API_KEY != ''
+        with:
+          name: web-build
+          path: build/web
+
+      - name: Install butler
+        if: env.BUTLER_API_KEY != ''
+        run: |
+          curl -fsSL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d "$HOME/butler"
+          chmod +x "$HOME/butler/butler"
+          echo "$HOME/butler" >> "$GITHUB_PATH"
+
+      - name: Push to itch.io
+        if: env.BUTLER_API_KEY != ''
+        run: tools/deploy.sh --no-export
