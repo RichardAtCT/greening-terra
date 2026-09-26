@@ -12,3 +12,4 @@ build/
 # OS / editor
 .DS_Store
 *.swp
+.netlify/
