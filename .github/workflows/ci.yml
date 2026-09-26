@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Cache Godot and web templates
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             tools/godot
@@ -35,7 +35,7 @@ jobs:
         run: timeout 600 tools/export_web.sh
 
       - name: Upload web build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-build
           path: build/web
@@ -51,12 +51,12 @@ jobs:
     env:
       BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: env.BUTLER_API_KEY != ''
         with:
           fetch-depth: 0
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: env.BUTLER_API_KEY != ''
         with:
           name: web-build
