@@ -128,7 +128,7 @@ Replace the prototype's fixed modulo assignment with a small dispatcher:
 
 ## 5. Profiles & saves
 - **Three save profiles** chosen on the title screen so each family member has their own game. Each has a name and a colour. Erasing a profile needs two taps. Names and colours are stored in `user://profiles.json`.
-- Saves go to `user://profile_N.json`. On web this maps to IndexedDB. Each save has a `version` field and a migration function.
+- Saves go to `user://profile_N.json`. On web this maps to IndexedDB, and each file is also kept in localStorage, which is written at once and read first. Each save has a `version` field and a migration function. If the browser keeps nothing, the title screen warns that progress won't last.
 - Autosave every 10 s, on every purchase, and when the page is hidden (use `JavaScriptBridge` to listen for `visibilitychange` on web).
 - Settings stored separately: music volume, SFX volume, haptics on/off where supported, and a reduced-effects toggle (fewer particles, no screen shake).
 - **Export/import save:** the in-game menu has **Back up save** (shows the save as one line of text, `GT1:` + base64 JSON, to copy) and **Restore save** (paste it back). This is the backup against Safari clearing site data. On web, text entry uses the browser's `prompt()`, because Godot's text fields don't open the iPhone keyboard.

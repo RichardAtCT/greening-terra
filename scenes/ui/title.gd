@@ -33,6 +33,10 @@ func _ready() -> void:
 	col.add_child(UiStyle.label("AN AD-FREE TERRAFORMING GAME", UiStyle.DISPLAY_WIDE, 11, UiStyle.MUTE))
 	col.add_child(UiStyle.label("Greening Tessera", UiStyle.DISPLAY_BOLD, 34, UiStyle.INK))
 	col.add_child(_paragraph("Pick your explorer. Each one has their own planets and progress."))
+	if not SaveManager.storage_persists():
+		var warn := _paragraph("This browser isn't keeping saves, so progress goes when the page closes. Open the game in its own tab, or use Back up save in the game menu.")
+		warn.add_theme_color_override("font_color", UiStyle.RUST)
+		col.add_child(warn)
 	_cards = VBoxContainer.new()
 	_cards.add_theme_constant_override("separation", 10)
 	col.add_child(_cards)
