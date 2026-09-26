@@ -47,8 +47,9 @@ func test_colony_lander_and_storm_run_through_the_scene() -> void:
 	for id in [&"electrolyser", &"greenhouse", &"bay"]:
 		s.built[id] = true
 	s.drones = 3
-	# Two landers due at once, and a storm about to start.
+	# Food for two landers on the SUPPLY pad, and a storm about to start.
 	s.terraform = 26.0
+	s.food = GameState.defs.planet(0).lander_costs[0] + GameState.defs.planet(0).lander_costs[1]
 	s.hazard_phase = HazardDirector.Phase.WARNING
 	s.hazard_t = 3.0
 	GameState.start(s)

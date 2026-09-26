@@ -1,7 +1,7 @@
 class_name ColonyView
 extends Node3D
-## Draws the colony: every colonist in one MultiMesh per look (Mini Characters, baked), a food
-## icon over hungry heads, colonists waiting for a habitat by the landing pad, and the lander
+## Draws the colony: every colonist in one MultiMesh per look (Mini Characters, baked), the food
+## piled on the SUPPLY pad, colonists waiting for a habitat by the landing pad, and the lander
 ## coming down, waiting, and lifting off again. Mirrors the sim's Colony state.
 
 const LOOKS := [
@@ -18,7 +18,7 @@ var sim: GameSim
 var defs: GameDefs
 
 var _looks: Array[MultiMesh] = []
-var _hungry: MultiMesh
+var _supply: ItemStackView
 var _phase: Dictionary = {}
 var _time := 0.0
 var _lander: Node3D
@@ -34,9 +34,15 @@ func setup(p_sim: GameSim) -> void:
 	var cap := Colony.max_colonists(sim)
 	for i in LOOKS.size():
 		_looks.append(_multimesh("Look%d" % i, LOOKS[i], cap, null))
-	var pod := defs.item(sim.food_item())
-	_hungry = _multimesh("Hungry", ItemVisuals.mesh(pod.shape) if pod else MeshUtil.disc(0.2, 8), cap,
-		ItemVisuals.material(pod) if pod else null)
+	var pad := sim.pad(&"supply")
+	if pad:
+		_supply = ItemStackView.new()
+		_supply.name = "Supply"
+		_supply.defs = defs
+		_supply.max_shown = defs.tuning.pad_stack_max
+		_supply.layout = ItemStackView.Layout.PAD
+		_supply.position = Vector3(pad.position.x, 0.1, pad.position.y)
+		add_child(_supply)
 
 	_lander = Node3D.new()
 	_lander.name = "Lander"
@@ -80,11 +86,11 @@ func landed() -> void:
 func update_view(delta: float) -> void:
 	_time += delta
 	_update_lander(delta)
+	_update_supply()
 	var j := defs.juice
 	var counts: Array[int] = []
 	counts.resize(_looks.size())
 	counts.fill(0)
-	var hungry := 0
 	for c in sim.colonists:
 		var ph: float = _phase.get(c.index, float(c.index) * 1.7)
 		var pos := Vector3(c.position.x, 0.0, c.position.y)
@@ -102,12 +108,6 @@ func update_view(delta: float) -> void:
 		var look := c.index % _looks.size()
 		_place(_looks[look], counts[look], Transform3D(basis, pos))
 		counts[look] += 1
-		if c.hungry:
-			var s := j.hungry_icon_scale * (1.0 + 0.12 * sin(_time * 6.0 + c.index))
-			var icon := Transform3D(Basis(Vector3.UP, _time * 2.0).scaled(Vector3.ONE * s),
-				pos + Vector3(0, j.hungry_icon_height + sin(_time * 3.0 + c.index) * 0.06, 0))
-			_place(_hungry, hungry, icon)
-			hungry += 1
 	# Colonists with nowhere to live wait by the landing pad, facing the hub.
 	var lp := sim.planet.lander_position
 	var face := sim.planet.hub_position - lp
@@ -121,7 +121,16 @@ func update_view(delta: float) -> void:
 		counts[look] += 1
 	for i in _looks.size():
 		_looks[i].visible_instance_count = mini(counts[i], _looks[i].instance_count)
-	_hungry.visible_instance_count = mini(hungry, _hungry.instance_count)
+
+
+## The food brought so far towards the next lander, piled on the SUPPLY pad.
+func _update_supply() -> void:
+	if _supply == null:
+		return
+	var items: Array[StringName] = []
+	for k in mini(floori(sim.state.food), defs.tuning.pad_stack_max):
+		items.append(sim.food_item())
+	_supply.show_items(items)
 
 
 func _update_lander(delta: float) -> void:

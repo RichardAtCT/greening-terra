@@ -94,9 +94,9 @@ func test_late_game_fits_draw_call_budget_on_every_planet() -> void:
 		assert_lt(calls, DRAW_CALL_BUDGET, GameState.defs.planet(index).display_name)
 
 
-## Everything built and levelled, max haulers with mixed cargo, the whole colony with some hungry
-## and two waiting, a lander coming down and the planet's hazard at full strength (with a meteor
-## -damaged machine on Kessik), which never all happen at once in play.
+## Everything built and levelled, max haulers with mixed cargo, the whole colony with two waiting,
+## a lander coming down with the last one's food piled on the SUPPLY pad, and the planet's hazard
+## at full strength (with a meteor-damaged machine on Kessik), which never all happen at once in play.
 func _late_game_calls(index: int) -> int:
 	var defs := GameState.defs
 	var planet := defs.planet(index)
@@ -118,10 +118,10 @@ func _late_game_calls(index: int) -> int:
 		s.stack.append(items[i % items.size()])
 	for i in planet.habitat_positions.size():
 		s.built[Colony.habitat_key(i)] = true
-	s.landers = planet.lander_milestones.size() - 1
+	s.landers = planet.lander_costs.size() - 2
 	s.lander_t = 2.0
-	for i in (planet.lander_milestones.size() - 1) * planet.colonists_per_lander:
-		s.meals.append(0.0 if i % 4 == 0 else 60.0)
+	s.food = planet.lander_costs[-1] - 1
+	s.housed = (planet.lander_costs.size() - 1) * planet.colonists_per_lander
 	s.colonists_waiting = planet.colonists_per_lander
 	if planet.hazard:
 		s.hazard_phase = HazardDirector.Phase.ACTIVE

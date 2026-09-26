@@ -104,7 +104,7 @@ func test_hint_switches_to_saving_text() -> void:
 	assert_string_starts_with(Tutorial.hint_text(sim), "Keep delivering plates")
 	sim.state.credits = 25.0
 	assert_string_starts_with(Tutorial.hint_text(sim), "Save ₵25")
-	assert_eq(Tutorial.step_label(sim), "5/10")
+	assert_eq(Tutorial.step_label(sim), "5/11")
 
 
 func test_world_state_round_trips_through_dict() -> void:
@@ -161,15 +161,18 @@ func test_upgrading_a_machine_makes_it_faster_until_max() -> void:
 	assert_eq(sim.upgrade_pad_label(p), "MAX")
 
 
-func test_hint_says_when_the_next_lander_comes() -> void:
+func test_hint_says_how_to_call_the_next_lander() -> void:
 	sim.state.tutorial_step = sim.tutorial_steps().size() - 1
-	sim.state.terraform = 12.0
-	assert_string_starts_with(Tutorial.hint_text(sim), "At 25% a lander brings 2 colonists.")
+	assert_string_starts_with(Tutorial.hint_text(sim), "Upgrade machines", "nothing to supply before the Greenhouse")
+	sim.state.built[&"greenhouse"] = true
+	sim.state.landers = 1
+	sim.state.food = 7.0
+	assert_string_starts_with(Tutorial.hint_text(sim), "Carry seedpods to SUPPLY to call 2 colonists (7/12).")
 	sim.state.colonists_waiting = 2
 	assert_string_starts_with(Tutorial.hint_text(sim), "2 colonists need a Habitat.")
 	sim.state.colonists_waiting = 0
-	sim.state.terraform = 90.0
-	assert_eq(Colony.next_lander_at(sim.planet, sim.state.terraform), -1.0)
+	sim.state.landers = sim.planet.lander_costs.size()
+	assert_eq(Colony.lander_cost(sim), -1)
 	assert_string_starts_with(Tutorial.hint_text(sim), "Upgrade machines")
 
 

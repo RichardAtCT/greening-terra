@@ -18,8 +18,8 @@ signal planet_won
 signal lander_coming
 signal lander_landed(colonists: int)
 signal colonist_added(colonist: Colony.Colonist)
-## A delivery went into the hub's food store instead of being sold.
-signal food_stored(item: StringName)
+## Food went onto the SUPPLY pad towards the next lander.
+signal supplied(item: StringName)
 signal hazard_changed(phase: HazardDirector.Phase)
 ## A meteor shower landed: where, and which machines it damaged.
 signal meteors_landed(points: Array[Vector2], hit: Array[StringName])
@@ -175,14 +175,20 @@ func on_vent(m: MachineDef) -> bool:
 	return false
 
 
-## The item colonists eat on this planet (seedpods, or biomass on Kessik), or &"" if none is made.
-func food_item() -> StringName:
+## The machine that makes the planet's food (Greenhouse, or Algae Pond on Kessik), or null.
+func food_machine() -> MachineDef:
 	for m in planet.machines:
 		if m.recipe.makes_item():
 			var it := defs.item(m.recipe.output)
 			if it and it.food_value > 0.0:
-				return it.id
-	return &""
+				return m
+	return null
+
+
+## The food that calls landers on this planet (seedpods, or biomass on Kessik), or &"" if none is made.
+func food_item() -> StringName:
+	var m := food_machine()
+	return m.recipe.output if m else &""
 
 
 func planet_name() -> String:
@@ -229,15 +235,12 @@ func dig_node(index: int) -> void:
 
 func deliver_item(item: StringName, from: Vector3) -> void:
 	var def := defs.item(item)
-	var credits := Economy.deliver(state, def, planet, Colony.food_target(self), pay_factor())
+	var credits := Economy.deliver(state, def, planet, pay_factor())
 	if credits < 0.0:
 		return
 	var hub := planet.hub_position
 	item_flew.emit(item, from, Vector3(hub.x, HUB_DROP_HEIGHT, hub.y))
-	if credits > 0.0:
-		delivered.emit(item, credits)
-	else:
-		food_stored.emit(item)
+	delivered.emit(item, credits)
 
 
 ## Is the pad in play right now (e.g. BUILD pads vanish once built)?
@@ -250,6 +253,9 @@ func pad_visible(p: PadInfo) -> bool:
 		PadInfo.Kind.SWAP:
 			return state.is_built(p.machine.id) and state.machine_level(p.machine.id) < p.machine.swap_until_level \
 				and not state.is_damaged(p.machine.id)
+		PadInfo.Kind.SUPPLY:
+			# Once there's food to bring, until every lander has been called.
+			return state.is_built(food_machine().id) and Colony.lander_cost(self) >= 0
 		PadInfo.Kind.PAY:
 			match p.pay:
 				PadInfo.Pay.BUILD_MACHINE:
@@ -402,6 +408,9 @@ func _step_pads(dt: float, player_pos: Vector2) -> void:
 			PadInfo.Kind.REPAIR:
 				if _tick(p.key, dt, interval):
 					_step_repair(p, player_pos)
+			PadInfo.Kind.SUPPLY:
+				if _tick(p.key, dt, interval):
+					_step_supply(p, player_pos)
 			PadInfo.Kind.SWAP:
 				# Each trade moves swap_ratio items off the back, so it takes that many transfer ticks.
 				if _tick(p.key, dt, interval * p.machine.swap_ratio):
@@ -451,6 +460,25 @@ func _step_repair(p: PadInfo, player_pos: Vector2) -> void:
 		machine_repaired.emit(id)
 
 
+## One food item off the player's back onto the SUPPLY pad, until it holds the next lander's cost.
+func _step_supply(p: PadInfo, player_pos: Vector2) -> void:
+	var item := food_item()
+	var i := state.stack.rfind(item)
+	if i < 0 or state.food >= Colony.lander_cost(self):
+		return
+	state.stack.remove_at(i)
+	Economy.supply(state, defs.item(item), planet)
+	item_flew.emit(item, _player_top(player_pos), Vector3(p.position.x, PAD_DROP_HEIGHT, p.position.y))
+	stack_changed.emit()
+	supplied.emit(item)
+
+
+## The SUPPLY pad's subtitle: the food the next lander takes ("20 POD").
+func supply_pad_label() -> String:
+	var item := defs.item(food_item())
+	return "%d %s" % [maxi(0, Colony.lander_cost(self)), item.short_label() if item else ""]
+
+
 ## One SWAP trade: the surplus input flies off the player's back onto the pad, and the input the
 ## machine is short of flies back.
 func _step_swap(p: PadInfo, player_pos: Vector2) -> void:
@@ -476,16 +504,16 @@ func swap_hint() -> String:
 		if trade.is_empty() or state.queued(m.id, trade[1]) > 0 or state.busy.get(m.id, 0.0) > 0.0:
 			continue
 		return m.swap_hint.format({"need": defs.item(trade[1]).display_name,
-			"give": _plural(defs.item(trade[0]).display_name), "ratio": m.swap_ratio})
+			"give": plural(defs.item(trade[0]).display_name), "ratio": m.swap_ratio})
 	return ""
 
 
-## "Plate" → "plates"; a symbol like "O₂" stays as it is.
-static func _plural(name: String) -> String:
+## "Plate" → "plates", "Biomass" → "biomass"; a symbol like "O₂" stays as it is.
+static func plural(name: String) -> String:
 	var last := name.right(1)
 	if last != last.to_lower() or last == last.to_upper():
 		return name
-	return name.to_lower() + "s"
+	return name.to_lower() + ("" if last == "s" else "s")
 
 
 func _buy(p: PadInfo) -> void:
@@ -538,14 +566,13 @@ func _spawn_drone() -> void:
 
 ## Colonists loaded from a save start at their posts (or at home when off duty).
 func _restore_colonists() -> void:
-	for i in state.meals.size():
+	for i in state.housed:
 		Colony.spawn(self, i, Colony.home(self, i))
 	Colony._assign(self)
 	for c in colonists:
 		if c.machine:
 			c.position = Colony.work_spot(self, c.machine, c.slot)
 			c.target = c.position
-	Colony._step_food(self, 0.0)
 
 
 func _build_nodes() -> void:
@@ -606,6 +633,15 @@ func _build_pads() -> void:
 			# Fixed text (a changed subtitle re-uploads the pad atlas); the objective bar says which way.
 			p_swap.label = "%d FOR 1" % m.swap_ratio
 			pads.append(p_swap)
+	# Food carried here instead of sold calls the next lander (SPEC 4.1).
+	var food := defs.item(food_item())
+	if food and not planet.lander_costs.is_empty():
+		var supply := PadInfo.new(&"supply", PadInfo.Kind.SUPPLY, planet.lander_position + planet.supply_pad_offset)
+		supply.title = "SUPPLY"
+		supply.color = food.color
+		supply.icons.append(food.id)
+		pads.append(supply)
+		supply.label = supply_pad_label()
 	var depot := PadInfo.new(&"depot", PadInfo.Kind.DEPOT, planet.depot_position)
 	depot.title = "DELIVER"
 	depot.label = " ".join(_sellable_names())

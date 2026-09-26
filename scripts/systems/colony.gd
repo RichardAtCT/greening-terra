@@ -1,11 +1,11 @@
 class_name Colony
 extends RefCounted
 ## Colonists, landers, food and habitats (SPEC 4.1), with no scene access.
-## A lander comes down as terraform passes each of the planet's milestones. Its colonists move into
-## a habitat if there's room (the first habitat is built free by the first lander) and otherwise
-## wait at the hub. Housed colonists work beside built machines, up to two each, making them faster.
-## Everyone eats from the hub's food store; a hungry colonist stops working until fed, but never
-## leaves. Walking is straight lines that slide around buildings (the ground is flat and open).
+## Food calls landers: the player carries it to the SUPPLY pad by the landing site instead of
+## selling it, and once enough is there the next lander comes down. Its colonists move into a
+## habitat if there's room (the first habitat is built free by the first lander) and otherwise
+## wait at the landing pad. Housed colonists work beside built machines, up to two each, making
+## them faster. Walking is straight lines that slide around buildings (the ground is flat and open).
 
 
 class Colonist:
@@ -21,48 +21,43 @@ class Colonist:
 	## Off duty: seconds until the next stroll, and how many strolls so far.
 	var pause: float = 0.0
 	var strolls: int = 0
-	## At the machine, fed, and making it faster.
+	## At the machine and making it faster.
 	var working: bool = false
-	var hungry: bool = false
 
 
 static func step(sim: GameSim, dt: float) -> void:
 	_step_landers(sim, dt)
-	_step_food(sim, dt)
 	_assign(sim)
 	for c in sim.colonists:
 		_step_colonist(sim, c, dt)
 
 
-## Number of landers due at the current terraform %.
-static func landers_due(planet: PlanetDef, terraform: float) -> int:
-	var n := 0
-	for m in planet.lander_milestones:
-		if terraform >= m:
-			n += 1
-	return n
+## Landers called so far: those that have landed and the one coming down.
+static func landers_called(state: WorldState) -> int:
+	return state.landers + (1 if state.lander_t >= 0.0 else 0)
 
 
-## Terraform % that calls the next lander, or -1 once they've all been called.
-static func next_lander_at(planet: PlanetDef, terraform: float) -> float:
-	for m in planet.lander_milestones:
-		if terraform < m:
-			return m
-	return -1.0
+## Food the SUPPLY pad needs to call the next lander, or -1 once they've all been called.
+static func lander_cost(sim: GameSim) -> int:
+	var costs := sim.planet.lander_costs
+	var n := landers_called(sim.state)
+	return costs[n] if n < costs.size() else -1
 
 
-## Where the colony stands, for the objective bar: who's waiting for a home, or when the next
-## colonists come. Empty once every lander has landed and everyone is housed.
+## Where the colony stands, for the objective bar: who's waiting for a home, or how to call the
+## next colonists. Empty once every lander has landed and everyone is housed.
 static func outlook(sim: GameSim) -> String:
 	var s := sim.state
 	if s.colonists_waiting > 0:
 		return "%d colonist%s need a Habitat." % [s.colonists_waiting, "s" if s.colonists_waiting > 1 else ""]
 	if s.lander_t >= 0.0:
 		return "A lander is coming down."
-	var next := next_lander_at(sim.planet, s.terraform)
-	if next < 0.0:
+	var cost := lander_cost(sim)
+	var supply := sim.pad(&"supply")
+	if cost < 0 or supply == null or not sim.pad_visible(supply):
 		return ""
-	return "At %d%% a lander brings %d colonists." % [roundi(next), colonists_per_lander(sim)]
+	return "Carry %s to SUPPLY to call %d colonists (%d/%d)." % [
+		GameSim.plural(sim.defs.item(sim.food_item()).display_name), colonists_per_lander(sim), floori(s.food), cost]
 
 
 static func habitat_key(index: int) -> StringName:
@@ -90,7 +85,7 @@ static func habitat_capacity(sim: GameSim) -> int:
 
 ## Most colonists a planet brings (for sizing buffers).
 static func max_colonists(sim: GameSim) -> int:
-	return sim.planet.lander_milestones.size() * colonists_per_lander(sim)
+	return sim.planet.lander_costs.size() * colonists_per_lander(sim)
 
 
 ## Colonists a machine takes: none at a Heat Tower, more once upgraded.
@@ -107,24 +102,6 @@ static func housing(sim: GameSim) -> int:
 	return habitats_built(sim) * habitat_capacity(sim)
 
 
-static func housed(sim: GameSim) -> int:
-	return sim.state.meals.size()
-
-
-## Food the hub keeps back for the colonists before selling the rest (SPEC 4.1: five minutes' worth).
-static func food_target(sim: GameSim) -> float:
-	var c := sim.defs.colony
-	return ceilf(housed(sim) * c.food_reserve_seconds / c.meal_interval)
-
-
-static func hungry_count(sim: GameSim) -> int:
-	var n := 0
-	for m in sim.state.meals:
-		if m <= 0.0:
-			n += 1
-	return n
-
-
 ## How much faster colonists make a machine run (1.0 = no one working it).
 static func machine_speed(sim: GameSim, machine_id: StringName) -> float:
 	var n := 0
@@ -137,10 +114,10 @@ static func machine_speed(sim: GameSim, machine_id: StringName) -> float:
 ## Moves waiting colonists into free habitat space. Called on arrival and when a habitat is built.
 static func house(sim: GameSim) -> void:
 	var s := sim.state
-	while s.colonists_waiting > 0 and s.meals.size() < housing(sim):
+	while s.colonists_waiting > 0 and s.housed < housing(sim):
 		s.colonists_waiting -= 1
-		s.meals.append(sim.defs.colony.meal_interval)
-		var c := spawn(sim, s.meals.size() - 1, sim.planet.lander_position)
+		s.housed += 1
+		var c := spawn(sim, s.housed - 1, sim.planet.lander_position)
 		sim.colonist_added.emit(c)
 
 
@@ -157,7 +134,10 @@ static func spawn(sim: GameSim, index: int, at: Vector2) -> Colonist:
 static func _step_landers(sim: GameSim, dt: float) -> void:
 	var s := sim.state
 	if s.lander_t < 0.0:
-		if s.landers < landers_due(sim.planet, s.terraform):
+		# Enough food at the SUPPLY pad calls the next lander, and the colonists take it with them.
+		var cost := lander_cost(sim)
+		if cost >= 0 and s.food >= cost:
+			s.food = Economy.tidy(s.food - cost)
 			s.lander_t = sim.defs.colony.lander_descent_time
 			sim.lander_coming.emit()
 		return
@@ -166,6 +146,7 @@ static func _step_landers(sim: GameSim, dt: float) -> void:
 		return
 	s.lander_t = -1.0
 	s.landers += 1
+	s.add_stat(&"landed")
 	var n := colonists_per_lander(sim)
 	s.colonists_waiting += n
 	if habitats_built(sim) == 0 and not sim.planet.habitat_positions.is_empty():
@@ -174,26 +155,10 @@ static func _step_landers(sim: GameSim, dt: float) -> void:
 	sim.lander_landed.emit(n)
 	var text := "Lander arrived · %d waiting for a habitat" % s.colonists_waiting if s.colonists_waiting > 0 \
 		else "Lander arrived: %d colonists" % n
-	var next := next_lander_at(sim.planet, s.terraform)
-	if next >= 0.0:
-		text += " · next at %d%%" % roundi(next)
+	var next := lander_cost(sim)
+	if next >= 0:
+		text += " · next needs %d %s" % [next, GameSim.plural(sim.defs.item(sim.food_item()).display_name)]
 	sim.toast.emit(text)
-
-
-static func _step_food(sim: GameSim, dt: float) -> void:
-	var s := sim.state
-	var interval := sim.defs.colony.meal_interval
-	for i in s.meals.size():
-		var m := s.meals[i] - dt
-		if m <= 0.0:
-			if s.food >= 1.0:
-				s.food -= 1.0
-				m = maxf(m + interval, interval * 0.5)
-			else:
-				m = 0.0
-		s.meals[i] = m
-	for c in sim.colonists:
-		c.hungry = c.index < s.meals.size() and s.meals[c.index] <= 0.0
 
 
 ## Keeps each colonist on the machine they already work, and gives the rest a free spot, spreading
@@ -267,7 +232,7 @@ static func _step_colonist(sim: GameSim, c: Colonist, dt: float) -> void:
 		# Face the machine while working.
 		var face := c.machine.position - c.position
 		c.heading = atan2(face.x, face.y)
-	c.working = c.machine != null and not c.moving and not c.hungry
+	c.working = c.machine != null and not c.moving
 
 
 ## Pushes a point out of any building it walked into, so colonists slide round them.

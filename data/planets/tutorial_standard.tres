@@ -127,6 +127,16 @@ done_when = Array[ExtResource("3_ugrly")]([SubResource("Resource_upg1c")])
 saving_for_pad = &"upgrade_greenhouse"
 saving_text = "Save ₵200 to upgrade the Greenhouse to Mk II. Faster machines need more haulers."
 
+[sub_resource type="Resource" id="cond_supply"]
+script = ExtResource("3_ugrly")
+key = &"landed"
+
+[sub_resource type="Resource" id="step_supply"]
+script = ExtResource("2_5rgpp")
+text = "Carry seedpods to the SUPPLY pad, not the hub: enough of them call a lander with new colonists."
+target = Vector2(9.4, 5.1)
+done_when = Array[ExtResource("3_ugrly")]([SubResource("cond_supply")])
+
 [resource]
 script = ExtResource("1_lsw7h")
-steps = Array[ExtResource("2_5rgpp")]([SubResource("Resource_5f8j6"), SubResource("Resource_kunmk"), SubResource("Resource_i1pu3"), SubResource("Resource_muae1"), SubResource("Resource_agdgd"), SubResource("Resource_u3tu6"), SubResource("Resource_oftn4"), SubResource("Resource_n3p4x"), SubResource("Resource_upg1s"), SubResource("Resource_3cqov")])
+steps = Array[ExtResource("2_5rgpp")]([SubResource("Resource_5f8j6"), SubResource("Resource_kunmk"), SubResource("Resource_i1pu3"), SubResource("Resource_muae1"), SubResource("Resource_agdgd"), SubResource("Resource_u3tu6"), SubResource("Resource_oftn4"), SubResource("Resource_n3p4x"), SubResource("step_supply"), SubResource("Resource_upg1s"), SubResource("Resource_3cqov")])

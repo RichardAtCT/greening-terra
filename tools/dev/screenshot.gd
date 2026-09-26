@@ -7,7 +7,7 @@ extends SceneTree
 ## --zoom=0.4 moves the camera closer; --face=90 turns the astronaut.
 ## --win=25 opens the win screen 25 frames before the shot (confetti in the air).
 ## --levels=1 sets every machine to Mk II; --haul=3 buys three hauler upgrades.
-## M4 state: --colonists=6 --hungry=1 --waiting=2 --food=5 --lander=2.5 --storm=on|warn --storm-t=20 --debug=1
+## M4 state: --colonists=6 --waiting=2 --food=5 --lander=2.5 --storm=on|warn --storm-t=20 --debug=1
 ## (see below). M5: --tox=40 (Kessik toxicity), --warm=1 (Heat Towers burning), --damaged=scrubber,
 ## --bonus=overclock,... (--storm= also runs a cold snap or meteor shower, with its
 ## impact points), --scene=res://scenes/ui/star_map.tscn for the star map.
@@ -39,15 +39,14 @@ func _init() -> void:
 		for m in defs.planet(s.planet_index).machines:
 			s.machine_levels[m.id] = int(args.levels)
 	s.hauler_level = int(args.get("haul", "0"))
-	# M4: --colonists=N housed (habitats built to fit), --hungry=N of them, --waiting=N at the pad,
-	# --lander=T (seconds from touchdown), --storm=warn|on (with --storm-t=seconds left), --food=N.
+	# M4: --colonists=N housed (habitats built to fit), --waiting=N at the pad, --lander=T (seconds
+	# from touchdown), --storm=warn|on (with --storm-t=seconds left), --food=N on the SUPPLY pad.
 	var pdef := defs.planet(s.planet_index)
 	var colonists := int(args.get("colonists", "0"))
 	for i in ceili(colonists / 4.0):
 		s.built[StringName("habitat_%d" % (i + 1))] = true
-	for i in colonists:
-		s.meals.append(0.0 if i < int(args.get("hungry", "0")) else 60.0)
-	s.landers = mini(ceili(colonists / 2.0), pdef.lander_milestones.size())
+	s.housed = colonists
+	s.landers = mini(ceili(colonists / 2.0), pdef.lander_costs.size())
 	s.colonists_waiting = int(args.get("waiting", "0"))
 	s.food = float(args.get("food", "0"))
 	if args.has("lander"):

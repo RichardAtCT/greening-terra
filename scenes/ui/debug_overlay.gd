@@ -145,8 +145,8 @@ static func describe(s: GameSim) -> String:
 		if d.job:
 			lines.append("  #%d %s (%d)" % [d.index + 1, d.job.describe(), d.cargo.size() + d.reserved])
 	var st := s.state
-	lines.append("colony: %d housed, %d waiting, %d hungry, food %.0f/%.0f" % [
-		st.meals.size(), st.colonists_waiting, Colony.hungry_count(s), st.food, Colony.food_target(s)])
+	lines.append("colony: %d housed, %d waiting, %d landers, food %.0f/%d" % [
+		st.housed, st.colonists_waiting, st.landers, st.food, Colony.lander_cost(s)])
 	if s.planet.start_toxicity > 0.0:
 		lines.append("toxicity %.1f%%, growth %.1f%% (shown %.1f%%)" % [st.toxicity, st.growth, st.terraform])
 	var warm := PackedStringArray()
