@@ -22,5 +22,13 @@ test -f build/web/index.html || { echo "No build/web/index.html; run without --n
 # Keep the unlisted URL out of search engines.
 printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > build/web/_headers
 
+# Netlify injects a "Powered by Netlify" badge (and, for the owner, a toolbar) as a fixed iframe
+# over the bottom-right corner of the game. Hide both.
+if ! grep -q 'nl-badge-frame' build/web/index.html; then
+  sed -i.bak 's|</head>|<style>#nl-badge-frame,#nl-hud-frame{display:none!important}</style></head>|' \
+    build/web/index.html
+  rm build/web/index.html.bak
+fi
+
 npx --yes netlify-cli@27 deploy --dir build/web --prod --no-build --site "$NETLIFY_SITE_ID" \
   --message "$(git describe --tags --always --dirty 2>/dev/null || true)"
