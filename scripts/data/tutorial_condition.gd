@@ -5,7 +5,7 @@ extends Resource
 enum Kind {
 	## At least `amount` of item `key` on the player's back.
 	CARRYING,
-	## Stat `key` (fed, delivered, produced_<item>) at least `amount`.
+	## Stat `key` (fed, delivered, produced_<item>, supplied, landed) at least `amount`.
 	STAT,
 	## Building `key` is built.
 	BUILT,

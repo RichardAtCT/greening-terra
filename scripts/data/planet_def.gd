@@ -47,16 +47,17 @@ extends Resource
 @export var habitat_costs: PackedInt32Array = [0, 120, 240]
 @export var habitat_pad_offset: Vector2 = Vector2(0, 2.7)
 @export var habitat_collide_radius: float = 1.5
-## Where landers touch down.
+## Where landers touch down, and the SUPPLY pad beside it where food calls them.
 @export var lander_position: Vector2 = Vector2(6.5, 4.5)
+@export var supply_pad_offset: Vector2 = Vector2(2.9, 0.6)
 ## Lakes as (x, z, radius).
 @export var lakes: Array[Vector3] = []
 ## Areas kept clear of decoration, as (x, z, radius).
 @export var clear_zones: Array[Vector3] = []
 
 @export_group("Colony")
-## A lander arrives as terraform passes each of these %.
-@export var lander_milestones: PackedFloat32Array = [10, 25, 40, 55, 70, 85]
+## Food (seedpods, or biomass on Kessik) carried to the SUPPLY pad to call each lander in turn.
+@export var lander_costs: PackedInt32Array = [6, 12, 18, 24, 30, 36]
 @export var colonists_per_lander: int = 2
 ## Null for no hazard.
 @export var hazard: HazardDef

@@ -52,26 +52,27 @@ static func terraform_gain(item: ItemDef, planet: PlanetDef) -> float:
 	return item.terraform_value / planet.terraform_divisor
 
 
-## Delivers one item to the hub. Food goes into the hub's store while it holds less than
-## food_target meals (SPEC 4.1); everything else sellable is sold. Either way the item's terraform
-## value counts, and a filter clears its toxins. Returns the credits paid, or -1 if the item can't
-## be delivered.
-static func deliver(state: WorldState, item: ItemDef, planet: PlanetDef, food_target := 0.0, pay_factor := 1.0) -> float:
+## Sells one item at the hub: it pays, its terraform value counts, and a filter clears its toxins.
+## Returns the credits paid, or -1 if the item can't be delivered.
+static func deliver(state: WorldState, item: ItemDef, planet: PlanetDef, pay_factor := 1.0) -> float:
 	if item == null or not item.is_sellable():
 		return -1.0
-	var credits := 0.0
-	if item.food_value > 0.0 and state.food < food_target:
-		state.food += item.food_value
-		state.add_stat(&"food_stored")
-	else:
-		credits = payout(item, planet, pay_factor)
-		state.credits += credits
+	var credits := payout(item, planet, pay_factor)
+	state.credits += credits
 	if item.detox_value > 0.0:
 		state.toxicity = tidy(maxf(0.0, state.toxicity - item.detox_value))
 	add_growth(state, terraform_gain(item, planet))
 	state.add_stat(&"delivered")
 	state.add_stat(StringName("delivered_" + item.id))
 	return credits
+
+
+## Puts one food item into the colony's supplies at the SUPPLY pad (SPEC 4.1). It isn't sold, but
+## its terraform value still counts, so calling colonists costs credits and never the planet.
+static func supply(state: WorldState, item: ItemDef, planet: PlanetDef) -> void:
+	state.food = tidy(state.food + item.food_value)
+	add_growth(state, terraform_gain(item, planet))
+	state.add_stat(&"supplied")
 
 
 ## Cost of a machine's next upgrade, or -1 when it has none left.

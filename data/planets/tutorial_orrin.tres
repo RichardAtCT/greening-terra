@@ -134,6 +134,16 @@ text = "Seedpods green the planet fastest. Warm every machine before the next co
 has_target = false
 done_when = Array[ExtResource("3_cond")]([SubResource("cond_19")])
 
+[sub_resource type="Resource" id="cond_supply"]
+script = ExtResource("3_cond")
+key = &"landed"
+
+[sub_resource type="Resource" id="step_supply"]
+script = ExtResource("2_step")
+text = "Carry seedpods to the SUPPLY pad, not the hub: enough of them call a lander with new colonists."
+target = Vector2(9.4, 5.1)
+done_when = Array[ExtResource("3_cond")]([SubResource("cond_supply")])
+
 [resource]
 script = ExtResource("1_tut")
-steps = Array[ExtResource("2_step")]([SubResource("step_2"), SubResource("step_4"), SubResource("step_6"), SubResource("step_8"), SubResource("step_12"), SubResource("step_14"), SubResource("step_16"), SubResource("step_18"), SubResource("step_20")])
+steps = Array[ExtResource("2_step")]([SubResource("step_2"), SubResource("step_4"), SubResource("step_6"), SubResource("step_8"), SubResource("step_12"), SubResource("step_14"), SubResource("step_16"), SubResource("step_18"), SubResource("step_supply"), SubResource("step_20")])

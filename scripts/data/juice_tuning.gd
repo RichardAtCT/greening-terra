@@ -36,9 +36,6 @@ extends Resource
 ## Working: a nod towards the machine.
 @export var colonist_work_rate: float = 5.0
 @export var colonist_work_lean: float = 0.16
-## The food icon over a hungry colonist's head.
-@export var hungry_icon_height: float = 1.55
-@export var hungry_icon_scale: float = 1.3
 
 @export_group("Lander")
 ## It starts this high and eases down over ColonyTuning.lander_descent_time.

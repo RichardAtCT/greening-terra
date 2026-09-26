@@ -38,7 +38,7 @@ tools/godot/godot --headless --script tools/balance_sim.gd -- --planets=0   # Pl
 
 A greedy scripted player (`scripts/systems/bot_player.gd`) plays each planet on the real `GameSim` in accelerated time, carrying its kit and bonuses from one planet to the next. It prints the time to each milestone (first build, drone bay, the machine that makes colonists' food, 25/50/75/100%). It exits with code 1 if an enforced planet misses its `target_minutes` (set in its `PlanetDef`) by more than 20%. Run it after every balance change.
 
-It also prints the upgrades and bonuses the bot ended with, and a colony line: colonists housed and waiting, habitats, meals stored as food, how much of the colonists' time was spent hungry, how many hazards came and how many repairs it made. On Kessik it prints when the air cleared.
+It also prints the upgrades and bonuses the bot ended with, and a colony line: colonists housed and waiting, habitats, food carried to the SUPPLY pad, when each lander landed, how many hazards came and how many repairs it made. On Kessik it prints when the air cleared.
 
 To try a change without editing data, pass `--scale-tf=0.8` (terraform value per item) or `--scale-machine-time=1.2`. `--no-colony` (no landers), `--no-hazard` (no hazards) and `--no-bonus` (no bonus picks) show what each system does to the pace. `--bonus=overclock,swift_haulers` starts with those bonuses, and `--log` prints every purchase and toast with its time. These change the loaded data in memory only.
 
@@ -59,7 +59,7 @@ The Kenney GLBs in `assets/models/` are sources only. `tools/dev/bake_models.gd`
 tools/godot/godot --headless --import && tools/godot/godot --headless --script tools/dev/bake_models.gd
 ```
 
-`tools/dev/screenshot.gd` also takes `--zoom=0.4` for a closer look, `--face=90` to turn the astronaut, and `--win=25` to show the win screen. For the colony and hazards: `--colonists=6` (habitats built to fit), `--hungry=1`, `--waiting=2`, `--food=5`, `--lander=2.5` (seconds before touchdown), `--storm=warn` or `--storm=on` (with `--storm-t=` seconds left; it runs whichever hazard the planet has, with a meteor shower's impact points), and `--debug=1` for the debug overlay. For M5: `--planet=1` or `2`, `--tox=40` (Kessik's toxicity), `--warm=1` (Heat Towers burning), `--damaged=scrubber`, `--bonus=overclock,big_lander`, `--won=1`, and `--scene=res://scenes/ui/star_map.tscn` for the star map. `--levels=1` sets every machine to Mk II, and `--haul=3` buys three hauler upgrades.
+`tools/dev/screenshot.gd` also takes `--zoom=0.4` for a closer look, `--face=90` to turn the astronaut, and `--win=25` to show the win screen. For the colony and hazards: `--colonists=6` (habitats built to fit), `--waiting=2`, `--food=5` (on the SUPPLY pad), `--lander=2.5` (seconds before touchdown), `--storm=warn` or `--storm=on` (with `--storm-t=` seconds left; it runs whichever hazard the planet has, with a meteor shower's impact points), and `--debug=1` for the debug overlay. For M5: `--planet=1` or `2`, `--tox=40` (Kessik's toxicity), `--warm=1` (Heat Towers burning), `--damaged=scrubber`, `--bonus=overclock,big_lander`, `--won=1`, and `--scene=res://scenes/ui/star_map.tscn` for the star map. `--levels=1` sets every machine to Mk II, and `--haul=3` buys three hauler upgrades.
 
 The Mini Characters used for colonists are rigged and use a colour-atlas texture. The bake tool poses them from their `idle` animation and samples the atlas into vertex colours, so they share the one vertex-colour material too.
 
@@ -117,7 +117,7 @@ See `SPEC.md` section 7.2. Every tunable number lives in a `.tres` file under `d
 - `assets/`: fonts, source models (`models/`, not exported), baked meshes (`meshes/`), shared materials and sound effects. Every pack is listed in `assets/LICENSES.md`.
 - `shaders/`: pads (with a text atlas), dust and snow, the terraform ground (moss and frost), the lakes, ground rings, steam and the frost overlay on machines.
 - `data/juice.tres` and `data/audio.tres`: feedback animation numbers and sound levels.
-- `data/colony_tuning.tres` and `data/hazards/`: colonists, landers, food and habitats; each hazard's timing, effects, sounds and look (dust storm, cold snap, meteor shower).
+- `data/colony_tuning.tres` and `data/hazards/`: colonists, landers and habitats (the food each lander takes is in each `PlanetDef`); each hazard's timing, effects, sounds and look (dust storm, cold snap, meteor shower).
 - `data/bonuses/`: the planet bonuses offered at 100% (SPEC 4.3). `data/upgrades/`: pack, boots, dig speed, hauler count and hauler upgrades.
 - `scenes/world/planet.tscn`: the playable planet. It builds everything from data and draws the sim's state. To keep draw calls down, all haulers are drawn by one `DroneSwarm`, the colonists and lander by `ColonyView`, every pad (slab, top, text and icons) by `PadBatch`, every resource node by `NodeBatch`, and every building label in 2D by `LabelLayer`. `PlanetEffects` draws the heat rings, meteor targets and meteors, and the vents' steam.
 - `scenes/ui/star_map.tscn`: the star map between planets.

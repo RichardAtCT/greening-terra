@@ -120,7 +120,7 @@ func _ready() -> void:
 	sim.lander_landed.connect(func(_n):
 		_colony.landed()
 		Audio.play(&"land"))
-	sim.food_stored.connect(func(_item): Audio.play(&"food"))
+	sim.supplied.connect(func(_item): Audio.play(&"food"))
 	sim.hazard_changed.connect(_on_hazard_changed)
 	sim.meteors_landed.connect(_on_meteors_landed)
 	sim.machine_repaired.connect(func(_id): Audio.play(&"repair"))
@@ -172,6 +172,8 @@ func _process(delta: float) -> void:
 		pv.visible = vis
 		if vis and sim.shows_cost(pv.info):
 			pv.set_label(sim.upgrade_pad_label(pv.info))
+		elif vis and pv.info.kind == PadInfo.Kind.SUPPLY:
+			pv.set_label(sim.supply_pad_label())
 		# A pay pad dims while it rests after a purchase, so the player sees it's done.
 		pv.set_near(vis and not sim.pad_resting(pv.info) and Vector2(p.x, p.z).distance_to(pv.info.position) < defs.tuning.pad_radius)
 	_update_buildings()
@@ -439,11 +441,13 @@ func _update_habitats() -> void:
 			for h in i:
 				if s.is_built(Colony.habitat_key(h)):
 					k += 1
-			var living := clampi(s.meals.size() - k * cap, 0, cap)
+			var living := clampi(s.housed - k * cap, 0, cap)
 			hv.label.set_text("Habitat", "%d/%d home" % [living, cap], Color("86e07c"))
 			hv.set_glow(0.35 + 0.4 * float(living) / cap)
 		elif i == 0:
-			hv.label.set_text("Habitat", "first lander at %d%%" % roundi(planet.lander_milestones[0]) if not planet.lander_milestones.is_empty() else "")
+			var food := defs.item(sim.food_item())
+			hv.label.set_text("Habitat", "first lander: %d %s" % [planet.lander_costs[0], GameSim.plural(food.display_name)] \
+				if food and not planet.lander_costs.is_empty() else "")
 		else:
 			hv.label.set_text("Habitat", "₵ %d / %d" % [s.paid.get(StringName("build_" + key), 0), planet.habitat_costs[i]])
 

@@ -3,7 +3,7 @@ extends RefCounted
 ## A scripted player for the balance sim: walks at the real walk speed and greedily does the most
 ## valuable thing it can (buy, feed, collect, deliver, dig). Pure logic on top of GameSim.
 
-enum Plan { NONE, BUY, FEED, DELIVER, COLLECT, DIG, WAIT, REPAIR, SWAP }
+enum Plan { NONE, BUY, FEED, DELIVER, COLLECT, DIG, WAIT, REPAIR, SWAP, SUPPLY }
 
 ## Relative value per credit of each purchase, used to pick between affordable options.
 const BUY_VALUE := {
@@ -91,6 +91,8 @@ func _plan_finished() -> bool:
 			return not sim.pad_visible(pad) or (_arrived() and s.count_carried(sim.planet.hazard.repair_item) == 0)
 		Plan.SWAP:
 			return not sim.pad_visible(pad) or (_arrived() and Economy.swap_trade(s, pad.machine).is_empty())
+		Plan.SUPPLY:
+			return not _wants_supply() or (_arrived() and s.count_carried(sim.food_item()) == 0)
 	return true
 
 
@@ -162,12 +164,23 @@ func _decide() -> void:
 			_start_plan(Plan.FEED, m.position + m.in_pad_offset)
 			return
 
+	# 2b. Take food to the SUPPLY pad while the colony has room for the next lander.
+	if _wants_supply() and s.count_carried(sim.food_item()) > 0:
+		pad = sim.pad(&"supply")
+		_start_plan(Plan.SUPPLY, pad.position)
+		return
+
 	# 3. Sell what we carry.
 	if Economy.sellable_index(sim.defs, s.stack) >= 0:
 		_start_plan(Plan.DELIVER, sim.planet.depot_position)
 		return
 
-	# 4. Collect finished goods if a machine has a worthwhile pile.
+	# 4. Collect finished goods: food first while the colony wants it, else the biggest pile.
+	var food := sim.food_machine()
+	if _wants_supply() and s.outputs.get(food.id, 0) > 0 and not sim.pack_full():
+		machine = food
+		_start_plan(Plan.COLLECT, food.position + food.out_pad_offset)
+		return
 	var best_out := 0
 	for m in sim.planet.machines:
 		var outs: int = s.outputs.get(m.id, 0)
@@ -203,6 +216,13 @@ func _hauler_gain() -> float:
 	if Economy.hauler_next_is_cargo(level):
 		return float(d.tuning.hauler_upgrade_cargo) / Economy.hauler_capacity(d, level)
 	return d.tuning.hauler_upgrade_speed / Economy.hauler_speed_factor(d, level)
+
+
+## Is the SUPPLY pad taking food, with nobody left waiting for a home?
+func _wants_supply() -> bool:
+	var p := sim.pad(&"supply")
+	return p != null and sim.pad_visible(p) and sim.state.food < Colony.lander_cost(sim) \
+		and sim.state.colonists_waiting == 0
 
 
 func _damaged_pad() -> PadInfo:

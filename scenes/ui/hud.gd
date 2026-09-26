@@ -120,8 +120,8 @@ func update_hud(sim: GameSim, shown_tf: float, delta: float) -> void:
 		_menu_stats.delivered.text = str(sim.state.stat(&"delivered"))
 		_menu_stats.pack.text = str(cap)
 		_menu_stats.boots.text = "+%d%%" % roundi(sim.state.boots_level * sim.defs.boots_upgrade.amount_per_level * 100.0)
-		_menu_stats.colonists.text = str(sim.state.meals.size() + sim.state.colonists_waiting)
-		_menu_stats.food.text = str(floori(sim.state.food))
+		_menu_stats.colonists.text = str(sim.state.housed + sim.state.colonists_waiting)
+		_menu_stats.food.text = str(sim.state.stat(&"supplied"))
 		_star_map_button.visible = sim.state.won
 
 
@@ -142,29 +142,26 @@ func _update_toxicity(sim: GameSim) -> void:
 	_bar_cap.size = Vector2(w * tox / 100.0, _bar_back.size.y)
 
 
-## Food store and colonists (top right), once the first lander has come.
+## Food towards the next lander and the colonists (top right), once there's food to bring.
 func _update_colony(sim: GameSim) -> void:
 	var s := sim.state
-	var people := s.meals.size() + s.colonists_waiting
-	var next := Colony.next_lander_at(sim.planet, s.terraform)
+	var people := s.housed + s.colonists_waiting
+	var cost := Colony.lander_cost(sim)
+	var supply := sim.pad(&"supply")
+	var supplying := cost >= 0 and supply != null and sim.pad_visible(supply)
 	if s.lander_t >= 0.0:
 		_lander.text = "lander landing"
-	elif next >= 0.0:
-		_lander.text = "lander at %d%%" % roundi(next)
-	_lander.visible = s.lander_t >= 0.0 or next >= 0.0
+	elif supplying:
+		_lander.text = "lander brings %d" % Colony.colonists_per_lander(sim)
+	_lander.visible = s.lander_t >= 0.0 or supplying
+	_food_row.visible = supplying
+	_food.text = "%d/%d" % [floori(s.food), cost]
 	_colony_panel.visible = people > 0 or _lander.visible
-	_food_row.visible = people > 0
 	_people.visible = people > 0
 	if people == 0:
 		return
-	var hungry := Colony.hungry_count(sim)
-	_food.text = str(floori(s.food))
-	_food.add_theme_color_override("font_color", UiStyle.RUST if hungry > 0 else (UiStyle.GREEN if s.food >= Colony.food_target(sim) else UiStyle.INK))
-	if hungry > 0:
-		_people.text = "%d hungry" % hungry
-		_people.add_theme_color_override("font_color", UiStyle.RUST)
-	elif s.colonists_waiting > 0:
-		_people.text = "%d · %d wait" % [s.meals.size(), s.colonists_waiting]
+	if s.colonists_waiting > 0:
+		_people.text = "%d · %d wait" % [s.housed, s.colonists_waiting]
 		_people.add_theme_color_override("font_color", UiStyle.AMBER)
 	else:
 		_people.text = "%d colonists" % people
@@ -466,7 +463,7 @@ func _build_top() -> void:
 	_people = UiStyle.label("", UiStyle.MONO, 11, UiStyle.MUTE)
 	_people.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	colony_col.add_child(_people)
-	# When the next colonists come: landers are called by terraform % (SPEC 4.1).
+	# When the next colonists come: food at the SUPPLY pad calls landers (SPEC 4.1).
 	_lander = UiStyle.label("", UiStyle.MONO, 11, UiStyle.MUTE)
 	_lander.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	colony_col.add_child(_lander)
@@ -656,7 +653,7 @@ func _build_menu() -> Control:
 		var v := VBoxContainer.new()
 		v.add_theme_constant_override("separation", 2)
 		cell.add_child(v)
-		var names := {"drones": "Drones", "delivered": "Delivered", "pack": "Pack size", "boots": "Boots", "colonists": "Colonists", "food": "Food store"}
+		var names := {"drones": "Drones", "delivered": "Delivered", "pack": "Pack size", "boots": "Boots", "colonists": "Colonists", "food": "Food supplied"}
 		v.add_child(UiStyle.label(names[key], UiStyle.MONO, 12, UiStyle.MUTE))
 		var val := UiStyle.label("0", UiStyle.MONO_SEMI, 17, UiStyle.INK)
 		v.add_child(val)

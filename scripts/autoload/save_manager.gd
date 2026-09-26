@@ -7,7 +7,7 @@ extends Node
 
 signal profiles_changed
 
-const SAVE_VERSION := 3
+const SAVE_VERSION := 4
 const PROFILE_COUNT := 3
 const EXPORT_PREFIX := "GT1:"
 const PROFILES_PATH := "user://profiles.json"
@@ -98,8 +98,7 @@ static func migrate(data: Dictionary) -> Dictionary:
 		# v0 (pre-release) saves had no version field; the world layout is the same.
 		version = 1
 	if version < 2:
-		# v2 (M4) adds the colony and hazard fields. Landers for milestones already passed arrive
-		# one after another once the game loads, so an old save catches up on its colonists.
+		# v2 (M4) adds the colony and hazard fields. The colony starts empty, as on a new planet.
 		var w: Dictionary = data["world"]
 		for key in ["landers", "colonists_waiting", "hazard_phase", "hazard_count"]:
 			w[key] = 0
@@ -122,6 +121,14 @@ static func migrate(data: Dictionary) -> Dictionary:
 		w["repairs"] = {}
 		w["impacts"] = []
 		version = 3
+	if version < 4:
+		# v4 makes food the colony's growth: colonists no longer eat, so each one's meal timer
+		# becomes a head count, and whatever was left in the old food store counts towards the
+		# next lander.
+		var w: Dictionary = data["world"]
+		w["housed"] = (w.get("meals", []) as Array).size()
+		w.erase("meals")
+		version = 4
 	data["version"] = version
 	return data
 

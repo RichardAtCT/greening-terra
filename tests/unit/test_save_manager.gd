@@ -56,19 +56,33 @@ func test_migrates_unversioned_save() -> void:
 	assert_not_null(SaveManager.state_from_save_dict(data))
 
 
-func test_migrates_version_one_save_and_catches_up_on_landers() -> void:
+func test_migrates_version_one_save_with_an_empty_colony() -> void:
 	var world := GameSim.new_planet_state(defs, 0).to_dict()
 	world["terraform"] = 30.0
-	for key in ["landers", "lander_t", "colonists_waiting", "meals", "food", "hazard_phase", "hazard_t", "hazard_wait", "hazard_count"]:
+	for key in ["landers", "lander_t", "colonists_waiting", "housed", "food", "hazard_phase", "hazard_t", "hazard_wait", "hazard_count"]:
 		world.erase(key)
 	var state := SaveManager.state_from_save_dict({"version": 1, "world": world})
 	assert_not_null(state)
 	assert_eq(state.landers, 0)
 	assert_eq(state.lander_t, -1.0)
+	assert_eq(state.housed, 0)
 	var sim := GameSim.new(defs, state)
 	for i in roundi(20.0 * 30.0):
 		sim.step(1.0 / 30.0, Vector2(0, 30))
-	assert_eq(state.landers, 2, "the 10% and 25% landers arrive after loading")
+	assert_eq(state.landers, 0, "landers wait for food, as on a new planet")
+
+
+func test_migrates_version_three_colony_to_a_head_count() -> void:
+	var world := GameSim.new_planet_state(defs, 0).to_dict()
+	world.erase("housed")
+	world["landers"] = 2
+	world["meals"] = [40.0, 0.0, 12.5, 90.0]
+	world["food"] = 6.0
+	world["built"] = {"habitat_1": true}
+	var state := SaveManager.state_from_save_dict({"version": 3, "world": world})
+	assert_eq(state.housed, 4, "everyone who had a meal timer is still at home")
+	assert_eq(state.food, 6.0, "the old food store counts towards the next lander")
+	var sim := GameSim.new(defs, state)
 	assert_eq(sim.colonists.size(), 4)
 
 

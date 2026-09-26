@@ -1,6 +1,7 @@
 class_name ColonyTuning
 extends Resource
-## Colonists, landers, food and habitats (SPEC 4.1). Where they land and live is in each PlanetDef.
+## Colonists, landers and habitats (SPEC 4.1). Where they land and live, and the food each lander
+## takes, is in each PlanetDef.
 
 @export_group("Landers")
 ## Seconds from the lander appearing in the sky to touching down (the colonists step out then).
@@ -26,12 +27,6 @@ extends Resource
 @export var wander_radius: float = 2.6
 @export var wander_pause_min: float = 2.0
 @export var wander_pause_max: float = 6.0
-
-@export_group("Food")
-## Each colonist eats one food every this many seconds.
-@export var meal_interval: float = 90.0
-## The hub keeps this many seconds of food for everyone housed and sells the rest.
-@export var food_reserve_seconds: float = 300.0
 
 @export_group("Habitats")
 ## Colonists one habitat houses.

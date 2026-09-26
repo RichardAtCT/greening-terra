@@ -86,11 +86,11 @@ Each planet adds one new resource, one or two new machines, one hazard, and a di
 ## 4. New systems
 
 ### 4.1 Colonists
-- Landers arrive at the hub at terraform milestones (10%, 25%, 40%, 55%, 70%, 85%). Each brings 2 colonists: 12 per planet.
-- The HUD's colony panel shows when the next lander comes ("lander at 25%"), and once the tutorial is done the objective bar says it too.
-- Landers come one at a time: a lander appears as terraform passes a milestone and touches down 5 s later on a landing pad east of the hub. A save from before colonists existed catches up, one lander after another.
+- **Food calls landers.** A SUPPLY pad beside the landing pad (east of the hub) takes the planet's food (seedpods, or biomass on Kessik) off the player's back. Once it holds the next lander's cost (6, 12, 18, 24, 30, 36 food: `PlanetDef.lander_costs`), the lander takes that food and comes down 5 s later. Each brings 2 colonists: 12 per planet. The pad shows from when the food machine is built until the last lander has been called, with the food brought so far piled on it and the next cost on its label.
+- **It's the player's choice.** Food delivered to the hub (by hand or by haulers) is sold as normal; only food carried to the SUPPLY pad calls colonists. Supplied food isn't sold, but it still adds its terraform %, so calling colonists costs credits and never the planet.
+- The HUD's colony panel shows the food towards the next lander ("Food 7/12") and how many it brings, and once the tutorial is done the objective bar says it too ("Carry seedpods to SUPPLY to call 2 colonists (7/12).").
+- Landers come one at a time: while one is coming down, the pad fills towards the next, which is called as soon as the first lands. Colonists don't eat, go hungry or leave.
 - Colonists auto-assign to built machines, a maximum of 2 per machine (4 once upgraded; none at a Heat Tower), spread one per machine before doubling up. Each working colonist makes the machine 25% faster. They walk there visibly and stand working beside it. The rest are off duty and stroll near their habitat.
-- **Food:** each colonist eats 1 seedpod (or biomass on P3) every 90 s, taken from the hub's stock. A hungry colonist stops working and shows a small pod icon but never leaves or dies. The player feeds them by delivering food as normal. The hub keeps a food store, shown in the HUD, that deliveries top up before converting the surplus to credits. Food priority: the hub keeps enough food for 5 minutes and sells the rest. A pod that goes into the store still adds its terraform %.
 - **Habitats:** three plots near the hub, each housing 4. Habitat 1 is built free by the first lander; the others are BUILD pads (₵120, ₵240), each offered once the one before it stands. Colonists with no room wait by the landing pad and move in when a habitat is built.
 - Colonists are simple: Kenney Mini Characters, walk-to-target in straight lines that slide round buildings (the ground is flat and every obstacle is a circle, so there's no navmesh).
 
@@ -137,7 +137,7 @@ Replace the prototype's fixed modulo assignment with a small dispatcher:
 
 ## 6. Controls & UI
 - **HUD, top-left:** planet name, terraform % bar, stage name ("Barren regolith" … "Terraformed"), air pressure (kPa) and mean temperature (°C). These are live and derived from terraform %, as in the prototype. On Kessik, a toxicity bar, with the part of the terraform bar it holds back shaded.
-- **HUD, top-right:** credits, pack count, food store (once colonists arrive), menu button.
+- **HUD, top-right:** credits, pack count, colony panel (food towards the next lander, colonists), menu button.
 - **Bottom:** a one-line objective with a guide arrow on the ground and a bobbing marker over the target, as in the prototype, driven by data (`TutorialStep` resources).
 - **Pads:** each pad shows an icon (the item's own shape and colour) plus a short label. The icon alone should be enough to play.
 - **Toasts** for milestones: "Electrolyser online", "Lander arrived: 2 colonists".
@@ -186,15 +186,15 @@ Scene-specific scripts sit next to their scene (for example `scenes/actors/playe
 - `RecipeDef`: inputs {item: count}, output item (none for a Heat Tower), time, and terraform per cycle when there's no output.
 - `MachineDef`: id, name, recipe, build cost, starts built, position, scene, footprint, collision radius, label height, pad offsets (IN, OUT, BUILD, UPGRADE, REPAIR, SWAP), IN pad colour and label, queue cap (20), output cap (40), upgrade costs (one per mark), speed and output cap per mark, heat radius (Heat Towers), whether colonists work it, and the early SWAP pad (ratio, the level it goes at, the objective hint).
 - `ResourceNodeDef`: item, max stock, positions, drone idle point, look (colour and a baked mesh it tints).
-- `PlanetDef`: name, seed, palette (sky start/mid/end, ground start/end, moss, water deep/shallow), pay multiplier, terraform divisor, hub/depot/bay/outfitter layout, machines, resource nodes, lakes, clear zones, habitat plots and costs, landing pad, lander milestones and colonists per lander, hazard, surface (vents and their boost, starting toxicity, frost and its colour, steam colour), vegetation (when grass, flowers and trees come, their hue and saturation, share of pines), tutorial, win text, balance target minutes and `balance_enforced`.
+- `PlanetDef`: name, seed, palette (sky start/mid/end, ground start/end, moss, water deep/shallow), pay multiplier, terraform divisor, hub/depot/bay/outfitter layout, machines, resource nodes, lakes, clear zones, habitat plots and costs, landing pad and SUPPLY pad, the food each lander takes and colonists per lander, hazard, surface (vents and their boost, starting toxicity, frost and its colour, steam colour), vegetation (when grass, flowers and trees come, their hue and saturation, share of pines), tutorial, win text, balance target minutes and `balance_enforced`.
 - `UpgradeDef`: cost = round((base + step × level) × growth^level), max level, amount per level. Used for pack, boots and haulers.
 - `TutorialDef` → `TutorialStep` (text, marker target, `TutorialCondition`s that complete it, "keep saving" text for a pay pad).
 - `GameTuning`: transfer, dig and pay intervals, radii, respawn time, drone speed, capacity and waits, what each hauler upgrade adds, dispatcher weights, fly time, autosave interval.
-- `ColonyTuning` (`data/colony_tuning.tres`): lander descent and stay, machine boost, colonists per machine, walking speed and work spots, meal interval, food reserve, habitat capacity.
+- `ColonyTuning` (`data/colony_tuning.tres`): lander descent and stay, machine boost, colonists per machine, walking speed and work spots, habitat capacity.
 - `HazardDef` (`data/hazards/`: dust storm, cold snap, meteor shower): see 4.2, plus the look (sky darkening, fog, dust or snow colour and fall, frost).
 - `TerraformDef`: stage names and limits, pressure and temperature formulas, and how % maps to sky, fog, light, lakes, dust, the ground-moss front, moss patches, grass, flowers and trees.
 - `PlayerTuning`, `CameraTuning` (including the build-complete nudge), `JoystickTuning`.
-- `JuiceTuning` (`data/juice.tres`): stack pop, pick-up pitch climb, building pop and dust puff, pad icon size and motion, colonist waddle and work nod, hungry icon, lander drop and lift-off, confetti.
+- `JuiceTuning` (`data/juice.tres`): stack pop, pick-up pitch climb, building pop and dust puff, pad icon size and motion, colonist waddle and work nod, lander drop and lift-off, confetti.
 - `AudioDef` (`data/audio.tres`) → `SoundDef`s (variations, volume, pitch jitter, minimum repeat interval), plus the wind (and its storm boost) and birdsong levels.
 - `BonusDef` (`data/bonuses/`): id, name, one-line description, kind, amount (and a second amount for Rich Veins), card colour.
 
@@ -208,7 +208,7 @@ Planet layouts can be authored as scenes with marker nodes (plots, nodes, lakes)
 - **Economy:** pure functions for costs, payouts, feeding, machine cycles and pay chunks, so the balance sim and tests can call them without scenes.
 - **TerraformController:** maps terraform % to shader uniforms (ground tint, frost amount, water level, haze density and colour) and to vegetation MultiMesh instance thresholds. The spread pattern radiates out from the hub, with a threshold per instance, as in the prototype.
 - **Dispatcher:** drone job scoring and reservations (see 4.5). `DroneBrain` flies each drone's job.
-- **Colony:** landers, habitats, colonist work assignment and walking, food.
+- **Colony:** landers called by food at the SUPPLY pad, habitats, colonist work assignment and walking.
 - **HazardDirector:** schedules, telegraphs and applies hazard effects; `intensity()` drives the look.
 
 ### 7.5 Balance simulator (important)
@@ -217,11 +217,11 @@ Planet layouts can be authored as scenes with marker nodes (plots, nodes, lakes)
 - drones and colonists running the real Economy and Dispatcher code;
 - accelerated time.
 
-It prints a table of time to each milestone (first build, drone bay, the food machine, 25/50/75/100%) and fails if any enforced planet falls outside its target duration (`PlanetDef.target_minutes`) by more than 20%. It also reports upgrades bought, bonuses, colonists housed and waiting, habitats, meals stored as food, time spent hungry, hazards, repairs and (Kessik) when the air cleared. Each planet starts with the kit and bonuses the bot ended the last one with. Run it after any balance change. `--scale-tf` and `--scale-machine-time` try changes in memory without editing data; `--no-colony`, `--no-hazard` and `--no-bonus` show what each system does to the pace; `--bonus=` starts with given bonuses; `--log` prints every purchase and toast.
+It prints a table of time to each milestone (first build, drone bay, the food machine, 25/50/75/100%) and fails if any enforced planet falls outside its target duration (`PlanetDef.target_minutes`) by more than 20%. It also reports upgrades bought, bonuses, colonists housed and waiting, habitats, food supplied, when each lander landed, hazards, repairs and (Kessik) when the air cleared. Each planet starts with the kit and bonuses the bot ended the last one with. Run it after any balance change. `--scale-tf` and `--scale-machine-time` try changes in memory without editing data; `--no-colony`, `--no-hazard` and `--no-bonus` show what each system does to the pace; `--bonus=` starts with given bonuses; `--log` prints every purchase and toast.
 
 ### 7.6 Testing
 Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as failures.
-- Unit tests for Economy (costs, payouts, recipe consumption, food), SaveManager (round-trip and migration), Dispatcher (no double-reservation, no idle drone while a job exists), Colony (landers, habitats, work, food), the dust storm, and M5 (heat towers and cold snaps, toxicity, vents, meteors and repairs, every bonus, the upgrades, the version 3 save, the bot's repairs).
+- Unit tests for Economy (costs, payouts, recipe consumption, supplying food), SaveManager (round-trip and migration), Dispatcher (no double-reservation, no idle drone while a job exists), Colony (the SUPPLY pad and landers, habitats, work), the dust storm, and M5 (heat towers and cold snaps, toxicity, vents, meteors and repairs, every bonus, the upgrades, the version 3 and 4 saves, the bot's repairs).
 - Smoke tests that load the planet scene headless and run it (every planet with its hazard), the win screen's bonus pick, the star map, and a draw-call count of every planet's worst case.
 
 ### 7.7 Build & deploy

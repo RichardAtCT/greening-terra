@@ -111,6 +111,7 @@ func test_toxicity_caps_terraform_and_filters_release_it() -> void:
 	assert_almost_eq(sim.state.terraform, sim.state.growth, 0.0001, "the banked growth shows")
 	assert_true(pod.food_value > 0.0)
 	assert_eq(sim.food_item(), &"biomass", "biomass is Kessik's food")
+	assert_eq(sim.pad(&"supply").icons, [&"biomass"] as Array[StringName], "and calls its landers")
 
 
 func test_machines_on_vents_run_faster() -> void:
@@ -195,7 +196,7 @@ func test_bonus_effects() -> void:
 	_start(0, [&"deep_pockets", &"swift_haulers", &"trade_charter", &"overclock"])
 	assert_eq(sim.pack_capacity(), base_pack + 4)
 	assert_almost_eq(sim.drone_speed(), base_drone * 1.25, 0.0001)
-	assert_almost_eq(Economy.deliver(sim.state, plate, sim.planet, 0.0, sim.pay_factor()), plate.sell_value * 1.25, 0.0001)
+	assert_almost_eq(Economy.deliver(sim.state, plate, sim.planet, sim.pay_factor()), plate.sell_value * 1.25, 0.0001)
 	assert_almost_eq(sim.machine_speed(sim.machine_def(&"smelter")), 1.15, 0.0001)
 
 
@@ -214,7 +215,7 @@ func test_big_lander_brings_more_and_habitats_grow() -> void:
 	_start(0, [&"big_lander"])
 	assert_eq(Colony.colonists_per_lander(sim), 4)
 	assert_eq(Colony.habitat_capacity(sim), 8)
-	sim.state.terraform = 10.0
+	sim.state.food = sim.planet.lander_costs[0]
 	_run(defs.colony.lander_descent_time + 0.5)
 	assert_eq(sim.colonists.size(), 4)
 	assert_eq(sim.state.colonists_waiting, 0)
