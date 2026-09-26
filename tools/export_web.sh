@@ -11,4 +11,14 @@ rm -rf "$ROOT/.godot/exported"
 "$GODOT" --headless --import >/dev/null 2>&1 || true
 "$GODOT" --headless --export-release "Web" build/web/index.html
 test -f build/web/index.wasm || { echo "Export failed: build/web/index.wasm missing" >&2; exit 1; }
+# Lets a newly deployed version take over as soon as the page asks (see WebUpdate), instead of
+# after every copy of the game is closed. Godot's service worker has no such listener.
+cat >> build/web/index.service.worker.js <<'JS'
+
+self.addEventListener('message', (event) => {
+	if (event.data === 'skip-waiting') {
+		self.skipWaiting();
+	}
+});
+JS
 echo "Exported to build/web/ ($(du -sh build/web | cut -f1))"
