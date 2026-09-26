@@ -1,7 +1,9 @@
 extends Node
 ## Profiles, saves and settings, all as JSON in user:// (IndexedDB on web).
 ## Each profile's world lives in user://profile_N.json; names/colours in user://profiles.json;
-## settings in user://settings.json.
+## settings in user://settings.json. On web each file is also kept in localStorage, which is
+## written at once: Godot only copies user:// to IndexedDB on its next frame, and a hidden page
+## draws none, so the save made as the page is hidden was lost if the browser then closed it.
 
 signal profiles_changed
 
@@ -13,14 +15,36 @@ const SETTINGS_PATH := "user://settings.json"
 const DEFAULT_NAMES := ["Explorer 1", "Explorer 2", "Explorer 3"]
 const COLORS := ["f2b35b", "86e07c", "8fe3ff", "d9794a", "c9a0ff", "ff8fb1"]
 const DEFAULT_SETTINGS := {"music_volume": 0.8, "sfx_volume": 0.9, "haptics": true, "reduced_effects": false, "debug_overlay": false}
+## localStorage key prefix. On itch.io every game shares one origin, so the keys carry the game's name.
+const WEB_KEY_PREFIX := "greening-tessera/"
+## Every call is wrapped, since a browser that blocks storage throws even on reading localStorage.
+const WEB_STORE_JS := """
+window.greeningTesseraStore = (function () {
+	function erase(k) { try { window.localStorage.removeItem(k); } catch (e) {} }
+	return {
+		read: function (k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+		// A failed write clears the key, so an older copy can't be read back instead of the file.
+		write: function (k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { erase(k); return false; } },
+		erase: erase,
+		works: function () {
+			try { window.localStorage.setItem('greening-tessera/probe', '1'); window.localStorage.removeItem('greening-tessera/probe'); return true; } catch (e) { return false; }
+		},
+	};
+})();
+"""
 
 var active_profile: int = 1
 ## Profile index (1-based) -> {"name": String, "color": String hex}.
 var profiles: Dictionary = {}
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate()
+## The localStorage wrapper on web; null elsewhere.
+var _web_store: JavaScriptObject
 
 
 func _ready() -> void:
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval(WEB_STORE_JS, true)
+		_web_store = JavaScriptBridge.get_interface("greeningTesseraStore")
 	_load_profiles()
 	_load_settings()
 
@@ -30,7 +54,12 @@ func profile_path(profile: int) -> String:
 
 
 func has_save(profile: int) -> bool:
-	return FileAccess.file_exists(profile_path(profile))
+	return _web_read(profile_path(profile)) != null or FileAccess.file_exists(profile_path(profile))
+
+
+## False when the browser keeps nothing between visits (storage blocked, or some private windows).
+func storage_persists() -> bool:
+	return _web_store == null or OS.is_userfs_persistent() or bool(_web_store.works())
 
 
 func save_state(profile: int, state: WorldState) -> bool:
@@ -44,9 +73,10 @@ func load_state(profile: int) -> WorldState:
 
 
 func delete_save(profile: int) -> void:
-	if has_save(profile):
+	if _web_store:
+		_web_store.erase(_web_key(profile_path(profile)))
+	if FileAccess.file_exists(profile_path(profile)):
 		DirAccess.remove_absolute(profile_path(profile))
-		_sync_web()
 	profiles_changed.emit()
 
 
@@ -165,22 +195,31 @@ func _load_settings() -> void:
 # --- Files ----------------------------------------------------------------
 
 func _write_json(path: String, data: Dictionary) -> bool:
+	var text := JSON.stringify(data, "", true, true)
+	var kept := _web_store != null and bool(_web_store.write(_web_key(path), text))
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	if f == null:
 		push_warning("Could not write %s: %s" % [path, error_string(FileAccess.get_open_error())])
-		return false
-	f.store_string(JSON.stringify(data, "", true, true))
-	# Closing flushes the file; on web this also syncs it to IndexedDB.
+		return kept
+	f.store_string(text)
+	# Closing flushes the file; on web Godot copies it to IndexedDB on the next frame.
 	f.close()
 	return true
 
 
+## On web the localStorage copy wins: it's written first, and cleared if writing it fails.
 func _read_json(path: String):
-	if not FileAccess.file_exists(path):
-		return null
-	return JSON.parse_string(FileAccess.get_file_as_string(path))
+	var text = _web_read(path)
+	if text == null:
+		if not FileAccess.file_exists(path):
+			return null
+		text = FileAccess.get_file_as_string(path)
+	return JSON.parse_string(text)
 
 
-func _sync_web() -> void:
-	if OS.has_feature("web"):
-		JavaScriptBridge.eval("if (typeof FS !== 'undefined' && FS.syncfs) { FS.syncfs(false, function(){}); }", true)
+func _web_key(path: String) -> String:
+	return WEB_KEY_PREFIX + path.get_file()
+
+
+func _web_read(path: String):
+	return _web_store.read(_web_key(path)) if _web_store else null
