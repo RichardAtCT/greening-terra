@@ -227,7 +227,8 @@ Tests use **GUT 9.7.1** (`tools/test.sh`). Engine errors during a test count as 
 ### 7.7 Build & deploy
 - `export_presets.cfg` committed with a "Web" preset.
 - A script (`tools/deploy.sh`) that exports headless and pushes to itch.io with **butler** (`butler push build/web richardat/greening-tessera:web`). The itch.io page is set to private or restricted with a download key.
-- A GitHub Action (`.github/workflows/ci.yml`) runs the tests and the balance sim, and exports the web build, on every push to `main` and on every PR. The build is uploaded as an artifact.
+- A second script (`tools/deploy_netlify.sh`) publishes the same build to an unlisted Netlify site. That copy is the one to add to the iPhone Home Screen: on itch.io the game runs in a cross-site iframe, and Safari keeps no storage there once it quits, so saves are lost. The site ID stays out of this public repo.
+- A GitHub Action (`.github/workflows/ci.yml`) runs the tests and the balance sim, and exports the web build, on every push to `main` and on every PR. The build is uploaded as an artifact. Each green `main` build is then pushed to itch.io and Netlify.
 
 ---
 

@@ -93,9 +93,20 @@ Before the first deploy:
 
 To push to a different page, set `ITCH_TARGET=user/game:channel`.
 
+## Deploying to Netlify
+
+```sh
+NETLIFY_SITE_ID=<site id> tools/deploy_netlify.sh               # export, then publish build/web
+NETLIFY_SITE_ID=<site id> tools/deploy_netlify.sh --no-export   # publish the existing build/web
+```
+
+The Netlify copy is the one for the iPhone. On itch.io the game runs in an iframe from another site, and Safari throws that storage away when it quits, so saves are lost (DECISIONS #86). The site ID is not in this repo, because the repo is public and the URL is unlisted. The script needs Node 22 or later and a `netlify login` (or `NETLIFY_AUTH_TOKEN`).
+
+CI publishes each green `main` build to both itch.io and Netlify. It needs the repo secrets `BUTLER_API_KEY`, `NETLIFY_AUTH_TOKEN` and `NETLIFY_SITE_ID`, and skips a target whose secrets are missing.
+
 ### iPhone Home Screen
 
-Open the game's own URL in Safari. For a full-screen PWA, use the direct HTML5 file URL rather than the itch.io page. Then tap **Share → Add to Home Screen**. The icon opens standalone, with no Safari chrome.
+Open the Netlify URL in Safari, then tap **Share → Add to Home Screen**. The icon opens standalone, with no Safari chrome, and its saves last. Do not use the itch.io page or its direct itch.zone URL: the first loses saves when Safari quits, and the second changes with every upload.
 
 ## Project layout
 

@@ -73,3 +73,35 @@ jobs:
       - name: Push to itch.io
         if: env.BUTLER_API_KEY != ''
         run: tools/deploy.sh --no-export
+
+  deploy-netlify:
+    # Publishes each green main build to Netlify, the copy to add to the iPhone Home Screen.
+    # Skips until the NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID secrets exist.
+    needs: test-and-export
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency: netlify-deploy
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+    steps:
+      - uses: actions/checkout@v7
+        if: env.NETLIFY_AUTH_TOKEN != ''
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v8
+        if: env.NETLIFY_AUTH_TOKEN != ''
+        with:
+          name: web-build
+          path: build/web
+
+      - uses: actions/setup-node@v7
+        if: env.NETLIFY_AUTH_TOKEN != ''
+        with:
+          node-version: 22
+
+      - name: Publish to Netlify
+        if: env.NETLIFY_AUTH_TOKEN != ''
+        run: tools/deploy_netlify.sh --no-export
