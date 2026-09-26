@@ -63,7 +63,8 @@ extends Resource
 
 @export_group("Surface")
 ## Geothermal vents (Kessik): a machine built within vent_radius of one runs vent_boost faster.
-@export var vents: PackedVector2Array = []
+## (No "= []": Godot 4.7 drops a packed array declared with an empty initializer from exported builds.)
+@export var vents: PackedVector2Array
 @export var vent_radius: float = 1.5
 @export var vent_boost: float = 0.5
 ## Toxicity % at the start (Kessik). Terraform can't rise above 100 - toxicity; delivered items

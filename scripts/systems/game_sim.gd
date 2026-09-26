@@ -628,16 +628,32 @@ func _build_pads() -> void:
 			h.index = i
 
 
-## An upgrade pad's subtitle: what the next level gives and its cost ("MK II ₵150", "+1 CARGO ₵150").
+## A buy-again pad's subtitle: what the next level gives and its cost ("MK II ₵150",
+## "+1 CARGO ₵150", "+4 SLOTS ₵45"). The planet refreshes it every frame.
 func upgrade_pad_label(p: PadInfo) -> String:
 	var cost := pad_cost(p)
 	if cost < 0:
 		return "MAX"
+	match p.pay:
+		PadInfo.Pay.PACK:
+			return "%s ₵%d" % [defs.pack_upgrade.pad_label, cost]
+		PadInfo.Pay.BOOTS:
+			return "%s ₵%d" % [defs.boots_upgrade.pad_label, cost]
+		PadInfo.Pay.DIG:
+			return "%s ₵%d" % [defs.dig_upgrade.pad_label, cost]
+		PadInfo.Pay.BUY_DRONE:
+			return "%s ₵%d" % [defs.drone_upgrade.pad_label, cost]
 	if p.pay == PadInfo.Pay.UPGRADE_HAULERS:
 		var what := "+%d CARGO" % defs.tuning.hauler_upgrade_cargo if Economy.hauler_next_is_cargo(state.hauler_level) \
 			else "+%d%% SPEED" % roundi(defs.tuning.hauler_upgrade_speed * 100.0)
 		return "%s ₵%d" % [what, cost]
 	return "MK %s ₵%d" % [mark(state.machine_level(p.machine.id) + 2), cost]
+
+
+## Pads whose subtitle is the next level and its cost (upgrade_pad_label), kept up to date.
+func shows_cost(p: PadInfo) -> bool:
+	return p.pay in [PadInfo.Pay.UPGRADE_MACHINE, PadInfo.Pay.UPGRADE_HAULERS, PadInfo.Pay.PACK,
+		PadInfo.Pay.BOOTS, PadInfo.Pay.DIG, PadInfo.Pay.BUY_DRONE]
 
 
 func _pay_pad(key: StringName, pay: PadInfo.Pay, pos: Vector2, title: String, label: String) -> PadInfo:
@@ -647,6 +663,8 @@ func _pay_pad(key: StringName, pay: PadInfo.Pay, pos: Vector2, title: String, la
 	p.label = label
 	p.color = Color("f2b35b")
 	pads.append(p)
+	if shows_cost(p) and p.pay != PadInfo.Pay.UPGRADE_MACHINE:
+		p.label = upgrade_pad_label(p)
 	return p
 
 
